@@ -1280,6 +1280,11 @@ if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
   window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
 }
 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+/* a fresh launch always starts at the top (the form begins with Tournoi); coming back from the background is not a launch and keeps its place */
+try { history.scrollRestoration = 'manual'; } catch (e) {}
+window.scrollTo(0, 0);
+window.addEventListener('load', function () { window.scrollTo(0, 0); });
+window.addEventListener('pageshow', function (e) { if (!e.persisted) window.scrollTo(0, 0); });
 </script>
 </body>
 </html>
