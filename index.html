@@ -225,6 +225,29 @@ ol.log li:first-child{border-top:0}
 .vbtn.bad.on,.vbtn.bad:active{background:rgba(242,139,130,.24);border-color:var(--bad)}
 .vbtn.good.on,.vbtn.good:active{background:rgba(134,209,168,.24);border-color:var(--ok)}
 
+/* comment on a hand: a correction (bad) must be impossible to miss, a comment on a good hand is calmer */
+.fixbox{display:flex;flex-direction:column;gap:10px;padding:16px 18px;border-radius:22px;border:1.5px solid var(--edge-hi);background:var(--glass-2)}
+.fixbox.top{margin-top:14px}
+.fixbox.bad{border-color:var(--bad);background:rgba(242,139,130,.14);box-shadow:0 0 0 4px rgba(242,139,130,.08),0 10px 30px rgba(242,139,130,.10)}
+.fixbox.good{border-color:rgba(134,209,168,.7);background:rgba(134,209,168,.10);box-shadow:0 0 0 4px rgba(134,209,168,.06)}
+.fx-l{display:flex;align-items:center;justify-content:space-between;gap:10px;font:700 11.5px/1 var(--f-body);letter-spacing:.16em;text-transform:uppercase;color:var(--fg-2)}
+.fixbox.bad .fx-l{color:var(--bad)} .fixbox.good .fx-l{color:var(--ok)}
+.fx-l .link{min-height:28px;color:var(--fg-2);font-weight:600;letter-spacing:0;text-transform:none}
+.fx-t{font:600 18px/1.5 var(--f-disp);letter-spacing:-.01em;color:var(--fg);white-space:pre-wrap;overflow-wrap:anywhere}
+.fixbox textarea.inp{min-height:88px;font:500 16px/1.5 var(--f-body)}
+.fixbox.bad textarea.inp{border-color:rgba(242,139,130,.5)}
+.fx-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font:500 12.5px var(--f-body);color:var(--fg-2)}
+.fx-add{align-self:flex-start;min-height:40px;padding:0 16px;border-radius:999px;border:1.5px dashed var(--edge-hi);background:transparent;color:var(--fg-2);font:600 13.5px var(--f-body)}
+.fx-add:hover{background:var(--glass);color:var(--fg)}
+.fixline{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;padding:7px 11px;border-radius:12px;border-left:3px solid var(--edge-hi);background:var(--glass);font:600 13px/1.4 var(--f-body);color:var(--fg);overflow-wrap:anywhere}
+.fixline.bad{border-left-color:var(--bad);background:rgba(242,139,130,.10)}
+.fixline.good{border-left-color:var(--ok);background:rgba(134,209,168,.08)}
+.vbtn.next{color:var(--fg);border-color:var(--edge-hi);background:var(--glass-2)}
+.pcm{flex:none;font:600 14px var(--f-body);color:var(--fg-2)}
+.pcm.bad{color:var(--bad)} .pcm.good{color:var(--ok)}
+.pc-main .fx-t{font-size:23px}
+.pc-main .fixbox{padding:18px 22px}
+
 /* review on a computer (wide screens only: the body gets .wide-rv): suivi + tournaments on the left, the hand and two big buttons on the right */
 body.wide-rv .wrap,body.wide-rv .top{max-width:1280px}
 body.wide-rv .top{flex-direction:row;align-items:center;justify-content:space-between;gap:20px;padding:10px 14px}
@@ -482,7 +505,7 @@ function newHand(ctx) {
     villains: [{ id: 'V1', pos: '', stack: '', cards: [null, null], read: '' }], nextV: 2,
     board: { flop: [null, null, null], turn: [null], river: [null] },
     streets: { preflop: [], flop: [], turn: [], river: [] },
-    result: '', phase: '', tags: [], note: '', verdict: '', reviewedAt: null
+    result: '', phase: '', tags: [], note: '', verdict: '', reviewedAt: null, comment: ''
   };
 }
 function normHand(x) {
@@ -504,6 +527,7 @@ function normHand(x) {
   STREETS.forEach(s => { h.streets[s] = (x.streets && x.streets[s]) ? x.streets[s] : []; });
   h.tags = x.tags || [];
   if (h.verdict !== 'good' && h.verdict !== 'bad') { h.verdict = ''; h.reviewedAt = null; }
+  if (typeof h.comment !== 'string') h.comment = '';
   if (!TABLES[h.table]) h.table = '9';
   const maxV = h.villains.reduce((m, v) => Math.max(m, parseInt(String(v.id).slice(1), 10) || 0), 0);
   h.nextV = Math.max(h.nextV || 1, maxV + 1);
@@ -512,7 +536,7 @@ function normHand(x) {
 const isPristine = h => !h.hero.pos && !h.hero.stack && h.hero.cards.every(c => !c) &&
   h.villains.every(v => !v.pos && !v.stack && v.cards.every(c => !c) && !v.read) &&
   STREETS.every(s => !h.streets[s].length) && ['flop','turn','river'].every(g => h.board[g].every(c => !c)) &&
-  !h.result && !h.phase && !h.tags.length && !h.note && !h.verdict;
+  !h.result && !h.phase && !h.tags.length && !h.note && !h.verdict && !h.comment;
 
 /* ===== storage: account database when available, otherwise this device ===== */
 const store = { mode: 'init', hands: [], ready: false, slow: false, error: '', col: null, persist: true };
@@ -617,6 +641,17 @@ function reviewStats(hands) {
 const goodRate = s => (s.good + s.bad) ? Math.round(100 * s.good / (s.good + s.bad)) : null;
 /* hands waiting for a verdict, in the order they were entered */
 const toReview = () => store.hands.filter(h => !h.verdict).sort(byEntry);
+/* the comment on a hand: a correction when it was bad, anything he wants to keep when it was good */
+async function setComment(id, text) {
+  const h = store.hands.find(x => x.id === id);
+  if (!h) return null;
+  const t = String(text == null ? '' : text).trim().slice(0, 1000);
+  if ((h.comment || '') === t) return t;
+  const n = normHand(clone(h));
+  n.comment = t; n.updatedAt = new Date().toISOString();
+  await storeSave(n);
+  return t;
+}
 async function setVerdict(id, v) {
   const h = store.hands.find(x => x.id === id);
   if (!h) return;
@@ -654,7 +689,7 @@ let editingId = null;
 /* a computer screen (or a tablet held wide): the review gets its own two-column layout */
 const WIDE_Q = window.matchMedia ? window.matchMedia('(min-width: 1000px)') : null;
 const isWide = () => !!(WIDE_Q && WIDE_Q.matches);
-const ui = { pc: { sel: null, end: false }, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, toastTimer: null };
+const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, toastTimer: null };
 
 /* ===== betting engine: replays the logged actions to get amounts, pot and SPR ===== */
 function actorsOf(h) {
@@ -841,6 +876,7 @@ function handText(h) {
   if (h.result) L.push('', 'Résultat : ' + RESULT_FR[h.result]);
   if (h.tags.length) L.push('Tags : ' + h.tags.join(', '));
   if (h.note) L.push('', 'Note : ' + h.note);
+  if (h.comment) L.push('', (h.verdict === 'bad' ? 'Correction : ' : 'Commentaire : ') + h.comment);
   return L.join('\n');
 }
 
@@ -970,13 +1006,14 @@ function secResult() {
       '<div class="stackrow"><input class="inp" id="in-tag" placeholder="Nouveau tag" value="' + esc(ui.tagDraft) + '" data-in="tagdraft" autocomplete="off" aria-label="Nouveau tag"><button type="button" class="btn ghost sm" data-act="addtag">Ajouter</button></div>') +
     fld('Verdict après GTO Wizard', '<div class="row">' + chip('✓ Bon', { on: H.verdict === 'good', cls: 'vgood', attrs: 'data-act="verdict" data-v="good"' }) +
       chip('✗ Mauvais', { on: H.verdict === 'bad', cls: 'vbad', attrs: 'data-act="verdict" data-v="bad"' }) + '</div>') +
+    fld(H.verdict === 'bad' ? 'Correction (ce qu\'il fallait faire)' : 'Commentaire après la revue', '<textarea class="inp" id="in-comment" data-in="comment" maxlength="1000" placeholder="' + (H.verdict === 'bad' ? 'Ce qu\'il fallait faire...' : 'Optionnel') + '">' + esc(H.comment) + '</textarea>') +
     fld('Note', '<textarea class="inp" id="in-note" data-in="note" placeholder="Ce que tu as pensé, le spot qui te gêne, la lecture sur le joueur...">' + esc(H.note) + '</textarea>') +
     '<div class="row"><button type="button" class="btn ghost sm" data-act="copy">Copier le texte</button>' + extra + '</div></div>';
 }
 
 function renderEdit() {
   const sim = simulate(H);
-  $('#view-edit').innerHTML = secContext() + secHero() + secVillains() + secStreets(sim) + secResult();
+  $('#view-edit').innerHTML = (editingId ? cmtShow(H) : '') + secContext() + secHero() + secVillains() + secStreets(sim) + secResult();
 }
 
 /* ===== sheet: card picker and text viewer ===== */
@@ -1037,6 +1074,12 @@ function renderSave() {
   const reviewing = ui.tab === 'review' && !isWide() && ui.rv && !ui.rv.done;
   $('#savebar').hidden = !(ui.tab === 'edit' || reviewing);
   $('#savebar-in').className = 'savebar-in' + (reviewing ? ' vd' : '');
+  if (reviewing && ui.rv.edit) {   /* writing the correction: switch to Bon, or move on */
+    $('#savebar-in').innerHTML =
+      '<button type="button" class="vbtn good" data-keepfocus data-act="rvset" data-v="good"><span class="g" aria-hidden="true">✓</span>Bon</button>' +
+      '<button type="button" class="vbtn next" data-keepfocus data-act="rvfixdone">' + (ui.rv.edit.adv ? 'Suivante ›' : 'OK') + '</button>';
+    return;
+  }
   if (reviewing) {   /* ✗ / ✓ stay under the thumb, whatever the length of the hand */
     const h = rvHand(), cur = h ? h.verdict : '';
     $('#savebar-in').innerHTML =
@@ -1048,6 +1091,34 @@ function renderSave() {
   const note = empty ? 'Rien à enregistrer pour l\'instant.' : iss.length ? 'À compléter : ' + iss.join(' · ') : 'Main complète.';
   $('#savebar-in').innerHTML = '<div class="save-note' + (iss.length && !empty ? ' warn' : '') + '">' + esc(note) + '</div>' +
     '<button type="button" class="btn" data-act="save"' + (empty ? ' disabled' : '') + '>' + (editingId ? 'Mettre à jour' : 'Enregistrer') + '</button>';
+}
+
+/* ===== comment on a hand: loud when shown, a text field while written, a quiet button when empty ===== */
+const cmtCls = v => v === 'bad' ? 'bad' : v === 'good' ? 'good' : '';
+const cmtLabel = v => (v === 'bad' ? '✗ Correction' : v === 'good' ? '✓ Commentaire' : 'Commentaire');
+/* read only (detail of a hand in the editor) */
+function cmtShow(h) {
+  if (!h || !h.comment) return '';
+  return '<div class="fixbox top ' + cmtCls(h.verdict) + '"><div class="fx-l"><span>' + cmtLabel(h.verdict) + '</span></div><div class="fx-t">' + esc(h.comment) + '</div></div>';
+}
+/* pre = 'pc' or 'rv' (computer or phone review); edit = {id, adv} while the field is open on this hand */
+function cmtBlock(h, edit, pre) {
+  const v = h.verdict, cls = cmtCls(v);
+  if (edit) {
+    const draft = ui.fixDraft && ui.fixDraft.id === h.id ? ui.fixDraft.text : (h.comment || '');
+    return '<div class="fixbox edit ' + cls + '"><div class="fx-l"><span>' + cmtLabel(v) + '</span></div>' +
+      '<textarea class="inp fix-in" id="in-fix" data-in="fix" data-id="' + esc(h.id) + '" rows="3" maxlength="1000" placeholder="' + (v === 'bad' ? 'Ce qu\'il fallait faire (ex. fold au flop, 3-bet avant le flop...)' : 'Ton commentaire (optionnel)') + '">' + esc(draft) + '</textarea>' +
+      '<div class="fx-h"><span>' + (pre === 'pc' ? kbd('⏎') + ' valider' + (edit.adv ? ' et passer à la suivante' : '') + ' · ' + kbd('Maj') + ' + ' + kbd('⏎') + ' nouvelle ligne' : '') + '</span>' +
+      (pre === 'pc' ? '<button type="button" class="btn sm" data-keepfocus data-act="pcfixdone">' + (edit.adv ? 'Valider et suivante' : 'Valider') + '</button>' : '') + '</div></div>';
+  }
+  if (h.comment) return '<div class="fixbox ' + cls + '"><div class="fx-l"><span>' + cmtLabel(v) + '</span><button type="button" class="link" data-act="' + pre + 'fixedit">Modifier</button></div><div class="fx-t">' + esc(h.comment) + '</div></div>';
+  return '<button type="button" class="fx-add" data-act="' + pre + 'fixedit">+ ' + (v === 'bad' ? 'Ajouter la correction' : 'Ajouter un commentaire') + (pre === 'pc' ? ' ' + kbd('⏎') : '') + '</button>';
+}
+/* put the cursor in the field when it has just been opened (or was already being typed in) */
+function focusFixBox(keep) {
+  const ta = document.getElementById('in-fix');
+  if (ta && (ui.focusFix || keep)) { try { ta.focus(); const n = ta.value.length; ta.setSelectionRange(n, n); } catch (e) { /* no selection */ } }
+  ui.focusFix = false;
 }
 
 /* ===== hands list ===== */
@@ -1065,7 +1136,8 @@ function handRow(h, no) {
     '<button type="button" class="hand" data-act="open" data-id="' + esc(n.id) + '"><span class="hand-cards">' + cards + '</span><span class="hand-main">' +
     '<span class="hand-sum"><span class="no">n°' + esc(no || n.handNo || '–') + '</span>' + esc(sum) + '</span>' +
     (reached.length ? '<span class="pot">' + esc(reached.join(' › ')) + '</span>' : '') +
-    (board ? '<span class="hand-board">' + board + '</span>' : '') + (tags ? '<span class="tags">' + tags + '</span>' : '') + '</span></button></div>';
+    (board ? '<span class="hand-board">' + board + '</span>' : '') + (tags ? '<span class="tags">' + tags + '</span>' : '') +
+    (n.comment ? '<span class="fixline ' + cmtCls(n.verdict) + '">' + esc(n.comment) + '</span>' : '') + '</span></button></div>';
 }
 
 function filteredHands() {
@@ -1145,6 +1217,7 @@ function reviewCard() {
   const board = ['flop', 'turn', 'river'].reduce((a, g) => a.concat(h.board[g]), []).filter(Boolean).map(c => cardFace(c, 'mini')).join('');
   return '<div class="sec rv"><div class="rv-top"><span class="lbl">Revue · ' + (r.i + 1) + ' / ' + r.ids.length + '</span><button type="button" class="link" data-act="rvquit">Terminer</button></div>' +
     '<div class="prog" aria-hidden="true"><i style="width:' + Math.round(100 * r.i / r.ids.length) + '%"></i></div>' +
+    cmtBlock(h, r.edit && r.edit.id === h.id ? r.edit : null, 'rv') +
     '<div class="rv-cards"><span class="hand-cards">' + cards + '</span>' + (board ? '<span class="hand-board">' + board + '</span>' : '') + '</div>' +
     '<div class="rv-text">' + esc(exportTexts([h0])) + '</div>' +
     '<div class="rv-nav"><button type="button" class="link" data-act="rvprev"' + (r.i ? '' : ' disabled') + '>‹ Précédente</button>' +
@@ -1192,7 +1265,7 @@ function pcSide() {
     const rows = open ? '<div class="pg-rows">' + g.hands.map(h => {
       const n = normHand(h), cards = n.hero.cards.map(c => c ? cardFace(c, 'mini') : '<span class="card mini empty"><span class="r">?</span></span>').join('');
       return '<button type="button" class="pg-r' + (h.id === ui.pc.sel ? ' sel' : '') + '" data-act="pcsel" data-id="' + esc(h.id) + '"><span class="no">n°' + esc((info[h.id] || {}).no || '–') + '</span>' +
-        '<span class="hand-cards">' + cards + '</span><span class="pg-s">' + esc(pcSum(h)) + '</span>' + pcStatus(h) + '</button>';
+        '<span class="hand-cards">' + cards + '</span><span class="pg-s">' + esc(pcSum(h)) + '</span>' + (n.comment ? '<span class="pcm ' + cmtCls(n.verdict) + '" title="Commentaire">✎</span>' : '') + pcStatus(h) + '</button>';
     }).join('') + '</div>' : '';
     return '<div class="pg' + (open ? ' open' : '') + '"><button type="button" class="pg-h" data-act="pcgrp" data-id="' + esc(g.hands[0].id) + '">' +
       '<span class="trn-h"><span class="trn-n">' + esc(g.name || 'Sans nom') + '</span><span class="meta">' + esc(fmtDate(g.start)) + ' · ' + t.total + ' main' + (t.total > 1 ? 's' : '') + '</span></span>' +
@@ -1230,6 +1303,7 @@ function pcMain() {
     '<button type="button" class="btn ghost sm" data-act="pcnext"' + (i < total - 1 ? '' : ' disabled') + '>Suivante ' + kbd('→') + '</button></div>' +
     '<div class="row pc-links"><button type="button" class="link" data-act="open" data-id="' + esc(h0.id) + '">Modifier la main</button>' +
     (h.verdict ? '<button type="button" class="link" data-act="pcclear">Retirer le verdict</button>' : '') + '</div></div></div>' +
+    cmtBlock(h, ui.pc.edit && ui.pc.edit.id === h0.id ? ui.pc.edit : null, 'pc') +
     '<div class="pc-cards"><span class="hand-cards pc-hero">' + hero + '</span>' + (board ? '<span class="hand-board pc-board">' + board + '</span>' : '') + '</div>' +
     '<div class="pc-text">' + esc(exportTexts([h0])) + '</div>' +
     '<div class="pc-v">' + vb('bad', '✗', 'Mauvais', 'M') + vb('good', '✓', 'Bon', 'B') + '</div></section>';
@@ -1256,6 +1330,7 @@ function pcNext(id) {
 function renderReview() {
   const el = $('#view-review');
   if (!store.ready) { el.innerHTML = '<div class="empty-state">Chargement des mains...</div>'; return; }
+  const typing = !!(document.activeElement && document.activeElement.id === 'in-fix');
   if (isWide()) {
     const old = el.querySelector('.pc-list'), keep = old ? old.scrollTop : 0;
     el.innerHTML = pcView();
@@ -1264,9 +1339,11 @@ function renderReview() {
       box.scrollTop = keep;
       if (cur) { const b = box.getBoundingClientRect(), r = cur.getBoundingClientRect(); if (r.top < b.top) box.scrollTop += r.top - b.top - 8; else if (r.bottom > b.bottom) box.scrollTop += r.bottom - b.bottom + 8; }
     }
+    focusFixBox(typing);
     return;
   }
   el.innerHTML = ui.rv ? (ui.rv.done ? reviewDone() : reviewCard()) : reviewSummary();
+  focusFixBox(typing);
 }
 
 /* ===== render all, toast, clipboard, downloads ===== */
@@ -1434,16 +1511,35 @@ function freshCtx() {
 }
 /* review on a computer: previous / next hand of the same tournament */
 function pcStep(d) {
+  closeFix();
   const g = findGroup(ui.pc.sel);
   if (!g) return;
   const j = g.hands.findIndex(h => h.id === ui.pc.sel) + d;
   if (j < 0 || j >= g.hands.length) return;
   ui.pc.sel = g.hands[j].id; ui.pc.end = false; renderReview(); window.scrollTo(0, 0);
 }
+/* comments: written in a field, saved when the field is left, validated, or when we move on */
+async function applyComment(id, text) {
+  const t = await setComment(id, text);
+  if (t != null && editingId === id) {   /* the editor follows, so saving it later does not undo the comment */
+    H.comment = t;
+    try { const o = JSON.parse(origJson); o.comment = t; origJson = JSON.stringify(o); } catch (e) { /* no baseline */ }
+    saveDraftSoon();
+  }
+}
+function commitFix() {
+  const d = ui.fixDraft;
+  if (!d) return;
+  ui.fixDraft = null;
+  applyComment(d.id, d.text).catch(e => { toast('Enregistrement impossible' + (e && e.code ? ' (' + e.code + ')' : '')); });
+}
+/* leave any comment field that is open (its text is kept) */
+function closeFix() { commitFix(); ui.pc.edit = null; if (ui.rv) ui.rv.edit = null; }
 /* review helpers */
 function rvGo(d) {
   const r = ui.rv;
   if (!r) return;
+  closeFix();
   r.i += d;
   if (r.i >= r.ids.length) { r.i = r.ids.length; r.done = true; }
   renderAll(); window.scrollTo(0, 0);
@@ -1556,7 +1652,7 @@ function closeSwipes(except) {
 })();
 
 const A = {
-  tab(el) { ui.tab = el.dataset.v; ui.picker = null; ui.delGroup = null; ui.rv = null; renderAll(); window.scrollTo(0, 0); },
+  tab(el) { closeFix(); ui.tab = el.dataset.v; ui.picker = null; ui.delGroup = null; ui.rv = null; renderAll(); window.scrollTo(0, 0); },
   table(el) {
     H.table = el.dataset.v;
     const ok = new Set(TABLES[H.table]);
@@ -1618,19 +1714,28 @@ const A = {
     renderAll(); window.scrollTo(0, 0);
   },
   /* ----- review on a computer ----- */
-  pcsel(el) { ui.pc.sel = el.dataset.id; ui.pc.end = false; renderReview(); window.scrollTo(0, 0); },
+  pcsel(el) { closeFix(); ui.pc.sel = el.dataset.id; ui.pc.end = false; renderReview(); window.scrollTo(0, 0); },
   pcgrp(el) {
+    closeFix();
     const g = findGroup(el.dataset.id);
     if (!g) return;
     ui.pc.sel = (g.hands.find(x => !x.verdict) || g.hands[0]).id; ui.pc.end = false; renderReview(); window.scrollTo(0, 0);
   },
   pcprev() { pcStep(-1); },
   pcnext() { pcStep(1); },
-  pcback() { ui.pc.end = false; renderReview(); },
+  pcback() { closeFix(); ui.pc.end = false; renderReview(); },
   pccopy() { const h = store.hands.find(x => x.id === ui.pc.sel); if (h) copyText(exportTexts([h]), 'Texte de la main'); },
   pcset(el) {
     const id = ui.pc.sel, h = store.hands.find(x => x.id === id), v = el.dataset.v;
     if (!h || ui.pc.end || (v !== 'good' && v !== 'bad')) return;
+    closeFix();
+    if (v === 'bad') {   /* a mistake gets its correction: stay on the hand, the field opens, Enter moves on */
+      const had = !!h.verdict;
+      applyVerdict(id, 'bad').catch(e => { toast('Enregistrement impossible' + (e && e.code ? ' (' + e.code + ')' : '')); });
+      ui.pc.edit = { id: id, adv: !had }; ui.focusFix = true;
+      renderReview();
+      return;
+    }
     /* a hand that was waiting: straight on to the next one. One that already had a verdict: fix it and stay. */
     let moved = false;
     if (!h.verdict) { const nx = pcNext(id); if (nx) ui.pc.sel = nx.id; else ui.pc.end = true; moved = true; }
@@ -1641,22 +1746,53 @@ const A = {
     });
     renderReview(); if (moved) window.scrollTo(0, 0);
   },
+  pcfixedit() {
+    const id = ui.pc.sel;
+    if (!id || ui.pc.end) return;
+    closeFix(); ui.pc.edit = { id: id, adv: false }; ui.focusFix = true; renderReview();
+  },
+  pcfixdone() {
+    const e = ui.pc.edit;
+    if (!e) return;
+    commitFix(); ui.pc.edit = null;
+    if (e.adv) { const nx = pcNext(e.id); if (nx) ui.pc.sel = nx.id; else ui.pc.end = true; window.scrollTo(0, 0); }
+    renderReview();
+  },
   pcclear() {
+    closeFix();
     const id = ui.pc.sel;
     if (!id) return;
     applyVerdict(id, '').catch(e => { toast('Enregistrement impossible' + (e && e.code ? ' (' + e.code + ')' : '')); });
     renderReview();
   },
-  rvquit() { ui.rv = null; renderAll(); window.scrollTo(0, 0); },
-  rvprev() { if (ui.rv && ui.rv.i > 0) { ui.rv.i--; ui.rv.done = false; renderAll(); window.scrollTo(0, 0); } },
+  rvquit() { closeFix(); ui.rv = null; renderAll(); window.scrollTo(0, 0); },
+  rvprev() { closeFix(); if (ui.rv && ui.rv.i > 0) { ui.rv.i--; ui.rv.done = false; renderAll(); window.scrollTo(0, 0); } },
   rvskip() { rvGo(1); },
+  rvfixedit() {
+    const r = ui.rv, h = rvHand();
+    if (!r || !h) return;
+    closeFix(); r.edit = { id: h.id, adv: false }; ui.focusFix = true; renderAll();
+  },
+  rvfixdone() {
+    const r = ui.rv;
+    if (!r || !r.edit) return;
+    const adv = r.edit.adv;
+    commitFix(); r.edit = null;
+    if (adv) rvGo(1); else renderAll();
+  },
   rvcopy() { const h = rvHand(); if (h) copyText(exportTexts([h]), 'Texte de la main'); },
   rvset(el) {
     const r = ui.rv, h = rvHand();
     if (!r || !h || r.busy) return;
     const id = h.id, v = el.dataset.v, from = r.i;
-    r.busy = true;
     try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) { /* not supported */ }
+    if (v === 'bad') {   /* a mistake gets its correction: stay on the hand, the field opens */
+      closeFix(); r.edit = { id: id, adv: true }; ui.focusFix = true;
+      applyVerdict(id, 'bad').catch(e => { toast('Enregistrement impossible' + (e && e.code ? ' (' + e.code + ')' : '')); });
+      renderAll();
+      return;
+    }
+    r.busy = true;
     rvGo(1);   /* straight to the next hand; the verdict is saved meanwhile */
     applyVerdict(id, v).catch(e => {
       r.i = from; r.done = false; renderAll();
@@ -1681,6 +1817,7 @@ const A = {
   save() { saveHand(); },
   open(el) {
     if (Date.now() < swipeGuard) return;
+    closeFix();
     const wrap = el.closest('.swipe');
     if (wrap && wrap.classList.contains('open')) { setSwipe(wrap, false); return; }
     const h = store.hands.find(x => x.id === el.dataset.id);
@@ -1726,6 +1863,7 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => {
   const t = e.target, k = t.dataset && t.dataset.in;
   if (!k) return;
+  if (k === 'fix') { ui.fixDraft = { id: t.dataset.id, text: t.value }; return; }   /* review field: kept until validated or left */
   if (k === 'tourn') { H.tournament = t.value; $('#stat').textContent = t.value; }
   else if (k === 'date') H.date = t.value || todayStr();
   else if (k === 'ante') { H.ante = num(t.value) > 0 ? num(t.value) : 0; syncChips('ante', null, H.ante); }
@@ -1733,6 +1871,7 @@ document.addEventListener('input', e => {
   else if (k === 'vstack') { const v = H.villains.find(x => x.id === t.dataset.id); if (v) { v.stack = t.value; syncChips('vstack', t.dataset.id, num(t.value)); } }
   else if (k === 'read') { const v = H.villains.find(x => x.id === t.dataset.id); if (v) v.read = t.value; }
   else if (k === 'note') H.note = t.value;
+  else if (k === 'comment') H.comment = t.value;
   else if (k === 'tagdraft') ui.tagDraft = t.value;
   renderSave(); saveDraftSoon();
 });
@@ -1748,6 +1887,11 @@ document.addEventListener('keydown', e => {
 });
 /* review on a computer: keys. B = Bon, M = Mauvais, ← → = previous / next, C = copy. Never while typing in a field. */
 document.addEventListener('keydown', e => {
+  const tg = e.target;
+  if (tg && tg.id === 'in-fix') {
+    if (((e.key === 'Enter' && !e.shiftKey) || e.key === 'Escape') && !e.isComposing) { e.preventDefault(); (isWide() ? A.pcfixdone : A.rvfixdone)(); }
+    return;
+  }
   if (ui.tab !== 'review' || !isWide() || ui.modal || e.ctrlKey || e.metaKey || e.altKey) return;
   const t = e.target;
   if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
@@ -1758,11 +1902,14 @@ document.addEventListener('keydown', e => {
   else if (!end && !e.repeat && k === 'b') f = () => A.pcset({ dataset: { v: 'good' } });   /* a held key must not judge the next hands too */
   else if (!end && !e.repeat && k === 'm') f = () => A.pcset({ dataset: { v: 'bad' } });
   else if (!end && k === 'c') f = A.pccopy;
+  else if (!end && !e.repeat && k === 'Enter' && !(t && t.closest && t.closest('button, a'))) f = A.pcfixedit;   /* a comment on this hand */
   if (!f) return;
   e.preventDefault(); f();
 });
-document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(draftTimer); writeDraft(); } });
-window.addEventListener('pagehide', () => { clearTimeout(draftTimer); writeDraft(); });
+document.addEventListener('mousedown', e => { if (e.target.closest && e.target.closest('[data-keepfocus]')) e.preventDefault(); });
+document.addEventListener('focusout', e => { if (e.target && e.target.id === 'in-fix') setTimeout(commitFix, 200); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(draftTimer); writeDraft(); commitFix(); } });
+window.addEventListener('pagehide', () => { clearTimeout(draftTimer); writeDraft(); commitFix(); });
 
 /* ===== boot ===== */
 const saved = loadDraft();
