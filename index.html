@@ -416,7 +416,7 @@ function newHand(ctx) {
     villains: [{ id: 'V1', pos: '', stack: '', cards: [null, null], read: '' }], nextV: 2,
     board: { flop: [null, null, null], turn: [null], river: [null] },
     streets: { preflop: [], flop: [], turn: [], river: [] },
-    result: '', phase: '', tags: [], flag: false, note: '', verdict: '', reviewedAt: null
+    result: '', phase: '', tags: [], note: '', verdict: '', reviewedAt: null
   };
 }
 function normHand(x) {
@@ -446,7 +446,7 @@ function normHand(x) {
 const isPristine = h => !h.hero.pos && !h.hero.stack && h.hero.cards.every(c => !c) &&
   h.villains.every(v => !v.pos && !v.stack && v.cards.every(c => !c) && !v.read) &&
   STREETS.every(s => !h.streets[s].length) && ['flop','turn','river'].every(g => h.board[g].every(c => !c)) &&
-  !h.result && !h.phase && !h.tags.length && !h.flag && !h.note && !h.verdict;
+  !h.result && !h.phase && !h.tags.length && !h.note && !h.verdict;
 
 /* ===== storage: account database when available, otherwise this device ===== */
 const store = { mode: 'init', hands: [], ready: false, slow: false, error: '', col: null, persist: true };
@@ -542,19 +542,15 @@ function nextHandNo(h) {
 /* the next hand carries on with the same tournament when the last one is from today or was entered less than 12 h ago */
 const continuing = last => !!last && (last.date === todayStr() || (stamp(last) > 0 && Date.now() - stamp(last) < SESSION_GAP));
 
-/* ===== review: after GTO Wizard, each doubtful hand gets a verdict, "good" or "bad" ===== */
+/* ===== review: after GTO Wizard, every hand gets a verdict, "good" or "bad" ===== */
 function reviewStats(hands) {
-  const s = { doubt: 0, good: 0, bad: 0, pending: 0 };
-  hands.forEach(h => {
-    if (h.verdict === 'good') s.good++; else if (h.verdict === 'bad') s.bad++;
-    if (h.flag || h.verdict) s.doubt++;
-    if (h.flag && !h.verdict) s.pending++;
-  });
+  const s = { total: hands.length, good: 0, bad: 0, pending: 0 };
+  hands.forEach(h => { if (h.verdict === 'good') s.good++; else if (h.verdict === 'bad') s.bad++; else s.pending++; });
   return s;
 }
 const goodRate = s => (s.good + s.bad) ? Math.round(100 * s.good / (s.good + s.bad)) : null;
-/* hands waiting for a verdict, in the order they were entered; all = also the ones without a star */
-const toReview = all => store.hands.filter(h => !h.verdict && (all || h.flag)).sort(byEntry);
+/* hands waiting for a verdict, in the order they were entered */
+const toReview = () => store.hands.filter(h => !h.verdict).sort(byEntry);
 async function setVerdict(id, v) {
   const h = store.hands.find(x => x.id === id);
   if (!h) return;
@@ -589,7 +585,7 @@ function clearDraft() { try { localStorage.removeItem(LS_DRAFT); } catch (e) { /
 /* ===== state ===== */
 let H = null;
 let editingId = null;
-const ui = { tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, filter: 'all', delGroup: null, rv: null, rvAll: false, confirmDel: false, tagDraft: '', modal: null, toastTimer: null };
+const ui = { tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, toastTimer: null };
 
 /* ===== betting engine: replays the logged actions to get amounts, pot and SPR ===== */
 function actorsOf(h) {
@@ -774,7 +770,7 @@ function handText(h) {
     if (S.rows.length) L.push('  ' + S.rows.map(r => labelOf(h, r.id) + ' ' + rowText(r)).join(', '));
   });
   if (h.result) L.push('', 'Résultat : ' + RESULT_FR[h.result]);
-  if (h.tags.length || h.flag) L.push('Tags : ' + (h.flag ? ['À analyser'] : []).concat(h.tags).join(', '));
+  if (h.tags.length) L.push('Tags : ' + h.tags.join(', '));
   if (h.note) L.push('', 'Note : ' + h.note);
   return L.join('\n');
 }
@@ -903,7 +899,6 @@ function secResult() {
     fld('Phase du tournoi', '<div class="row">' + PHASES.map(p => chip(esc(p), { on: H.phase === p, attrs: 'data-act="phase" data-v="' + esc(p) + '"' })).join('') + '</div>') +
     fld('Tags', '<div class="row">' + tagsAll.map(t => chip(esc(t), { on: H.tags.indexOf(t) >= 0, attrs: 'data-act="tag" data-v="' + esc(t) + '"' })).join('') + '</div>' +
       '<div class="stackrow"><input class="inp" id="in-tag" placeholder="Nouveau tag" value="' + esc(ui.tagDraft) + '" data-in="tagdraft" autocomplete="off" aria-label="Nouveau tag"><button type="button" class="btn ghost sm" data-act="addtag">Ajouter</button></div>') +
-    '<div class="row">' + chip('★ À analyser', { on: H.flag, attrs: 'data-act="flag"' }) + '</div>' +
     fld('Verdict après GTO Wizard', '<div class="row">' + chip('✓ Bon', { on: H.verdict === 'good', cls: 'vgood', attrs: 'data-act="verdict" data-v="good"' }) +
       chip('✗ Mauvais', { on: H.verdict === 'bad', cls: 'vbad', attrs: 'data-act="verdict" data-v="bad"' }) + '</div>') +
     fld('Note', '<textarea class="inp" id="in-note" data-in="note" placeholder="Ce que tu as pensé, le spot qui te gêne, la lecture sur le joueur...">' + esc(H.note) + '</textarea>') +
@@ -994,7 +989,7 @@ function handRow(h, no) {
   if (sim.streets.preflop.rows.length) sum += ' · ' + potKind(sim.raises);
   const reached = STREETS.filter(s => sim.streets[s].rows.length || (s !== 'preflop' && n.board[s].some(Boolean))).map(s => STREET_LABEL[s].toLowerCase());
   const tags = (n.result ? '<span class="tag res-' + n.result + '">' + RESULT_FR[n.result] + '</span>' : '') +
-    (n.verdict ? '<span class="tag ver-' + n.verdict + '">' + (n.verdict === 'good' ? '✓ ' : '✗ ') + VERDICT_FR[n.verdict] + '</span>' : (n.flag ? '<span class="tag star">★ À analyser</span>' : '')) +
+    (n.verdict ? '<span class="tag ver-' + n.verdict + '">' + (n.verdict === 'good' ? '✓ ' : '✗ ') + VERDICT_FR[n.verdict] + '</span>' : '') +
     n.tags.map(t => '<span class="tag">' + esc(t) + '</span>').join('') + (iss.length ? '<span class="tag warn">À compléter : ' + esc(iss.join(', ')) + '</span>' : '');
   return '<div class="swipe"><button type="button" class="swipe-del" data-act="delrow" data-id="' + esc(n.id) + '" aria-label="Supprimer la main">Supprimer</button>' +
     '<button type="button" class="hand" data-act="open" data-id="' + esc(n.id) + '"><span class="hand-cards">' + cards + '</span><span class="hand-main">' +
@@ -1005,7 +1000,6 @@ function handRow(h, no) {
 
 function filteredHands() {
   const all = sortedHands();
-  if (ui.filter === 'flag') return all.filter(h => h.flag && !h.verdict);
   if (ui.filter === 'good') return all.filter(h => h.verdict === 'good');
   if (ui.filter === 'bad') return all.filter(h => h.verdict === 'bad');
   if (ui.filter === 'todo') return all.filter(h => issues(normHand(h)).length);
@@ -1024,9 +1018,9 @@ function renderList() {
   }
   const names = [];
   all.forEach(h => { if (h.tournament && names.indexOf(h.tournament) < 0) names.push(h.tournament); });
-  const filters = [['all', 'Toutes'], ['flag', '★ À analyser'], ['good', '✓ Bon'], ['bad', '✗ Mauvais'], ['todo', 'À compléter']].concat(names.slice(0, 6).map(n => ['t:' + n, n]));
+  const filters = [['all', 'Toutes'], ['good', '✓ Bon'], ['bad', '✗ Mauvais'], ['todo', 'À compléter']].concat(names.slice(0, 6).map(n => ['t:' + n, n]));
   const list = filteredHands(), keep = new Set(list.map(h => h.id)), info = groupInfo();
-  /* copy / delete a whole tournament only when each tournament is shown in full (not under ★ or "À compléter") */
+  /* copy / delete a whole tournament only when each tournament is shown in full (not under a verdict or "À compléter" filter) */
   const whole = ui.filter === 'all' || ui.filter.indexOf('t:') === 0;
   const groups = tournamentGroups(store.hands).map(g => ({ g: g, hands: g.hands.filter(h => keep.has(h.id)) })).filter(x => x.hands.length)
     .sort((a, b) => b.g.last - a.g.last || String(b.g.start).localeCompare(String(a.g.start)));
@@ -1042,7 +1036,7 @@ function renderList() {
   }).join('')
     : '<div class="empty-state">Aucune main dans ce filtre.</div>';
   el.innerHTML = '<div class="sec plain"><div class="scroll-row">' + filters.map(f => chip(esc(f[1]), { on: ui.filter === f[0], attrs: 'data-act="filter" data-v="' + esc(f[0]) + '"' })).join('') + '</div>' +
-    '<div class="row"><button type="button" class="btn ghost sm" data-act="copyall">Copier le texte (' + list.length + ')</button><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer</button></div>' + IMPORT_INPUT + '<p class="hint" style="margin:0">Glisse une main vers la gauche pour la supprimer.</p></div>' + body;
+    '<div class="row"><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer</button></div>' + IMPORT_INPUT + '<p class="hint" style="margin:0">Glisse une main vers la gauche pour la supprimer.</p></div>' + body;
 }
 
 /* ===== review: the summary, then the hands one by one ===== */
@@ -1053,22 +1047,22 @@ const splitBar = (g, b, thin) => (g + b) ? '<div class="rbar' + (thin ? ' thin' 
 function reviewSummary() {
   const all = store.hands;
   if (!all.length) return '<div class="empty-state"><p>Aucune main enregistrée.</p><button type="button" class="btn" data-act="tab" data-v="edit">Noter une première main</button></div>';
-  const s = reviewStats(all), r = goodRate(s), queue = toReview(ui.rvAll).length;
-  const rateTxt = r == null ? 'Aucune main notée pour l\'instant.' : '<b>' + r + ' %</b> de bonnes décisions · ' + s.good + ' sur ' + (s.good + s.bad) + ' analysées';
-  const hint = !s.doubt ? '<p class="hint" style="margin:0">Marque une main « ★ À analyser » quand tu la saisis. Après GTO Wizard, tu la retrouves ici pour la noter ✓ ou ✗ en un geste.</p>' : '';
-  const top = '<div class="sec"><div class="sec-h"><span class="lbl">Suivi</span><span class="pot">' + (s.good + s.bad) + ' main' + (s.good + s.bad > 1 ? 's' : '') + ' analysée' + (s.good + s.bad > 1 ? 's' : '') + '</span></div>' +
-    '<div class="tiles">' + tile('Doutes', s.doubt) + tile('À revoir', s.pending) + tile('✓ Bon', s.good, 'good') + tile('✗ Mauvais', s.bad, 'bad') + '</div>' +
+  const s = reviewStats(all), r = goodRate(s), queue = s.pending, judged = s.good + s.bad;
+  const rateTxt = r == null ? 'Aucune main notée pour l\'instant.' : '<b>' + r + ' %</b> de bonnes décisions · ' + s.good + ' sur ' + judged + ' analysées';
+  const hint = !judged ? '<p class="hint" style="margin:0">Toutes tes mains sont à analyser. Après GTO Wizard, note-les ✓ ou ✗ en un geste, tournoi par tournoi.</p>' : '';
+  const top = '<div class="sec"><div class="sec-h"><span class="lbl">Suivi</span><span class="pot">' + judged + ' main' + (judged > 1 ? 's' : '') + ' analysée' + (judged > 1 ? 's' : '') + '</span></div>' +
+    '<div class="tiles">' + tile('Mains', s.total) + tile('À revoir', s.pending) + tile('✓ Bon', s.good, 'good') + tile('✗ Mauvais', s.bad, 'bad') + '</div>' +
     splitBar(s.good, s.bad) + '<div class="rate">' + rateTxt + '</div>' + hint +
-    '<div class="row"><button type="button" class="btn" data-act="rvstart"' + (queue ? '' : ' disabled') + '>' + (queue ? 'Commencer la revue (' + queue + ')' : 'Rien à revoir') + '</button>' +
-    '<button type="button" class="link" data-act="rvscope">' + (ui.rvAll ? 'Seulement les mains ★' : 'Inclure les mains sans ★') + '</button></div></div>';
-  const rows = tournamentGroups(all).map(g => ({ g: g, s: reviewStats(g.hands) })).filter(x => x.s.doubt)
+    '<div class="row"><button type="button" class="btn" data-act="rvstart"' + (queue ? '' : ' disabled') + '>' + (queue ? 'Tout revoir (' + queue + ')' : 'Tout est noté') + '</button></div></div>';
+  const rows = tournamentGroups(all).map(g => ({ g: g, s: reviewStats(g.hands) }))
     .sort((a, b) => b.g.last - a.g.last || String(b.g.start).localeCompare(String(a.g.start)));
-  const per = rows.length ? '<div class="sec"><div class="sec-h"><span class="lbl">Par tournoi</span></div><div class="trn">' + rows.map(x => {
+  const per = '<div class="sec"><div class="sec-h"><span class="lbl">Par tournoi</span></div><div class="trn">' + rows.map(x => {
     const t = x.s, rr = goodRate(t);
-    return '<div class="trn-r"><div class="trn-h"><span class="trn-n">' + esc(x.g.name || 'Sans nom') + '</span><span class="meta">' + esc(fmtDate(x.g.start)) + '</span></div>' +
-      '<div class="trn-c"><span class="good">✓ ' + t.good + '</span><span class="bad">✗ ' + t.bad + '</span>' + (t.pending ? '<span class="pend">★ ' + t.pending + ' à revoir</span>' : '') + '<span class="rt">' + (rr == null ? '–' : rr + ' %') + '</span></div>' +
-      splitBar(t.good, t.bad, true) + '</div>';
-  }).join('') + '</div></div>' : '';
+    return '<div class="trn-r"><div class="trn-h"><span class="trn-n">' + esc(x.g.name || 'Sans nom') + '</span><span class="meta">' + esc(fmtDate(x.g.start)) + ' · ' + t.total + ' main' + (t.total > 1 ? 's' : '') + '</span></div>' +
+      '<div class="trn-c"><span class="good">✓ ' + t.good + '</span><span class="bad">✗ ' + t.bad + '</span>' + (t.pending ? '<span class="pend">' + t.pending + ' à revoir</span>' : '') + '<span class="rt">' + (rr == null ? '–' : rr + ' %') + '</span></div>' +
+      splitBar(t.good, t.bad, true) +
+      (t.pending ? '<div class="row"><button type="button" class="btn ghost sm" data-act="rvstart" data-id="' + esc(x.g.hands[0].id) + '">Revoir ce tournoi (' + t.pending + ')</button></div>' : '') + '</div>';
+  }).join('') + '</div></div>';
   return top + per;
 }
 
@@ -1417,7 +1411,6 @@ const A = {
     if (H.tags.indexOf(t) < 0) H.tags.push(t);
     ui.tagDraft = ''; rerender();
   },
-  flag() { H.flag = !H.flag; rerender(); },
   verdict(el) {
     const v = el.dataset.v;
     H.verdict = H.verdict === v ? '' : v;
@@ -1425,13 +1418,14 @@ const A = {
     rerender();
   },
   /* ----- review ----- */
-  rvstart() {
-    const ids = toReview(ui.rvAll).map(h => h.id);
+  rvstart(el) {
+    /* one tournament (button in its row) or everything that is still waiting */
+    const g = el && el.dataset.id ? findGroup(el.dataset.id) : null;
+    const ids = (g ? g.hands.filter(h => !h.verdict) : toReview()).map(h => h.id);
     if (!ids.length) return;
     ui.rv = { ids: ids, i: 0, done: false, busy: false };
     renderAll(); window.scrollTo(0, 0);
   },
-  rvscope() { ui.rvAll = !ui.rvAll; renderReview(); },
   rvquit() { ui.rv = null; renderAll(); window.scrollTo(0, 0); },
   rvprev() { if (ui.rv && ui.rv.i > 0) { ui.rv.i--; ui.rv.done = false; renderAll(); window.scrollTo(0, 0); } },
   rvskip() { rvGo(1); },
@@ -1477,7 +1471,6 @@ const A = {
     renderAll(); window.scrollTo(0, 0); saveDraftSoon();
   },
   filter(el) { ui.filter = el.dataset.v; ui.delGroup = null; renderList(); },
-  copyall() { copyText(exportTexts(filteredHands()), 'Texte des mains'); },
   copygrp(el) { const g = findGroup(el.dataset.id); if (g) copyText(exportTexts(g.hands), 'Texte du tournoi'); },
   askdelgrp(el) { ui.delGroup = el.dataset.id; renderList(); },
   cancelgrp() { ui.delGroup = null; renderList(); },
