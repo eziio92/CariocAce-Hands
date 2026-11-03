@@ -1025,7 +1025,7 @@ function secResult() {
       chip('✗ Mauvais', { on: H.verdict === 'bad', cls: 'vbad', attrs: 'data-act="verdict" data-v="bad"' }) + '</div>') +
     fld(H.verdict === 'bad' ? 'Correction (ce qu\'il fallait faire)' : 'Commentaire après la revue', '<textarea class="inp" id="in-comment" data-in="comment" maxlength="1000" placeholder="' + (H.verdict === 'bad' ? 'Ce qu\'il fallait faire...' : 'Optionnel') + '">' + esc(H.comment) + '</textarea>') +
     fld('Note', '<textarea class="inp" id="in-note" data-in="note" placeholder="Ce que tu as pensé, le spot qui te gêne, la lecture sur le joueur...">' + esc(H.note) + '</textarea>') +
-    '<div class="row"><button type="button" class="btn ghost sm" data-act="copy">Copier le texte</button>' + extra + '</div></div>';
+    '<div class="row"><button type="button" class="btn ghost sm" data-act="copy">Copier le texte</button><button type="button" class="btn ghost sm" data-act="replay">Faire deviner</button>' + extra + '</div></div>';
 }
 
 function renderEdit() {
@@ -1854,6 +1854,18 @@ const A = {
     const n = clone(H), k = editingId ? groupInfo()[editingId] : null;
     if (k) { n.handNo = k.no; n.date = k.date; }
     copyText(handText(n), 'Texte de la main');
+  },
+  /* « Faire deviner » : ouvre CariocAce Replay avec cette main déjà collée. Tags, note et commentaire ne partent pas. */
+  replay() {
+    const n = clone(H), k = editingId ? groupInfo()[editingId] : null;
+    if (k) { n.handNo = k.no; n.date = k.date; }
+    n.tags = []; n.note = ''; n.comment = '';
+    const bytes = new TextEncoder().encode(handText(n));
+    let bin = ''; for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    const a = document.createElement('a');
+    a.href = 'https://eziio92.github.io/CariocAceReplay/#new=' + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    a.target = '_blank'; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); a.remove();
   },
   save() { saveHand(); },
   open(el) {
