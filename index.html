@@ -184,6 +184,46 @@ ol.log li:first-child{border-top:0}
 .swipe .hand:focus-visible{outline-offset:-3px}
 .swipe-del{position:absolute;top:0;right:0;bottom:0;width:96px;border:0;background:var(--del);color:var(--on-del);font:600 14px var(--f-body);visibility:hidden}
 .swipe.sw .swipe-del{visibility:visible}
+.tag.ver-good{background:transparent;border-color:rgba(134,209,168,.5);color:var(--ok)}
+.tag.ver-bad{background:transparent;border-color:rgba(242,139,130,.5);color:var(--bad)}
+.chip.vgood.on{background:rgba(134,209,168,.16);border-color:var(--ok);color:var(--ok);box-shadow:none}
+.chip.vbad.on{background:rgba(242,139,130,.16);border-color:var(--bad);color:var(--bad);box-shadow:none}
+
+/* review: summary tiles, per-tournament rows, one-hand-at-a-time card */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:8px}
+.tile{display:flex;flex-direction:column;gap:7px;padding:13px 14px;border:1px solid var(--edge);border-radius:20px;background:var(--glass-2);box-shadow:inset 0 1px 0 var(--edge-hi)}
+.tile .k{font:600 10px/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--fg-2)}
+.tile .v{font:600 30px/1 var(--f-disp);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.tile.good .v{color:var(--ok)} .tile.bad .v{color:var(--bad)}
+.rbar{display:flex;gap:3px;height:8px;border-radius:999px;overflow:hidden;background:var(--field)}
+.rbar.thin{height:5px}
+.rbar i{display:block;height:100%;min-width:0}
+.rbar .g{background:var(--ok)} .rbar .b{background:var(--bad)}
+.rate{font:500 14px var(--f-body);color:var(--fg-2)}
+.rate b{font:600 22px var(--f-disp);letter-spacing:-.03em;color:var(--fg);margin-right:4px}
+.trn{display:flex;flex-direction:column}
+.trn-r{display:flex;flex-direction:column;gap:9px;padding:14px 2px;border-top:1px solid var(--edge)}
+.trn-r:first-child{border-top:0;padding-top:2px}
+.trn-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.trn-n{font:600 16px/1.2 var(--f-disp);letter-spacing:-.02em;min-width:0;overflow-wrap:anywhere}
+.trn-h .meta{font:500 12px var(--f-body);color:var(--fg-2);white-space:nowrap}
+.trn-c{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;font:600 14px var(--f-body);font-variant-numeric:tabular-nums}
+.trn-c .good{color:var(--ok)} .trn-c .bad{color:var(--bad)} .trn-c .pend{color:var(--fg-2);font-weight:500}
+.trn-c .rt{margin-left:auto}
+.rv-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.prog{height:4px;border-radius:999px;background:var(--field);overflow:hidden}
+.prog i{display:block;height:100%;border-radius:inherit;background:var(--fg)}
+.rv-cards{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.rv-text{white-space:pre-wrap;overflow-wrap:anywhere;font:500 13.5px/1.5 var(--f-body);padding:12px 14px;border-radius:18px;background:var(--field);border:1px solid var(--edge)}
+.rv-nav{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.link:disabled{opacity:.3}
+.savebar-in.vd{padding:8px;gap:8px;border-radius:30px}
+.vbtn{flex:1;min-width:0;min-height:62px;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:23px;border:1px solid;font:700 16px var(--f-body);background:transparent}
+.vbtn .g{font:500 26px/1 var(--f-body)}
+.vbtn.bad{color:var(--bad);border-color:rgba(242,139,130,.55);background:rgba(242,139,130,.08)}
+.vbtn.good{color:var(--ok);border-color:rgba(134,209,168,.55);background:rgba(134,209,168,.08)}
+.vbtn.bad.on,.vbtn.bad:active{background:rgba(242,139,130,.24);border-color:var(--bad)}
+.vbtn.good.on,.vbtn.good:active{background:rgba(134,209,168,.24);border-color:var(--ok)}
 
 /* floating save bar, sheet, toast */
 .savebar{position:fixed;left:0;right:0;bottom:0;z-index:20;pointer-events:none;
@@ -262,12 +302,14 @@ textarea.view{min-height:220px;font:12.5px/1.5 var(--f-mono)}
   <div class="seg" id="tabs">
     <button type="button" class="on" data-act="tab" data-v="edit">Saisir</button>
     <button type="button" data-act="tab" data-v="list">Mains <span id="count"></span></button>
+    <button type="button" data-act="tab" data-v="review">Revue <span id="rcount"></span></button>
   </div>
 </div>
 <main class="wrap">
   <div id="banner"></div>
   <section id="view-edit"></section>
   <section id="view-list" hidden></section>
+  <section id="view-review" hidden></section>
   <div style="height:160px" aria-hidden="true"></div>
 </main>
 <div class="savebar" id="savebar"><div class="savebar-in" id="savebar-in"></div></div>
@@ -300,6 +342,7 @@ const BET_PCT = [25,33,50,66,75,100,150];
 const RAISE_X = [2,2.5,3,3.5,4,5];
 const RESULTS = [['won','Gagnée'],['lost','Perdue'],['split','Split']];
 const RESULT_FR = { won:'Gagnée', lost:'Perdue', split:'Split' };
+const VERDICT_FR = { good:'Bon', bad:'Mauvais' };
 const LS_DRAFT = 'carnet-mains-brouillon';
 const LS_HANDS = 'carnet-mains-local';
 /* outside Claude there is no account storage: the phone itself is the normal place for the hands */
@@ -373,7 +416,7 @@ function newHand(ctx) {
     villains: [{ id: 'V1', pos: '', stack: '', cards: [null, null], read: '' }], nextV: 2,
     board: { flop: [null, null, null], turn: [null], river: [null] },
     streets: { preflop: [], flop: [], turn: [], river: [] },
-    result: '', phase: '', tags: [], flag: false, note: ''
+    result: '', phase: '', tags: [], flag: false, note: '', verdict: '', reviewedAt: null
   };
 }
 function normHand(x) {
@@ -394,6 +437,7 @@ function normHand(x) {
   h.streets = {};
   STREETS.forEach(s => { h.streets[s] = (x.streets && x.streets[s]) ? x.streets[s] : []; });
   h.tags = x.tags || [];
+  if (h.verdict !== 'good' && h.verdict !== 'bad') { h.verdict = ''; h.reviewedAt = null; }
   if (!TABLES[h.table]) h.table = '9';
   const maxV = h.villains.reduce((m, v) => Math.max(m, parseInt(String(v.id).slice(1), 10) || 0), 0);
   h.nextV = Math.max(h.nextV || 1, maxV + 1);
@@ -402,7 +446,7 @@ function normHand(x) {
 const isPristine = h => !h.hero.pos && !h.hero.stack && h.hero.cards.every(c => !c) &&
   h.villains.every(v => !v.pos && !v.stack && v.cards.every(c => !c) && !v.read) &&
   STREETS.every(s => !h.streets[s].length) && ['flop','turn','river'].every(g => h.board[g].every(c => !c)) &&
-  !h.result && !h.phase && !h.tags.length && !h.flag && !h.note;
+  !h.result && !h.phase && !h.tags.length && !h.flag && !h.note && !h.verdict;
 
 /* ===== storage: account database when available, otherwise this device ===== */
 const store = { mode: 'init', hands: [], ready: false, slow: false, error: '', col: null, persist: true };
@@ -498,6 +542,29 @@ function nextHandNo(h) {
 /* the next hand carries on with the same tournament when the last one is from today or was entered less than 12 h ago */
 const continuing = last => !!last && (last.date === todayStr() || (stamp(last) > 0 && Date.now() - stamp(last) < SESSION_GAP));
 
+/* ===== review: after GTO Wizard, each doubtful hand gets a verdict, "good" or "bad" ===== */
+function reviewStats(hands) {
+  const s = { doubt: 0, good: 0, bad: 0, pending: 0 };
+  hands.forEach(h => {
+    if (h.verdict === 'good') s.good++; else if (h.verdict === 'bad') s.bad++;
+    if (h.flag || h.verdict) s.doubt++;
+    if (h.flag && !h.verdict) s.pending++;
+  });
+  return s;
+}
+const goodRate = s => (s.good + s.bad) ? Math.round(100 * s.good / (s.good + s.bad)) : null;
+/* hands waiting for a verdict, in the order they were entered; all = also the ones without a star */
+const toReview = all => store.hands.filter(h => !h.verdict && (all || h.flag)).sort(byEntry);
+async function setVerdict(id, v) {
+  const h = store.hands.find(x => x.id === id);
+  if (!h) return;
+  const n = normHand(clone(h)), now = new Date().toISOString();
+  n.verdict = (v === 'good' || v === 'bad') ? v : '';
+  n.reviewedAt = n.verdict ? now : null;
+  n.updatedAt = now;
+  await storeSave(n);
+}
+
 /* ===== drafts (this device only) ===== */
 let draftTimer = null;
 function writeDraft() {
@@ -522,7 +589,7 @@ function clearDraft() { try { localStorage.removeItem(LS_DRAFT); } catch (e) { /
 /* ===== state ===== */
 let H = null;
 let editingId = null;
-const ui = { tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, filter: 'all', delGroup: null, confirmDel: false, tagDraft: '', modal: null, toastTimer: null };
+const ui = { tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, filter: 'all', delGroup: null, rv: null, rvAll: false, confirmDel: false, tagDraft: '', modal: null, toastTimer: null };
 
 /* ===== betting engine: replays the logged actions to get amounts, pot and SPR ===== */
 function actorsOf(h) {
@@ -837,6 +904,8 @@ function secResult() {
     fld('Tags', '<div class="row">' + tagsAll.map(t => chip(esc(t), { on: H.tags.indexOf(t) >= 0, attrs: 'data-act="tag" data-v="' + esc(t) + '"' })).join('') + '</div>' +
       '<div class="stackrow"><input class="inp" id="in-tag" placeholder="Nouveau tag" value="' + esc(ui.tagDraft) + '" data-in="tagdraft" autocomplete="off" aria-label="Nouveau tag"><button type="button" class="btn ghost sm" data-act="addtag">Ajouter</button></div>') +
     '<div class="row">' + chip('★ À analyser', { on: H.flag, attrs: 'data-act="flag"' }) + '</div>' +
+    fld('Verdict après GTO Wizard', '<div class="row">' + chip('✓ Bon', { on: H.verdict === 'good', cls: 'vgood', attrs: 'data-act="verdict" data-v="good"' }) +
+      chip('✗ Mauvais', { on: H.verdict === 'bad', cls: 'vbad', attrs: 'data-act="verdict" data-v="bad"' }) + '</div>') +
     fld('Note', '<textarea class="inp" id="in-note" data-in="note" placeholder="Ce que tu as pensé, le spot qui te gêne, la lecture sur le joueur...">' + esc(H.note) + '</textarea>') +
     '<div class="row"><button type="button" class="btn ghost sm" data-act="copy">Copier le texte</button>' + extra + '</div></div>';
 }
@@ -879,7 +948,10 @@ function renderTabs() {
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === ui.tab));
   $('#view-edit').hidden = ui.tab !== 'edit';
   $('#view-list').hidden = ui.tab !== 'list';
+  $('#view-review').hidden = ui.tab !== 'review';
   $('#count').textContent = store.ready ? '(' + store.hands.length + ')' : '';
+  const waiting = store.ready ? reviewStats(store.hands).pending : 0;
+  $('#rcount').textContent = waiting ? '(' + waiting + ')' : '';
   $('#stat').textContent = ui.tab === 'edit' ? (H.tournament || '') : '';
 }
 function renderBanner() {
@@ -897,7 +969,16 @@ function renderBanner() {
   }
 }
 function renderSave() {
-  $('#savebar').hidden = ui.tab !== 'edit';
+  const reviewing = ui.tab === 'review' && ui.rv && !ui.rv.done;
+  $('#savebar').hidden = !(ui.tab === 'edit' || reviewing);
+  $('#savebar-in').className = 'savebar-in' + (reviewing ? ' vd' : '');
+  if (reviewing) {   /* ✗ / ✓ stay under the thumb, whatever the length of the hand */
+    const h = rvHand(), cur = h ? h.verdict : '';
+    $('#savebar-in').innerHTML =
+      '<button type="button" class="vbtn bad' + (cur === 'bad' ? ' on' : '') + '" data-act="rvset" data-v="bad"><span class="g" aria-hidden="true">✗</span>Mauvais</button>' +
+      '<button type="button" class="vbtn good' + (cur === 'good' ? ' on' : '') + '" data-act="rvset" data-v="good"><span class="g" aria-hidden="true">✓</span>Bon</button>';
+    return;
+  }
   const iss = issues(H), empty = isPristine(H) && !editingId;
   const note = empty ? 'Rien à enregistrer pour l\'instant.' : iss.length ? 'À compléter : ' + iss.join(' · ') : 'Main complète.';
   $('#savebar-in').innerHTML = '<div class="save-note' + (iss.length && !empty ? ' warn' : '') + '">' + esc(note) + '</div>' +
@@ -912,7 +993,8 @@ function handRow(h, no) {
   let sum = (n.hero.pos ? posLabel(n.table, n.hero.pos) : 'Position ?') + (num(n.hero.stack) > 0 ? ' · ' + fmt(num(n.hero.stack)) + ' bb' : '');
   if (sim.streets.preflop.rows.length) sum += ' · ' + potKind(sim.raises);
   const reached = STREETS.filter(s => sim.streets[s].rows.length || (s !== 'preflop' && n.board[s].some(Boolean))).map(s => STREET_LABEL[s].toLowerCase());
-  const tags = (n.result ? '<span class="tag res-' + n.result + '">' + RESULT_FR[n.result] + '</span>' : '') + (n.flag ? '<span class="tag star">★ À analyser</span>' : '') +
+  const tags = (n.result ? '<span class="tag res-' + n.result + '">' + RESULT_FR[n.result] + '</span>' : '') +
+    (n.verdict ? '<span class="tag ver-' + n.verdict + '">' + (n.verdict === 'good' ? '✓ ' : '✗ ') + VERDICT_FR[n.verdict] + '</span>' : (n.flag ? '<span class="tag star">★ À analyser</span>' : '')) +
     n.tags.map(t => '<span class="tag">' + esc(t) + '</span>').join('') + (iss.length ? '<span class="tag warn">À compléter : ' + esc(iss.join(', ')) + '</span>' : '');
   return '<div class="swipe"><button type="button" class="swipe-del" data-act="delrow" data-id="' + esc(n.id) + '" aria-label="Supprimer la main">Supprimer</button>' +
     '<button type="button" class="hand" data-act="open" data-id="' + esc(n.id) + '"><span class="hand-cards">' + cards + '</span><span class="hand-main">' +
@@ -923,7 +1005,9 @@ function handRow(h, no) {
 
 function filteredHands() {
   const all = sortedHands();
-  if (ui.filter === 'flag') return all.filter(h => h.flag);
+  if (ui.filter === 'flag') return all.filter(h => h.flag && !h.verdict);
+  if (ui.filter === 'good') return all.filter(h => h.verdict === 'good');
+  if (ui.filter === 'bad') return all.filter(h => h.verdict === 'bad');
   if (ui.filter === 'todo') return all.filter(h => issues(normHand(h)).length);
   if (ui.filter.indexOf('t:') === 0) return all.filter(h => h.tournament === ui.filter.slice(2));
   return all;
@@ -940,7 +1024,7 @@ function renderList() {
   }
   const names = [];
   all.forEach(h => { if (h.tournament && names.indexOf(h.tournament) < 0) names.push(h.tournament); });
-  const filters = [['all', 'Toutes'], ['flag', '★ À analyser'], ['todo', 'À compléter']].concat(names.slice(0, 6).map(n => ['t:' + n, n]));
+  const filters = [['all', 'Toutes'], ['flag', '★ À analyser'], ['good', '✓ Bon'], ['bad', '✗ Mauvais'], ['todo', 'À compléter']].concat(names.slice(0, 6).map(n => ['t:' + n, n]));
   const list = filteredHands(), keep = new Set(list.map(h => h.id)), info = groupInfo();
   /* copy / delete a whole tournament only when each tournament is shown in full (not under ★ or "À compléter") */
   const whole = ui.filter === 'all' || ui.filter.indexOf('t:') === 0;
@@ -961,10 +1045,67 @@ function renderList() {
     '<div class="row"><button type="button" class="btn ghost sm" data-act="copyall">Copier le texte (' + list.length + ')</button><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer</button></div>' + IMPORT_INPUT + '<p class="hint" style="margin:0">Glisse une main vers la gauche pour la supprimer.</p></div>' + body;
 }
 
+/* ===== review: the summary, then the hands one by one ===== */
+const rvHand = () => (ui.rv && !ui.rv.done) ? (store.hands.find(x => x.id === ui.rv.ids[ui.rv.i]) || null) : null;
+const tile = (label, n, cls) => '<div class="tile' + (cls ? ' ' + cls : '') + '"><span class="k">' + label + '</span><span class="v">' + n + '</span></div>';
+const splitBar = (g, b, thin) => (g + b) ? '<div class="rbar' + (thin ? ' thin' : '') + '" aria-hidden="true">' + (g ? '<i class="g" style="flex:' + g + '"></i>' : '') + (b ? '<i class="b" style="flex:' + b + '"></i>' : '') + '</div>' : '';
+
+function reviewSummary() {
+  const all = store.hands;
+  if (!all.length) return '<div class="empty-state"><p>Aucune main enregistrée.</p><button type="button" class="btn" data-act="tab" data-v="edit">Noter une première main</button></div>';
+  const s = reviewStats(all), r = goodRate(s), queue = toReview(ui.rvAll).length;
+  const rateTxt = r == null ? 'Aucune main notée pour l\'instant.' : '<b>' + r + ' %</b> de bonnes décisions · ' + s.good + ' sur ' + (s.good + s.bad) + ' analysées';
+  const hint = !s.doubt ? '<p class="hint" style="margin:0">Marque une main « ★ À analyser » quand tu la saisis. Après GTO Wizard, tu la retrouves ici pour la noter ✓ ou ✗ en un geste.</p>' : '';
+  const top = '<div class="sec"><div class="sec-h"><span class="lbl">Suivi</span><span class="pot">' + (s.good + s.bad) + ' main' + (s.good + s.bad > 1 ? 's' : '') + ' analysée' + (s.good + s.bad > 1 ? 's' : '') + '</span></div>' +
+    '<div class="tiles">' + tile('Doutes', s.doubt) + tile('À revoir', s.pending) + tile('✓ Bon', s.good, 'good') + tile('✗ Mauvais', s.bad, 'bad') + '</div>' +
+    splitBar(s.good, s.bad) + '<div class="rate">' + rateTxt + '</div>' + hint +
+    '<div class="row"><button type="button" class="btn" data-act="rvstart"' + (queue ? '' : ' disabled') + '>' + (queue ? 'Commencer la revue (' + queue + ')' : 'Rien à revoir') + '</button>' +
+    '<button type="button" class="link" data-act="rvscope">' + (ui.rvAll ? 'Seulement les mains ★' : 'Inclure les mains sans ★') + '</button></div></div>';
+  const rows = tournamentGroups(all).map(g => ({ g: g, s: reviewStats(g.hands) })).filter(x => x.s.doubt)
+    .sort((a, b) => b.g.last - a.g.last || String(b.g.start).localeCompare(String(a.g.start)));
+  const per = rows.length ? '<div class="sec"><div class="sec-h"><span class="lbl">Par tournoi</span></div><div class="trn">' + rows.map(x => {
+    const t = x.s, rr = goodRate(t);
+    return '<div class="trn-r"><div class="trn-h"><span class="trn-n">' + esc(x.g.name || 'Sans nom') + '</span><span class="meta">' + esc(fmtDate(x.g.start)) + '</span></div>' +
+      '<div class="trn-c"><span class="good">✓ ' + t.good + '</span><span class="bad">✗ ' + t.bad + '</span>' + (t.pending ? '<span class="pend">★ ' + t.pending + ' à revoir</span>' : '') + '<span class="rt">' + (rr == null ? '–' : rr + ' %') + '</span></div>' +
+      splitBar(t.good, t.bad, true) + '</div>';
+  }).join('') + '</div></div>' : '';
+  return top + per;
+}
+
+function reviewCard() {
+  const r = ui.rv;
+  while (r.i < r.ids.length && !store.hands.some(x => x.id === r.ids[r.i])) r.i++;   /* a hand deleted meanwhile */
+  if (r.i >= r.ids.length) { r.done = true; return reviewDone(); }
+  const h0 = rvHand(), h = normHand(h0);
+  const cards = h.hero.cards.map(c => c ? cardFace(c, 'big') : '<span class="card big empty"><span class="r">?</span></span>').join('');
+  const board = ['flop', 'turn', 'river'].reduce((a, g) => a.concat(h.board[g]), []).filter(Boolean).map(c => cardFace(c, 'mini')).join('');
+  return '<div class="sec rv"><div class="rv-top"><span class="lbl">Revue · ' + (r.i + 1) + ' / ' + r.ids.length + '</span><button type="button" class="link" data-act="rvquit">Terminer</button></div>' +
+    '<div class="prog" aria-hidden="true"><i style="width:' + Math.round(100 * r.i / r.ids.length) + '%"></i></div>' +
+    '<div class="rv-cards"><span class="hand-cards">' + cards + '</span>' + (board ? '<span class="hand-board">' + board + '</span>' : '') + '</div>' +
+    '<div class="rv-text">' + esc(exportTexts([h0])) + '</div>' +
+    '<div class="rv-nav"><button type="button" class="link" data-act="rvprev"' + (r.i ? '' : ' disabled') + '>‹ Précédente</button>' +
+    '<button type="button" class="btn ghost sm" data-act="rvcopy">Copier la main</button>' +
+    '<button type="button" class="link" data-act="rvskip">Passer ›</button></div></div>';
+}
+
+function reviewDone() {
+  const hs = ui.rv.ids.map(id => store.hands.find(x => x.id === id)).filter(Boolean);
+  const g = hs.filter(h => h.verdict === 'good').length, b = hs.filter(h => h.verdict === 'bad').length, skipped = hs.length - g - b;
+  return '<div class="sec rv"><div class="sec-h"><span class="lbl">Revue terminée</span></div>' +
+    '<div class="tiles">' + tile('✓ Bon', g, 'good') + tile('✗ Mauvais', b, 'bad') + (skipped ? tile('Passées', skipped) : '') + '</div>' + splitBar(g, b) +
+    '<button type="button" class="btn" data-act="rvquit">Voir le suivi</button></div>';
+}
+
+function renderReview() {
+  const el = $('#view-review');
+  if (!store.ready) { el.innerHTML = '<div class="empty-state">Chargement des mains...</div>'; return; }
+  el.innerHTML = ui.rv ? (ui.rv.done ? reviewDone() : reviewCard()) : reviewSummary();
+}
+
 /* ===== render all, toast, clipboard, downloads ===== */
 function renderAll() {
   renderTabs(); renderBanner();
-  if (ui.tab === 'edit') renderEdit(); else renderList();
+  if (ui.tab === 'edit') renderEdit(); else if (ui.tab === 'list') renderList(); else renderReview();
   renderSave(); renderSheet();
 }
 let adopted = false, draftLoaded = false;
@@ -981,7 +1122,7 @@ function onStoreChange() {
   const a = document.activeElement;
   const typing = a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && $('#view-edit').contains(a);
   renderTabs(); renderBanner();
-  if (ui.tab === 'list') renderList(); else if (!typing) renderEdit();
+  if (ui.tab === 'list') renderList(); else if (ui.tab === 'review') renderReview(); else if (!typing) renderEdit();
   renderSave();
 }
 function toast(msg) {
@@ -1114,6 +1255,24 @@ function freshCtx() {
   const last = sortedHands()[0];
   return last ? { tournament: continuing(last) ? (last.tournament || '') : '', date: todayStr(), table: last.table, ante: last.ante } : {};
 }
+/* review helpers */
+function rvGo(d) {
+  const r = ui.rv;
+  if (!r) return;
+  r.i += d;
+  if (r.i >= r.ids.length) { r.i = r.ids.length; r.done = true; }
+  renderAll(); window.scrollTo(0, 0);
+}
+/* save a verdict; if that hand is open in the editor, the editor follows so a later save does not undo it */
+async function applyVerdict(id, v) {
+  await setVerdict(id, v);
+  if (editingId === id) {
+    H.verdict = (v === 'good' || v === 'bad') ? v : '';
+    H.reviewedAt = H.verdict ? new Date().toISOString() : null;
+    try { const o = JSON.parse(origJson); o.verdict = H.verdict; o.reviewedAt = H.reviewedAt; origJson = JSON.stringify(o); } catch (e) { /* no baseline */ }
+    saveDraftSoon();
+  }
+}
 function syncChips(act, id, val) {
   const sel = '[data-act="' + act + '"]' + (id != null ? '[data-id="' + id + '"]' : '');
   document.querySelectorAll(sel).forEach(b => b.classList.toggle('on', +b.dataset.v === val));
@@ -1212,7 +1371,7 @@ function closeSwipes(except) {
 })();
 
 const A = {
-  tab(el) { ui.tab = el.dataset.v; ui.picker = null; ui.delGroup = null; renderAll(); window.scrollTo(0, 0); },
+  tab(el) { ui.tab = el.dataset.v; ui.picker = null; ui.delGroup = null; ui.rv = null; renderAll(); window.scrollTo(0, 0); },
   table(el) {
     H.table = el.dataset.v;
     const ok = new Set(TABLES[H.table]);
@@ -1259,6 +1418,36 @@ const A = {
     ui.tagDraft = ''; rerender();
   },
   flag() { H.flag = !H.flag; rerender(); },
+  verdict(el) {
+    const v = el.dataset.v;
+    H.verdict = H.verdict === v ? '' : v;
+    H.reviewedAt = H.verdict ? new Date().toISOString() : null;
+    rerender();
+  },
+  /* ----- review ----- */
+  rvstart() {
+    const ids = toReview(ui.rvAll).map(h => h.id);
+    if (!ids.length) return;
+    ui.rv = { ids: ids, i: 0, done: false, busy: false };
+    renderAll(); window.scrollTo(0, 0);
+  },
+  rvscope() { ui.rvAll = !ui.rvAll; renderReview(); },
+  rvquit() { ui.rv = null; renderAll(); window.scrollTo(0, 0); },
+  rvprev() { if (ui.rv && ui.rv.i > 0) { ui.rv.i--; ui.rv.done = false; renderAll(); window.scrollTo(0, 0); } },
+  rvskip() { rvGo(1); },
+  rvcopy() { const h = rvHand(); if (h) copyText(exportTexts([h]), 'Texte de la main'); },
+  rvset(el) {
+    const r = ui.rv, h = rvHand();
+    if (!r || !h || r.busy) return;
+    const id = h.id, v = el.dataset.v, from = r.i;
+    r.busy = true;
+    try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) { /* not supported */ }
+    rvGo(1);   /* straight to the next hand; the verdict is saved meanwhile */
+    applyVerdict(id, v).catch(e => {
+      r.i = from; r.done = false; renderAll();
+      toast('Enregistrement impossible' + (e && e.code ? ' (' + e.code + ')' : ''));
+    }).then(() => { r.busy = false; });
+  },
   confirm(el) { ui.confirm = el.dataset.v; renderEdit(); },
   'do-del'() {
     const id = editingId;
