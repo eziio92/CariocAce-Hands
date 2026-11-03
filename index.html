@@ -161,7 +161,9 @@ ol.log li:first-child{border-top:0}
 .vill{display:flex;flex-direction:column;gap:14px;padding:16px 14px;border:1px solid var(--edge);border-radius:22px;background:var(--glass-2);box-shadow:inset 0 1px 0 var(--edge-hi)}
 
 /* hands list */
-.grp-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:24px 6px 10px}
+.grp-h{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:12px;padding:24px 6px 10px}
+.grp-a{flex:0 0 100%;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.grp-ask{flex:0 0 100%;font:500 13px/1.4 var(--f-body);color:var(--fg-2)}
 .grp-h h3{font:600 18px/1.15 var(--f-disp);letter-spacing:-.02em}
 .grp-h .meta{font:500 12px var(--f-body);font-variant-numeric:tabular-nums;color:var(--fg-2);white-space:nowrap}
 .hand{display:flex;gap:14px;align-items:flex-start;width:100%;text-align:left;padding:14px;background:var(--glass);border:1px solid var(--edge);border-radius:22px;margin-bottom:10px;
@@ -446,10 +448,55 @@ async function storeRemove(id) {
   store.hands = store.hands.filter(x => x.id !== id); writeLocal(store.hands); onStoreChange();
 }
 const sortedHands = () => store.hands.slice().sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-function nextHandNo(h) {
-  return store.hands.filter(x => x.tournament === (h.tournament || '').trim() && x.date === h.date)
-    .reduce((m, x) => Math.max(m, x.handNo || 0), 0) + 1;
+async function storeRemoveMany(ids) {
+  if (store.mode === 'db') { await Promise.all(ids.map(id => store.col.doc(id).delete())); return; }
+  const gone = new Set(ids);
+  store.hands = store.hands.filter(x => !gone.has(x.id)); writeLocal(store.hands); onStoreChange();
 }
+
+/* ===== tournaments =====
+   Hands of one tournament, entered one after the other, form one group. The calendar date alone never splits it:
+   a tournament that runs past midnight stays whole (same name, date at most a day apart, entered within 12 h).
+   Inside a group the hands are numbered 1, 2, 3... in the order they were entered. */
+const SESSION_GAP = 12 * 3600 * 1000;
+const dayNum = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '')); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000 : NaN; };
+const stamp = h => { const t = Date.parse(h.createdAt || ''); return Number.isFinite(t) ? t : 0; };
+const byEntry = (a, b) => stamp(a) - stamp(b) || String(a.id || '').localeCompare(String(b.id || ''));
+function joinsGroup(g, h) {
+  const name = (h.tournament || '').trim();
+  if (g.name !== name) return false;
+  if (h.date >= g.start && h.date <= g.end) return true;   /* same day: always the same tournament */
+  if (!name) return false;                                  /* unnamed hands are only grouped per day */
+  const d = dayNum(h.date), a = dayNum(g.start), b = dayNum(g.end), t = stamp(h);
+  return d >= a - 1 && d <= b + 1 && (!t || !g.last || Math.abs(t - g.last) <= SESSION_GAP);
+}
+function tournamentGroups(hands) {
+  const groups = [];
+  hands.slice().sort(byEntry).forEach(h => {
+    let g = null;
+    for (let i = groups.length - 1; i >= 0 && !g; i--) if (joinsGroup(groups[i], h)) g = groups[i];
+    if (!g) { g = { name: (h.tournament || '').trim(), start: h.date, end: h.date, last: 0, hands: [] }; groups.push(g); }
+    g.hands.push(h);
+    if (h.date < g.start) g.start = h.date;
+    if (h.date > g.end) g.end = h.date;
+    g.last = Math.max(g.last, stamp(h));
+  });
+  return groups;   /* oldest group first, oldest hand first */
+}
+const findGroup = id => tournamentGroups(store.hands).find(g => g.hands.some(h => h.id === id));
+/* id -> { no: number inside its tournament, date: the tournament's first date } */
+function groupInfo() {
+  const info = {};
+  tournamentGroups(store.hands).forEach(g => g.hands.forEach((h, i) => { info[h.id] = { no: i + 1, date: g.start }; }));
+  return info;
+}
+function nextHandNo(h) {
+  const cand = Object.assign({}, h, { id: '~new', createdAt: new Date().toISOString() });
+  const g = tournamentGroups(store.hands.concat([cand])).find(x => x.hands.indexOf(cand) >= 0);
+  return g ? g.hands.indexOf(cand) + 1 : 1;
+}
+/* the next hand carries on with the same tournament when the last one is from today or was entered less than 12 h ago */
+const continuing = last => !!last && (last.date === todayStr() || (stamp(last) > 0 && Date.now() - stamp(last) < SESSION_GAP));
 
 /* ===== drafts (this device only) ===== */
 let draftTimer = null;
@@ -475,7 +522,7 @@ function clearDraft() { try { localStorage.removeItem(LS_DRAFT); } catch (e) { /
 /* ===== state ===== */
 let H = null;
 let editingId = null;
-const ui = { tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, filter: 'all', confirmDel: false, tagDraft: '', modal: null, toastTimer: null };
+const ui = { tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, filter: 'all', delGroup: null, confirmDel: false, tagDraft: '', modal: null, toastTimer: null };
 
 /* ===== betting engine: replays the logged actions to get amounts, pot and SPR ===== */
 function actorsOf(h) {
@@ -680,7 +727,7 @@ function stackRow(kind, id, val) {
 }
 
 function secContext() {
-  const no = editingId ? (H.handNo || '') : nextHandNo(H);
+  const no = editingId ? ((groupInfo()[editingId] || {}).no || H.handNo || '') : nextHandNo(H);
   const names = Array.from(new Set(sortedHands().map(h => h.tournament).filter(Boolean))).slice(0, 12);
   const ante = num(H.ante);
   return '<div class="sec"><div class="sec-h"><span class="lbl">Tournoi</span><span class="pot">' + (editingId ? 'Modification · ' : '') + 'main n°<b>' + esc(no) + '</b></span></div>' +
@@ -858,7 +905,7 @@ function renderSave() {
 }
 
 /* ===== hands list ===== */
-function handRow(h) {
+function handRow(h, no) {
   const n = normHand(h), sim = simulate(n), iss = issues(n);
   const cards = n.hero.cards.map(c => c ? cardFace(c, 'mini') : '<span class="card mini empty"><span class="r">?</span></span>').join('');
   const board = ['flop', 'turn', 'river'].reduce((a, g) => a.concat(n.board[g]), []).filter(Boolean).map(c => cardFace(c, 'mini')).join('');
@@ -869,7 +916,7 @@ function handRow(h) {
     n.tags.map(t => '<span class="tag">' + esc(t) + '</span>').join('') + (iss.length ? '<span class="tag warn">À compléter : ' + esc(iss.join(', ')) + '</span>' : '');
   return '<div class="swipe"><button type="button" class="swipe-del" data-act="delrow" data-id="' + esc(n.id) + '" aria-label="Supprimer la main">Supprimer</button>' +
     '<button type="button" class="hand" data-act="open" data-id="' + esc(n.id) + '"><span class="hand-cards">' + cards + '</span><span class="hand-main">' +
-    '<span class="hand-sum"><span class="no">n°' + esc(n.handNo || '–') + '</span>' + esc(sum) + '</span>' +
+    '<span class="hand-sum"><span class="no">n°' + esc(no || n.handNo || '–') + '</span>' + esc(sum) + '</span>' +
     (reached.length ? '<span class="pot">' + esc(reached.join(' › ')) + '</span>' : '') +
     (board ? '<span class="hand-board">' + board + '</span>' : '') + (tags ? '<span class="tags">' + tags + '</span>' : '') + '</span></button></div>';
 }
@@ -894,15 +941,21 @@ function renderList() {
   const names = [];
   all.forEach(h => { if (h.tournament && names.indexOf(h.tournament) < 0) names.push(h.tournament); });
   const filters = [['all', 'Toutes'], ['flag', '★ À analyser'], ['todo', 'À compléter']].concat(names.slice(0, 6).map(n => ['t:' + n, n]));
-  const list = filteredHands();
-  const groups = [], idx = {};
-  list.forEach(h => {
-    const k = h.date + '|' + (h.tournament || '');
-    if (!(k in idx)) { idx[k] = groups.length; groups.push({ name: h.tournament, date: h.date, hands: [] }); }
-    groups[idx[k]].hands.push(h);
-  });
-  groups.forEach(g => g.hands.reverse());
-  const body = groups.length ? groups.map(g => '<div class="grp-h"><h3>' + esc(g.name || 'Sans nom') + '</h3><span class="meta">' + esc(fmtDate(g.date)) + ' · ' + g.hands.length + ' main' + (g.hands.length > 1 ? 's' : '') + '</span></div>' + g.hands.map(handRow).join('')).join('')
+  const list = filteredHands(), keep = new Set(list.map(h => h.id)), info = groupInfo();
+  /* copy / delete a whole tournament only when each tournament is shown in full (not under ★ or "À compléter") */
+  const whole = ui.filter === 'all' || ui.filter.indexOf('t:') === 0;
+  const groups = tournamentGroups(store.hands).map(g => ({ g: g, hands: g.hands.filter(h => keep.has(h.id)) })).filter(x => x.hands.length)
+    .sort((a, b) => b.g.last - a.g.last || String(b.g.start).localeCompare(String(a.g.start)));
+  const body = groups.length ? groups.map(x => {
+    const g = x.g, n = x.hands.length, first = g.hands[0].id, nm = g.name || 'Sans nom';
+    const asking = whole && ui.delGroup === first;
+    const acts = !whole ? '' : asking
+      ? '<div class="grp-ask">Supprimer définitivement ' + (n > 1 ? 'les ' + n + ' mains' : 'la main') + ' de « ' + esc(nm) + ' » ? Copie-les ou sauvegarde-les d\'abord si besoin.</div>' +
+        '<div class="grp-a"><button type="button" class="btn ghost sm" data-act="cancelgrp">Annuler</button><button type="button" class="btn danger sm" data-act="delgrp" data-id="' + esc(first) + '">Supprimer ' + n + ' main' + (n > 1 ? 's' : '') + '</button></div>'
+      : '<div class="grp-a"><button type="button" class="btn ghost sm" data-act="copygrp" data-id="' + esc(first) + '">Copier le tournoi</button><button type="button" class="btn ghost sm" data-act="askdelgrp" data-id="' + esc(first) + '">Supprimer le tournoi</button></div>';
+    return '<div class="grp-h"><h3>' + esc(nm) + '</h3><span class="meta">' + esc(fmtDate(g.start)) + ' · ' + n + ' main' + (n > 1 ? 's' : '') + '</span>' + acts + '</div>' +
+      x.hands.map(h => handRow(h, info[h.id] && info[h.id].no)).join('');
+  }).join('')
     : '<div class="empty-state">Aucune main dans ce filtre.</div>';
   el.innerHTML = '<div class="sec plain"><div class="scroll-row">' + filters.map(f => chip(esc(f[1]), { on: ui.filter === f[0], attrs: 'data-act="filter" data-v="' + esc(f[0]) + '"' })).join('') + '</div>' +
     '<div class="row"><button type="button" class="btn ghost sm" data-act="copyall">Copier le texte (' + list.length + ')</button><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer</button></div>' + IMPORT_INPUT + '<p class="hint" style="margin:0">Glisse une main vers la gauche pour la supprimer.</p></div>' + body;
@@ -920,7 +973,7 @@ function onStoreChange() {
     adopted = true;
     const last = sortedHands()[0];
     if (last && !draftLoaded && isPristine(H) && !editingId) {
-      H.tournament = last.date === todayStr() ? (last.tournament || '') : '';
+      H.tournament = continuing(last) ? (last.tournament || '') : '';
       H.table = TABLES[last.table] ? last.table : H.table;
       H.ante = last.ante == null ? 0 : last.ante;
     }
@@ -941,7 +994,17 @@ async function copyText(text, title) {
   try { await navigator.clipboard.writeText(text); toast('Copié'); }
   catch (e) { ui.modal = { title: title || 'Texte', text: text, hint: 'Sélectionne tout puis copie.' }; renderSheet(); }
 }
-const IMPORT_INPUT = '<input type="file" id="in-import" accept=".json,application/json" hidden>';
+/* text of several hands, in the order they were entered (the first one entered comes first); each hand carries its number
+   inside its tournament and the tournament's first date, so a tournament that ran past midnight reads as one */
+function exportTexts(hands) {
+  const info = groupInfo();
+  return hands.slice().sort(byEntry).map(h => {
+    const n = normHand(h), k = info[h.id];
+    if (k) { n.handNo = k.no; n.date = k.date; }
+    return handText(n);
+  }).join('\n\n———\n\n');
+}
+const IMPORT_INPUT ='<input type="file" id="in-import" accept=".json,application/json" hidden>';
 /* share sheet (iPhone: "Enregistrer dans Fichiers", AirDrop, Messages...) */
 async function shareFile(data, filename) {
   try {
@@ -1049,7 +1112,7 @@ function resetEditor(ctx) {
 }
 function freshCtx() {
   const last = sortedHands()[0];
-  return last ? { tournament: last.date === todayStr() ? (last.tournament || '') : '', date: todayStr(), table: last.table, ante: last.ante } : {};
+  return last ? { tournament: continuing(last) ? (last.tournament || '') : '', date: todayStr(), table: last.table, ante: last.ante } : {};
 }
 function syncChips(act, id, val) {
   const sel = '[data-act="' + act + '"]' + (id != null ? '[data-id="' + id + '"]' : '');
@@ -1076,7 +1139,8 @@ async function saveHand() {
   resetEditor(was ? freshCtx() : { tournament: h.tournament, date: h.date, table: h.table, ante: h.ante });
   if (was) ui.tab = 'list';
   renderAll();
-  celebrate('Main n°' + (h.handNo || '') + (was ? ' mise à jour' : ' enregistrée'), was ? '' : 'Prêt pour la main suivante');
+  const gi = groupInfo()[h.id];
+  celebrate('Main n°' + ((gi && gi.no) || h.handNo || '') + (was ? ' mise à jour' : ' enregistrée'), was ? '' : 'Prêt pour la main suivante');
   const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   window.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' });
   if (!was) {
@@ -1148,7 +1212,7 @@ function closeSwipes(except) {
 })();
 
 const A = {
-  tab(el) { ui.tab = el.dataset.v; ui.picker = null; renderAll(); window.scrollTo(0, 0); },
+  tab(el) { ui.tab = el.dataset.v; ui.picker = null; ui.delGroup = null; renderAll(); window.scrollTo(0, 0); },
   table(el) {
     H.table = el.dataset.v;
     const ok = new Set(TABLES[H.table]);
@@ -1205,7 +1269,11 @@ const A = {
   },
   'do-abandon'() { resetEditor(freshCtx()); ui.tab = 'list'; renderAll(); window.scrollTo(0, 0); },
   'do-clear'() { resetEditor(); renderAll(); window.scrollTo(0, 0); },
-  copy() { copyText(handText(H), 'Texte de la main'); },
+  copy() {
+    const n = clone(H), k = editingId ? groupInfo()[editingId] : null;
+    if (k) { n.handNo = k.no; n.date = k.date; }
+    copyText(handText(n), 'Texte de la main');
+  },
   save() { saveHand(); },
   open(el) {
     if (Date.now() < swipeGuard) return;
@@ -1219,8 +1287,22 @@ const A = {
     ui.tab = 'edit'; ui.street = 'preflop'; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = '';
     renderAll(); window.scrollTo(0, 0); saveDraftSoon();
   },
-  filter(el) { ui.filter = el.dataset.v; renderList(); },
-  copyall() { copyText(filteredHands().map(h => handText(normHand(h))).join('\n\n———\n\n'), 'Texte des mains'); },
+  filter(el) { ui.filter = el.dataset.v; ui.delGroup = null; renderList(); },
+  copyall() { copyText(exportTexts(filteredHands()), 'Texte des mains'); },
+  copygrp(el) { const g = findGroup(el.dataset.id); if (g) copyText(exportTexts(g.hands), 'Texte du tournoi'); },
+  askdelgrp(el) { ui.delGroup = el.dataset.id; renderList(); },
+  cancelgrp() { ui.delGroup = null; renderList(); },
+  delgrp(el) {
+    const g = findGroup(el.dataset.id);
+    ui.delGroup = null;
+    if (!g) { renderList(); return; }
+    const ids = g.hands.map(h => h.id);
+    storeRemoveMany(ids).then(() => {
+      if (editingId && ids.indexOf(editingId) >= 0) resetEditor(freshCtx());
+      renderAll();
+      toast(ids.length + (ids.length > 1 ? ' mains supprimées' : ' main supprimée'));
+    }).catch(e => { renderList(); toast('Suppression impossible' + (e && e.code ? ' (' + e.code + ')' : '')); });
+  },
   exportjson() { downloadJson(); },
   importjson() { const i = $('#in-import'); if (i) i.click(); },
   delrow(el) {
