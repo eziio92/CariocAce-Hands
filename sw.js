@@ -14,10 +14,6 @@ self.addEventListener('fetch', e => {
   if (r.method !== 'GET') return;
   const u = new URL(r.url);
   if (r.mode === 'navigate') {
-    /* only the app itself: other pages hosted under this scope (e.g. /mains/...) load straight from the network,
-       and must never be served as, or saved over, the app's index.html */
-    const root = new URL('./', self.registration.scope).pathname;
-    if (u.pathname !== root && u.pathname !== root + 'index.html') return;
     /* page: network first, but never wait more than 3.5 s on a bad connection (poker room wifi) */
     e.respondWith((async () => {
       const cache = await caches.open(V);
