@@ -378,6 +378,19 @@ textarea.view{min-height:220px;font:12.5px/1.5 var(--f-mono)}
   .chip,.btn{transition:background .15s ease,box-shadow .15s ease}
 }
 #sec-action,#sec-result{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 156px)}
+/* visit-count opt-out */
+.gcrow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 12px 10px 14px;border:1px solid var(--edge);border-radius:18px;background:var(--glass)}
+.gc-t{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:12px;color:var(--fg-3)}
+.gc-t b{font:600 13px var(--f-body);color:var(--fg-2)}
+.sw{position:relative;flex:none;width:48px;height:28px;padding:0;border-radius:999px;border:1px solid var(--edge-hi);background:var(--field)}
+.sw i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--fg-3);transition:transform .18s,background .18s}
+.sw.on{background:var(--glass-3)}
+.sw.on i{transform:translateX(20px);background:var(--acc-1);box-shadow:0 0 10px var(--acc-glow)}
+/* date field: iOS gives it an intrinsic width and centres its text, so it pokes out of its grid cell */
+.inp[type=date]{-webkit-appearance:none;appearance:none;display:block;width:100%;min-width:0;max-width:100%;overflow:hidden;text-align:left;line-height:normal;padding-right:10px}
+.inp[type=date]::-webkit-date-and-time-value{text-align:left;min-width:0;margin:0}
+.inp[type=date]::-webkit-datetime-edit{padding:0;min-width:0}
+.grid2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 </style>
 <style>body{padding-top:env(safe-area-inset-top,0px)}</style>
 </head>
@@ -702,6 +715,9 @@ function labelOf(h, id) {
   return v ? (v.pos || v.id) : id;
 }
 
+/* in the written hand the Hero's actions recall his seat — "Hero (BB) bet 2.5" — so no one has to look back at the header */
+function actorTxt(h, id) { return id === 'H' && h.hero.pos ? 'Hero (' + h.hero.pos + ')' : labelOf(h, id); }
+
 function simulate(h) {
   const actors = actorsOf(h), byId = {};
   actors.forEach(a => { byId[a.id] = a; });
@@ -871,7 +887,7 @@ function handText(h) {
     let head = STREET_LABEL[st] + board + ' (pot ' + fmt(S.potStart) + ' bb' + spr + ')';
     if (st === 'preflop' && S.rows.length) head += ' · ' + potKind(sim.raises);
     L.push(head + (S.rows.length ? ' :' : ''));
-    if (S.rows.length) L.push('  ' + S.rows.map(r => labelOf(h, r.id) + ' ' + rowText(r)).join(', '));
+    if (S.rows.length) L.push('  ' + S.rows.map(r => actorTxt(h, r.id) + ' ' + rowText(r)).join(', '));
   });
   if (h.result) L.push('', 'Résultat : ' + RESULT_FR[h.result]);
   if (h.tags.length) L.push('Tags : ' + h.tags.join(', '));
@@ -1178,7 +1194,7 @@ function renderList() {
   }).join('')
     : '<div class="empty-state">Aucune main dans ce filtre.</div>';
   el.innerHTML = '<div class="sec plain"><div class="scroll-row">' + filters.map(f => chip(esc(f[1]), { on: ui.filter === f[0], attrs: 'data-act="filter" data-v="' + esc(f[0]) + '"' })).join('') + '</div>' +
-    '<div class="row"><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer</button></div>' + IMPORT_INPUT + '<p class="hint" style="margin:0">Glisse une main vers la gauche pour la supprimer.</p></div>' + body;
+    '<div class="row"><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer</button></div>' + IMPORT_INPUT + '<p class="hint" style="margin:0">Glisse une main vers la gauche pour la supprimer.</p>' + gcRow() + '</div>' + body;
 }
 
 /* ===== review: the summary, then the hands one by one ===== */
@@ -1259,7 +1275,7 @@ function pcSide() {
     (splitBar(s.good, s.bad) || '<div class="rbar" aria-hidden="true"></div>') +
     '<div class="rate">' + (r == null ? 'Aucune main notée pour l\'instant.' : '<b>' + r + ' %</b> de bonnes décisions · ' + s.good + ' sur ' + judged) + '</div>' +
     '<div class="row"><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer</button></div>' +
-    (document.querySelector('#view-list #in-import') ? '' : IMPORT_INPUT) + '</div>';
+    (document.querySelector('#view-list #in-import') ? '' : IMPORT_INPUT) + gcRow() + '</div>';
   const list = pcGroups().map(g => {
     const t = reviewStats(g.hands), rr = goodRate(t), open = g.hands.some(h => h.id === ui.pc.sel);
     const rows = open ? '<div class="pg-rows">' + g.hands.map(h => {
@@ -1369,6 +1385,10 @@ function onStoreChange() {
   if (ui.tab === 'list') renderList(); else if (ui.tab === 'review') renderReview(); else if (!typing) renderEdit();
   renderSave();
 }
+/* GoatCounter's own opt-out: localStorage.skipgc = 't' makes count.js skip this browser at its next load */
+const gcSkipped = () => { try { return localStorage.getItem('skipgc') === 't'; } catch (e) { return false; } };
+const gcRow = () => '<div class="gcrow"><span class="gc-t"><b>Ne pas compter mes ouvertures</b><span>Statistiques de visite · cet appareil seulement</span></span>' +
+  '<button type="button" class="sw' + (gcSkipped() ? ' on' : '') + '" role="switch" aria-checked="' + gcSkipped() + '" aria-label="Ne pas compter mes ouvertures" data-act="gcskip"><i></i></button></div>';
 function toast(msg) {
   const t = $('#toast');
   t.textContent = msg; t.hidden = false;
@@ -1844,6 +1864,13 @@ const A = {
     }).catch(e => { renderList(); toast('Suppression impossible' + (e && e.code ? ' (' + e.code + ')' : '')); });
   },
   exportjson() { downloadJson(); },
+  gcskip() {
+    const on = !gcSkipped();
+    try { if (on) localStorage.setItem('skipgc', 't'); else localStorage.removeItem('skipgc'); }
+    catch (e) { toast('Réglage impossible sur cet appareil'); return; }
+    toast(on ? 'Tes ouvertures ne seront plus comptées sur cet appareil' : 'Tes ouvertures sont de nouveau comptées');
+    renderAll();
+  },
   importjson() { const i = $('#in-import'); if (i) i.click(); },
   delrow(el) {
     const id = el.dataset.id;
