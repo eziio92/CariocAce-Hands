@@ -378,10 +378,13 @@ textarea.view{min-height:220px;font:12.5px/1.5 var(--f-mono)}
   .chip,.btn{transition:background .15s ease,box-shadow .15s ease}
 }
 #sec-action,#sec-result{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 156px)}
-/* date field: iOS gives it an intrinsic width and centres its text, so it pokes out of its grid cell */
-.inp[type=date]{-webkit-appearance:none;appearance:none;display:block;width:100%;min-width:0;max-width:100%;overflow:hidden;text-align:left;line-height:normal;padding-right:10px}
-.inp[type=date]::-webkit-date-and-time-value{text-align:left;min-width:0;margin:0}
-.inp[type=date]::-webkit-datetime-edit{padding:0;min-width:0}
+/* date field: drawn by us (so the text is centred the same on every browser, iOS included); the real date input lies on top, invisible, and still opens the native picker on tap */
+.datebox{position:relative;display:flex;align-items:center;justify-content:space-between;gap:8px;height:46px;min-width:0;padding:0 14px;overflow:hidden;
+  border:1px solid var(--edge);border-radius:16px;background:var(--field);box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
+.datebox .dt{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:16px/1.2 var(--f-body);color:var(--fg)}
+.datebox .dt-ico{flex:none;color:var(--fg-3)}
+.datebox input{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;opacity:0;font-size:16px;cursor:pointer;-webkit-appearance:none;appearance:none}
+.datebox:focus-within{outline:2px solid var(--acc-ink);outline-offset:2px}
 .grid2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 </style>
 <style>body{padding-top:env(safe-area-inset-top,0px)}</style>
@@ -460,6 +463,7 @@ const fmtDate = s => {
     return new Date(p[0], p[1] - 1, p[2]).toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' });
   } catch (e) { return s || ''; }
 };
+const dateLbl = s => s ? fmtDate(s) : 'Date';
 const rankLabel = r => r === 'T' ? '10' : r;
 const posLabel = (table, p) => (table === 'HU' && p === 'SB') ? 'SB / BTN' : p;
 
@@ -908,7 +912,9 @@ function secContext() {
   const ante = num(H.ante);
   return '<div class="sec"><div class="sec-h"><span class="lbl">Tournoi</span><span class="pot">' + (editingId ? 'Modification · ' : '') + 'main n°<b>' + esc(no) + '</b></span></div>' +
     '<div class="grid2"><input class="inp" id="in-tourn" list="dl-tourn" placeholder="Nom du tournoi" value="' + esc(H.tournament) + '" data-in="tourn" autocomplete="off" aria-label="Nom du tournoi">' +
-    '<input class="inp" type="date" id="in-date" value="' + esc(H.date) + '" data-in="date" aria-label="Date"></div>' +
+    '<div class="datebox"><span class="dt" id="date-txt">' + esc(dateLbl(H.date)) + '</span>' +
+      '<svg class="dt-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>' +
+      '<input type="date" id="in-date" value="' + esc(H.date) + '" data-in="date" aria-label="Date"></div></div>' +
     '<datalist id="dl-tourn">' + names.map(n => '<option value="' + esc(n) + '"></option>').join('') + '</datalist>' +
     '<div class="seg">' + Object.keys(TABLES).map(k => '<button type="button" class="' + (H.table === k ? 'on' : '') + '" data-act="table" data-v="' + k + '">' + TABLE_LABEL[k] + '</button>').join('') + '</div>' +
     fld('Ante', '<div class="stackrow">' + chip('Aucune', { on: !(ante > 0), attrs: 'data-act="ante" data-v="0"' }) + chip('BBA 1 bb', { on: ante === 1, attrs: 'data-act="ante" data-v="1"' }) +
@@ -1868,12 +1874,16 @@ document.addEventListener('click', e => {
   const f = A[el.dataset.act];
   if (f) f(el, e);
 });
+document.addEventListener('click', e => {
+  const t = e.target;
+  if (t && t.id === 'in-date' && typeof t.showPicker === 'function' && window.matchMedia('(hover:hover)').matches) { try { t.showPicker(); } catch (err) { /* the browser refuses: it still opens by its own icon */ } }
+});
 document.addEventListener('input', e => {
   const t = e.target, k = t.dataset && t.dataset.in;
   if (!k) return;
   if (k === 'fix') { ui.fixDraft = { id: t.dataset.id, text: t.value }; return; }   /* review field: kept until validated or left */
   if (k === 'tourn') { H.tournament = t.value; $('#stat').textContent = t.value; }
-  else if (k === 'date') H.date = t.value || todayStr();
+  else if (k === 'date') { H.date = t.value || todayStr(); const dt = $('#date-txt'); if (dt) dt.textContent = dateLbl(H.date); }
   else if (k === 'ante') { H.ante = num(t.value) > 0 ? num(t.value) : 0; syncChips('ante', null, H.ante); }
   else if (k === 'hstack') { H.hero.stack = t.value; syncChips('hstack', '', num(t.value)); }
   else if (k === 'vstack') { const v = H.villains.find(x => x.id === t.dataset.id); if (v) { v.stack = t.value; syncChips('vstack', t.dataset.id, num(t.value)); } }
