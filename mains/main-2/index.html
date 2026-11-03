@@ -1,0 +1,1086 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0a0a0d">
+<title>Main à deviner</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Syne:wght@600;700&display=swap">
+<style>:root{color-scheme:dark;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<style>
+  /* Une colonne étroite : la table et la décision restent en haut, l'historique s'allonge dessous. */
+  :root {
+    --bg: #0a0a0d;
+    --surface: #121217;
+    --surface-2: #1a1a21;
+    --line: #272731;
+    --fg: #eceef4;
+    --muted: #8b8d9c;
+    --plat: #dfe2ee;
+    --plat-ink: #0c0c10;
+    --ok: #8db8ff;
+    --miss: #e8607a;
+    --card: #f1f2f6;
+    --card-ink: #15161b;
+    --suit-red: #d63a52;
+    --shadow: rgba(0, 0, 0, 0.5);
+    --table-hi: #1d1d29;
+    --card-2: #e2e4ed;
+    --font-display: 'Syne', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    --font-body: 'Manrope', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); }
+  body {
+    margin: 0;
+    color: var(--fg);
+    font: 400 15px/1.5 var(--font-body);
+    padding-block: 20px 56px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .wrap { max-width: 560px; margin: 0 auto; display: grid; gap: 20px; }
+  .wrap > * { min-width: 0; }
+
+  h1 { margin: 0; font: 700 24px/1.1 var(--font-display); letter-spacing: 0.01em; }
+  h1 span { color: var(--muted); font-weight: 600; }
+  .sub { margin: 8px 0 0; color: var(--muted); font-size: 14px; max-width: 46ch; }
+
+  .lab {
+    font: 500 11px/1.2 var(--font-mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  /* Saisie */
+  .stack { display: grid; gap: 12px; }
+  textarea {
+    width: 100%;
+    min-height: 280px;
+    resize: vertical;
+    background: var(--surface);
+    color: var(--fg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px;
+    font: 400 16px/1.55 var(--font-mono);
+    white-space: pre-wrap;
+  }
+  .hint { margin: 0; color: var(--muted); font-size: 13px; }
+  .err {
+    margin: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--miss);
+    border-radius: 12px;
+    color: var(--fg);
+    font-size: 14px;
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  .btn {
+    appearance: none;
+    height: 48px;
+    padding: 0 18px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface-2);
+    color: var(--fg);
+    font: 600 14px var(--font-body);
+    cursor: pointer;
+  }
+  .btn.primary { background: var(--plat); border-color: var(--plat); color: var(--plat-ink); flex: 1 1 180px; }
+  .btn.ghost { background: transparent; }
+  .btn.sm { height: 36px; padding: 0 14px; font-size: 13px; }
+  .btn:focus-visible, textarea:focus-visible, .opt:focus-visible { outline: 2px solid var(--plat); outline-offset: 2px; }
+
+  /* Mode invité : une seule main */
+  .share { display: grid; gap: 10px; }
+  .share textarea { min-height: 0; font-size: 14px; resize: none; }
+  .intro { display: grid; gap: 14px; }
+  .intro .cards { display: flex; gap: 8px; }
+  a.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+  .field input {
+    width: 100%; height: 48px; padding: 0 14px;
+    border: 1px solid var(--line); border-radius: 12px;
+    background: var(--surface-2); color: var(--fg); font: 500 16px var(--font-body);
+  }
+  .field input:focus-visible { outline: 2px solid var(--plat); outline-offset: 2px; }
+  .intro .err { padding: 10px 14px; }
+  .ans { display: grid; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .ans .top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .ans .nm { font: 700 18px/1.2 var(--font-display); overflow-wrap: anywhere; }
+  .ans .dt { font: 400 12px/1.3 var(--font-mono); color: var(--muted); }
+
+  /* Jeu */
+  .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px;
+    display: grid;
+    gap: 16px;
+  }
+  .strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .strip > div { display: grid; gap: 6px; }
+  .strip .v { font: 500 18px/1.2 var(--font-mono); font-variant-numeric: tabular-nums; }
+  .strip .v.st { font: 700 18px/1.2 var(--font-display); }
+
+  .board { display: flex; gap: 6px; }
+  .pc {
+    --cw: 44px;
+    display: inline-grid;
+    align-content: center;
+    justify-items: center;
+    width: var(--cw);
+    aspect-ratio: 44 / 62;
+    flex: none;
+    background: linear-gradient(165deg, var(--card) 0%, var(--card-2) 100%);
+    color: var(--card-ink);
+    border-radius: 7px;
+    line-height: 1;
+    box-shadow: 0 6px 14px var(--shadow);
+  }
+  .pc b { display: block; font: 700 calc(var(--cw) * 0.44) / 1 var(--font-body); }
+  .pc i { display: block; font-style: normal; font-size: calc(var(--cw) * 0.46); margin-top: -2px; }
+  .pc.red { color: var(--suit-red); }
+  .slot { width: 38px; aspect-ratio: 44 / 62; flex: none; border: 1px dashed var(--line); border-radius: 7px; }
+
+  .hero { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .hero .who { display: grid; gap: 6px; }
+  .hero .who .mono { font-size: 18px; }
+  .hero .hand { display: flex; gap: 6px; }
+
+  #play { gap: 12px; }
+  .table {
+    display: grid;
+    gap: 14px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: radial-gradient(130% 120% at 50% 0%, var(--table-hi) 0%, var(--surface) 62%);
+  }
+  .tbl-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .potbox { display: grid; justify-items: end; gap: 4px; min-width: 0; text-align: right; }
+  .potbox .lab.st { color: var(--plat); }
+  .potv { font: 700 22px/1 var(--font-display); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .potv small { margin-left: 4px; font: 500 12px var(--font-mono); color: var(--muted); }
+  .tbl-hero { display: flex; align-items: center; gap: 14px; }
+  .tbl-hero .hand { display: flex; flex: none; }
+  .tbl-hero .hand .pc:first-child { transform: rotate(-5deg); }
+  .tbl-hero .hand .pc:last-child { transform: rotate(4deg); margin-left: -10px; }
+  .tbl-hero .who { display: grid; gap: 4px; flex: 1; min-width: 0; }
+  .tbl-hero .who .mono, .tocall .mono { font-size: 17px; font-weight: 500; }
+  .tocall { display: grid; gap: 4px; justify-items: end; }
+  .tocall.due .mono { color: var(--plat); }
+
+  .seats { display: flex; flex-wrap: wrap; gap: 6px; }
+  .seat {
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    min-width: 54px;
+    padding: 6px 9px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface-2);
+  }
+  .seat b { font: 500 12px/1.2 var(--font-mono); }
+  .seat em { display: block; min-height: 1.3em; font: 400 11px/1.3 var(--font-mono); font-style: normal; color: var(--muted); }
+  .seat.me { border-color: var(--plat); }
+  .seat.out { opacity: 0.38; }
+  .seat.out b { text-decoration: line-through; }
+
+  /* Décision */
+  .decide { display: grid; gap: 14px; }
+  .q { margin: 0; font: 700 17px/1.3 var(--font-display); }
+  .opts { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: 10px; }
+  .opt {
+    appearance: none;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 3px;
+    height: 66px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface-2);
+    color: var(--fg);
+    font: 600 16px var(--font-body);
+    cursor: pointer;
+  }
+  .opt small { font: 400 12px var(--font-mono); color: var(--muted); }
+  .opt:not(:disabled):active { transform: scale(0.98); }
+  .opt:disabled { cursor: default; opacity: 0.55; }
+  .opt.sel:disabled { opacity: 1; border-color: var(--plat); }
+
+  .verdict { display: grid; gap: 6px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; animation: rise 0.22s ease-out; }
+  .verdict.ok { border-color: var(--ok); }
+  .verdict.miss { border-color: var(--miss); }
+  .verdict .big { font: 600 18px/1.3 var(--font-body); }
+  .tag { font: 600 11px/1.2 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; }
+  .tag.ok { color: var(--ok); }
+  .tag.miss { color: var(--miss); }
+  .muted { color: var(--muted); font-size: 14px; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* Bilan */
+  .score { font: 700 44px/1 var(--font-display); }
+  .score small { font: 500 14px var(--font-mono); color: var(--muted); letter-spacing: 0.04em; margin-left: 8px; }
+  .recap { display: grid; }
+  .recap > div { display: grid; gap: 4px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .recap .top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+
+  .show { display: grid; gap: 12px; padding-bottom: 4px; }
+  .sd { display: flex; align-items: center; gap: 16px; }
+  .sd .mono { min-width: 52px; font: 500 20px var(--font-mono); }
+  .sdcards { display: flex; gap: 10px; }
+  .sdcards .pc { animation: deal 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+  /* Historique */
+  .log { display: grid; gap: 4px; }
+  .lg-h { display: flex; align-items: center; gap: 10px; padding-top: 14px; }
+  .lg-h .s { font: 700 13px var(--font-display); letter-spacing: 0.06em; text-transform: uppercase; }
+  .lg-h .c { display: flex; gap: 4px; }
+  .lg-h .p { margin-left: auto; font-size: 12px; color: var(--muted); }
+  .act { display: flex; gap: 12px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .act .p { width: 56px; flex: none; font: 500 12px/1.9 var(--font-mono); color: var(--muted); }
+  .act.hero-act { color: var(--plat); font-weight: 600; }
+  .act.hero-act .p { color: var(--plat); }
+  .note { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+
+  /* Action en cours */
+  .live { gap: 14px; min-height: 132px; align-content: start; }
+  .live-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .now-line { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; animation: rise 0.28s ease-out; }
+  .now-line .who { min-width: 56px; font: 500 16px var(--font-mono); color: var(--muted); }
+  .now-line .what { font: 700 clamp(28px, 8.5vw, 38px) / 1.1 var(--font-display); }
+  .now-line.facing { animation: none; }
+  .now-line.hero-now .who, .now-line.hero-now .what { color: var(--plat); }
+  .seat.acting { border-color: var(--plat); animation: pulse 0.9s ease-out; }
+  .pc.deal { animation: deal 0.42s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  @keyframes pulse { 0% { transform: scale(1.14); } 100% { transform: scale(1); } }
+  @keyframes deal { from { opacity: 0; transform: translateY(-14px) scale(0.9); } to { opacity: 1; transform: none; } }
+
+  .before { display: grid; gap: 8px; }
+
+  /* Table ovale */
+  .oval { position: relative; width: 100%; max-width: 440px; margin: 0 auto; aspect-ratio: 2.05 / 1; }
+  .oval::before {
+    content: "";
+    position: absolute;
+    inset: 13% 9%;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: radial-gradient(ellipse at 50% 35%, var(--table-hi) 0%, var(--bg) 100%);
+    box-shadow: inset 0 0 0 6px var(--surface), inset 0 0 0 7px var(--line);
+  }
+  .ctr { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; gap: 6px; justify-items: center; }
+  .oval .board { gap: 4px; }
+  .oval .slot { width: 28px; }
+  .ctr .info { font: 500 11px/1.2 var(--font-mono); color: var(--muted); white-space: nowrap; }
+  .ctr .info b { color: var(--plat); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+  .oseat {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: grid;
+    justify-items: center;
+    gap: 1px;
+    min-width: 46px;
+    padding: 4px 7px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface-2);
+  }
+  .oseat b { font: 600 11px/1.2 var(--font-mono); }
+  .oseat em { font: 400 10px/1.2 var(--font-mono); font-style: normal; color: var(--muted); }
+  .oseat.me { border-color: var(--plat); }
+  .oseat.out { opacity: 0.35; border-style: dashed; }
+  .oseat.out b { text-decoration: line-through; }
+  .oseat.acting { border-color: var(--plat); animation: pulseo 0.9s ease-out; }
+  .oseat .bet {
+    position: absolute;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--plat);
+    color: var(--plat-ink);
+    font: 600 11px/1.3 var(--font-mono);
+    white-space: nowrap;
+  }
+  .dir-up .bet { bottom: calc(100% + 3px); left: 50%; transform: translateX(-50%); }
+  .dir-down .bet { top: calc(100% + 3px); left: 50%; transform: translateX(-50%); }
+  .dir-right .bet { left: calc(100% + 4px); top: 50%; transform: translateY(-50%); }
+  .dir-left .bet { right: calc(100% + 4px); top: 50%; transform: translateY(-50%); }
+  .dbtn {
+    position: absolute;
+    top: -7px;
+    right: -7px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--fg);
+    color: var(--bg);
+    font: 700 9px/16px var(--font-mono);
+    font-style: normal;
+    text-align: center;
+  }
+  @keyframes pulseo { 0% { transform: translate(-50%, -50%) scale(1.15); } 100% { transform: translate(-50%, -50%) scale(1); } }
+
+  /* Tailles */
+  .opt.sel { border-color: var(--plat); }
+  .sizes { display: grid; gap: 10px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .opt.sz { height: 56px; font-size: 15px; }
+  .custom { display: flex; gap: 8px; }
+  .custom input {
+    flex: 1; min-width: 0; height: 44px; padding: 0 12px;
+    border: 1px solid var(--line); border-radius: 12px;
+    background: var(--surface-2); color: var(--fg); font: 400 16px var(--font-mono);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .now-line, .seat.acting, .oseat.acting, .pc.deal, .sdcards .pc { animation: none; }
+    .verdict { animation: none; }
+    .opt:not(:disabled):active { transform: none; }
+  }
+</style>
+
+<main class="wrap">
+  <header id="head">
+    <h1>CariocAce <span>Replay</span></h1>
+    <p class="sub">Colle une main. Elle se joue toute seule et s'arrête à chaque décision de Hero : à toi de deviner.</p>
+  </header>
+
+  <section id="view-input" class="stack">
+    <label class="lab" for="hand-input">La main</label>
+    <textarea id="hand-input" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Hero: BTN, Ah Qs&#10;Stack: 40bb&#10;Preflop: UTG fold, CO raise 2.2, Hero raise 6, ..."></textarea>
+    <p id="sample-note" class="hint">Main d'exemple. Remplace-la en collant la tienne.</p>
+    <p class="hint">Positions (UTG, CO, BTN, SB, BB…), cartes avec leur couleur (Ah Kd), tailles en bb.</p>
+    <p id="err" class="err" role="alert" hidden></p>
+    <div class="row">
+      <button class="btn primary" data-do="run" type="button">Lancer la main</button>
+      <button class="btn ghost" data-do="clear" type="button">Vider</button>
+      <button class="btn ghost" data-do="sample" type="button">Exemple</button>
+    </div>
+  </section>
+
+  <section id="view-owner" hidden></section>
+
+  <section id="view-play" hidden>
+    <div id="play" class="wrap" style="max-width:none"></div>
+  </section>
+</main>
+
+<script>
+/*CORE-START*/
+const ORDER = ['UTG','UTG+1','UTG+2','MP','MP1','MP2','EP','LJ','HJ','CO','BTN','SB','BB','HERO'];
+const PF = ['UTG','UTG+1','UTG+2','UTG+3','EP','MP','MP1','MP2','LJ','HJ','CO','BTN','SB','BB'];
+const BASE_SEATS = {
+  3: ['BTN','SB','BB'], 4: ['CO','BTN','SB','BB'], 5: ['UTG','CO','BTN','SB','BB'],
+  6: ['UTG','HJ','CO','BTN','SB','BB'], 7: ['UTG','LJ','HJ','CO','BTN','SB','BB'],
+  8: ['UTG','UTG+1','LJ','HJ','CO','BTN','SB','BB'], 9: ['UTG','UTG+1','UTG+2','LJ','HJ','CO','BTN','SB','BB']
+};
+const POS_NH  = String.raw`utg\s?\+\s?\d|utg|mp\s?\d?|ep|lj|hj|co|btn|bu|sb|bb`;
+const POS_ALL = POS_NH + String.raw`|hero|h[eé]ros?`;
+const ACT = String.raw`check[\s-]?raise|all[\s-]?in|[345][\s-]?bet|c[\s-]?bet|squeeze|shoves?|jam|push|tapis|limps?|isolate|iso|open|raises?|relance|bets?|mise|donk|probe|calls?|suit|folds?|couche|checks?|xr|[frcxb]`;
+const CL_SRC  = String.raw`\b(${POS_ALL})\b(?:\s*\(\s*(?:h[eé]ros?|${POS_NH})\s*\))?[\s:\-–—,→>=]*(${ACT})(?![A-Za-z'’])(?:\s*(?:to\s+|à\s+)?(\d+(?:\.\d+)?(?:bb|x|%)?))?(\s*\(?\s*all[\s-]?in\s*\)?)?`;
+const RUN_SRC = String.raw`(^|[^A-Za-z0-9])((?:(?:10|[2-9TJQKA])[cdhs]){1,5})(?![A-Za-z0-9])`;
+const HDR_SRC = String.raw`(^|[^A-Za-z])(pr[eé][\s-]?flop|pf|flop|turn|river)(?=\s*(?:[:\-–—|\[(]|\n|$|(?:10|[2-9TJQKA])[cdhs]))\s*[:：\-–—|]?`;
+
+const fmt = n => { const r = Math.round(n * 10) / 10; return String(Number.isInteger(r) ? r : r.toFixed(1)).replace('.', ','); };
+
+function normText(t) {
+  return t.replace(/\r/g, '').replace(/\uFE0F/g, '')
+    .replace(/♠/g, 's').replace(/♥/g, 'h').replace(/♦/g, 'd').replace(/♣/g, 'c')
+    .replace(/(\d),(\d)/g, '$1.$2');
+}
+function normPos(s) {
+  s = s.toUpperCase().replace(/\s/g, '');
+  if (s === 'BU') s = 'BTN';
+  if (/^H[EÉ]ROS?$/.test(s)) s = 'HERO';
+  return s;
+}
+function extractCards(t) {
+  const out = []; const re = new RegExp(RUN_SRC, 'gi'); let m;
+  while ((m = re.exec(t))) {
+    const one = /(10|[2-9TJQKA])([cdhs])/gi; let c;
+    while ((c = one.exec(m[2]))) out.push({ r: c[1] === '10' ? 'T' : c[1].toUpperCase(), s: c[2].toLowerCase() });
+  }
+  return out;
+}
+function kindOf(w) {
+  w = w.toLowerCase().replace(/[\s-]/g, '');
+  if (/^(fold|folds|couche|f)$/.test(w)) return 'fold';
+  if (/^(check|checks|x)$/.test(w)) return 'check';
+  if (/^(call|calls|suit|c|limp|limps)$/.test(w)) return 'call';
+  if (/^(allin|jam|shove|shoves|push|tapis)$/.test(w)) return 'allin';
+  if (/^(bet|bets|mise|cbet|donk|probe|b)$/.test(w)) return 'bet';
+  return 'raise';
+}
+function clauses(t) {
+  const re = new RegExp(CL_SRC, 'gi'), out = []; let m;
+  while ((m = re.exec(t))) {
+    const raw = m[3] || null; const o = { idx: m.index, pos: normPos(m[1]), kind: kindOf(m[2]) };
+    if (raw) { const n = parseFloat(raw); if (/%$/.test(raw)) o.pct = n; else o.amt = n; }
+    if (m[4] && ['bet', 'raise', 'allin'].includes(o.kind) && o.amt == null && o.pct == null) o.kind = 'allin';
+    out.push(o);
+  }
+  return out;
+}
+
+function parseHand(raw) {
+  let text = normText(raw || '').trim();
+  if (!text) throw new Error("Colle une main d'abord.");
+  const results = [], notes = [];
+  text = text.split('\n').filter(line => {
+    let m = line.match(/^\s*[-•*]?\s*(r[ée]sultat|results?|showdown|issue|outcome)\s*[:\-–]\s*(.+)$/i);
+    if (m) { results.push(m[2].trim()); return false; }
+    m = line.match(/^\s*[-•*]?\s*(notes?|comm?entaires?|remarques?|pourquoi|why|tags?|[ée]tiquettes?)\s*[:\-–]\s*(.*)$/i);
+    if (m) { if (m[2].trim()) notes.push({ label: m[1][0].toUpperCase() + m[1].slice(1).toLowerCase(), text: m[2].trim() }); return false; }
+    return true;
+  }).join('\n');
+
+  const heads = []; { const re = new RegExp(HDR_SRC, 'gi'); let m;
+    while ((m = re.exec(text))) heads.push({ street: /^p/i.test(m[2]) ? 'preflop' : m[2].toLowerCase(), start: m.index + m[1].length, end: m.index + m[0].length }); }
+  const info = text.slice(0, heads.length ? heads[0].start : text.length);
+  const segs = heads.map((h, i) => ({ street: h.street, text: text.slice(h.end, i + 1 < heads.length ? heads[i + 1].start : text.length) }));
+  if (!segs.some(s => s.street === 'preflop')) segs.unshift({ street: 'preflop', text: info });
+
+  // Position de Hero
+  let heroPos = null, m;
+  if ((m = text.match(new RegExp(String.raw`\b(${POS_NH})\b\s*\(\s*h[eé]ros?\s*\)`, 'i')))) heroPos = normPos(m[1]);
+  if (!heroPos && (m = text.match(new RegExp(String.raw`h[eé]ros?\s*\(\s*(${POS_NH})\s*\)`, 'i')))) heroPos = normPos(m[1]);
+  if (!heroPos) {
+    for (const line of info.split('\n')) {
+      if (!/hero|h[eé]ros?|position|\bpos\b/i.test(line)) continue;
+      const stripped = line.replace(new RegExp(CL_SRC, 'gi'), ' ');
+      const pm = stripped.match(new RegExp(String.raw`\b(${POS_NH})\b`, 'i'));
+      if (pm) { heroPos = normPos(pm[1]); break; }
+    }
+  }
+
+  // Cartes de Hero
+  let heroCards = null;
+  const infoLines = info.split('\n');
+  for (const line of infoLines) {
+    if (/hero|h[eé]ros?|main|hand|cartes?|cards?|hole/i.test(line) && !/board|tableau/i.test(line)) {
+      const cs = extractCards(line.replace(new RegExp(CL_SRC, 'gi'), ' '));
+      if (cs.length >= 2) { heroCards = cs.slice(0, 2); break; }
+    }
+  }
+  if (!heroCards) {
+    const cs = extractCards(infoLines.filter(l => !/board|tableau/i.test(l)).join('\n'));
+    if (cs.length >= 2) heroCards = cs.slice(0, 2);
+  }
+  if (!heroCards) throw new Error("Je ne trouve pas les cartes de Hero. Écris-les avec leur couleur, par exemple « Ah Kd ».");
+
+  // Board complet éventuel
+  let boardAll = [];
+  for (const line of infoLines) if (/board|tableau/i.test(line)) boardAll = extractCards(line);
+
+  // Stacks, ante, et mains des adversaires (gardées de côté jusqu'au showdown)
+  const rz = p => { p = normPos(p); return (p === 'HERO' && heroPos) ? heroPos : p; };
+  const hasClause = line => new RegExp(CL_SRC, 'i').test(line);
+  const stacks = {}, villains = {};
+  for (const line of infoLines) {
+    if (hasClause(line)) continue;
+    const sm = line.match(new RegExp(String.raw`^\s*[-•*]?\s*(${POS_ALL})\b[^\n:：]*?(\d+(?:\.\d+)?)\s*bb`, 'i'));
+    if (sm) stacks[rz(sm[1])] = parseFloat(sm[2]);
+    const vm = line.match(new RegExp(String.raw`^\s*[-•*]?\s*(${POS_NH})\b[^\n]*?[:：]\s*(.+)$`, 'i'));
+    if (vm && rz(vm[1]) !== heroPos) { const cs = extractCards(vm[2]); if (cs.length >= 2) villains[rz(vm[1])] = cs.slice(0, 2); }
+  }
+  let stack = null;
+  for (const line of infoLines) {
+    const sm = line.match(/(?:stack|eff(?:ective|ectif)?s?|profondeur|depth)[^\d\n]{0,12}(\d+(?:\.\d+)?)/i);
+    if (sm) { stack = parseFloat(sm[1]); break; }
+  }
+  if (stack == null && stacks[heroPos || 'HERO'] != null) stack = stacks[heroPos || 'HERO'];
+  if (stack == null) {
+    for (const line of infoLines) {
+      const bm = line.match(/(\d+(?:\.\d+)?)\s*bb/i);
+      if (bm && !/ante|blind|pot/i.test(line) && !hasClause(line)) { stack = parseFloat(bm[1]); break; }
+    }
+  }
+  if (stack == null) stack = 100;
+  const am = info.match(/ante\s*[:=]?\s*(\d+(?:\.\d+)?)/i);
+  const ante = am ? parseFloat(am[1]) : 0;
+
+  // Événements
+  const events = [];
+  const resolve = p => (p === 'HERO' && heroPos) ? heroPos : p;
+  for (const seg of segs) {
+    const cl = clauses(seg.text);
+    if (seg.street !== 'preflop') {
+      const prefix = seg.text.slice(0, cl.length ? cl[0].idx : seg.text.length);
+      let cards = extractCards(prefix);
+      if (seg.street === 'flop') cards = cards.length >= 3 ? cards.slice(0, 3) : (boardAll.length >= 3 ? boardAll.slice(0, 3) : []);
+      else {
+        const i = seg.street === 'turn' ? 3 : 4;
+        cards = cards.length ? [cards[cards.length - 1]] : (boardAll[i] ? [boardAll[i]] : []);
+      }
+      if (!cards.length) throw new Error(seg.street === 'flop'
+        ? "Je ne trouve pas les cartes du flop. Exemple : « Flop: Qd 7s 2h »."
+        : `Je ne trouve pas la carte du ${seg.street}. Exemple : « ${seg.street === 'turn' ? 'Turn: 3c' : 'River: 9s'} ».`);
+      events.push({ t: 'street', street: seg.street, cards });
+    }
+    for (const c of cl) { const e = { t: 'act', pos: resolve(c.pos), kind: c.kind }; if (c.amt != null) e.amt = c.amt; if (c.pct != null) e.pct = c.pct; events.push(e); }
+  }
+  if (!events.some(e => e.t === 'act')) throw new Error("Je ne trouve aucune action. Exemple : « Preflop: UTG fold, CO raise 2.2, Hero call ».");
+  if (!heroPos && events.some(e => e.t === 'act' && e.pos === 'HERO')) heroPos = 'HERO';
+  if (!heroPos || !events.some(e => e.t === 'act' && e.pos === heroPos))
+    throw new Error("Je ne trouve aucune action de Hero. Écris « Hero raise 6 », ou donne sa position avec « Hero: BTN ».");
+
+  const players = new Set(['SB', 'BB', heroPos]);
+  events.forEach(e => { if (e.t === 'act') players.add(e.pos); });
+  const listed = new Set([heroPos]); events.forEach(e => { if (e.t === 'act') listed.add(e.pos); });
+  const tm = info.match(/(\d{1,2})\s*-?\s*max/i);
+  const size = tm ? Math.min(Math.max(parseInt(tm[1], 10), 3), 9) : ([...players].some(p => /^(UTG\+|LJ|MP|EP)/.test(p)) ? 9 : 6);
+  const rank = p => { const i = PF.indexOf(p); return i < 0 ? 99 : i; };
+  const seats = [...new Set([...BASE_SEATS[size], ...players])].sort((a, b) => rank(a) - rank(b));
+  return {
+    heroPos, heroCards, stack, stacks, ante, villains, events, results, notes,
+    players: [...players], seats, listed: [...listed],
+    heroCount: events.filter(e => e.t === 'act' && e.pos === heroPos).length,
+    hasEst: events.some(e => e.t === 'act' && (e.kind === 'bet' || e.kind === 'raise') && e.amt == null && e.pct == null)
+  };
+}
+
+/* Moteur : tout est en bb, un montant de raise ou de bet est « jusqu'à » */
+const potOf = st => Object.values(st.pl).reduce((a, p) => a + p.inv, 0) + st.ante;
+function initState(H) {
+  const pl = {};
+  H.seats.forEach(k => { pl[k] = { sb: 0, inv: 0, folded: false, allin: false, listed: H.listed.includes(k), stack: H.stacks[k] != null ? H.stacks[k] : H.stack }; });
+  if (pl.SB) { pl.SB.sb = 0.5; pl.SB.inv = 0.5; }
+  if (pl.BB) { pl.BB.sb = 1; pl.BB.inv = 1; }
+  return { pl, cur: 1, minInc: 1, street: 'preflop', board: [], ante: H.ante || 0, turn: 0, seats: H.seats };
+}
+/* Les joueurs jamais cités dans la main foldent quand l'action passe devant eux (preflop). */
+function foldBefore(st, pos) {
+  if (st.street !== 'preflop') return;
+  const n = st.seats.length, to = st.seats.indexOf(pos);
+  if (to < 0) return;
+  let i = st.turn;
+  for (let guard = 0; i !== to && guard < n; guard++, i = (i + 1) % n) {
+    const p = st.pl[st.seats[i]];
+    if (p && !p.listed && !p.folded && p.sb < st.cur - 1e-9) p.folded = true;
+  }
+}
+function nextStreet(st, ev) {
+  for (const k in st.pl) { const p = st.pl[k]; if (!p.folded && !p.allin && p.sb < st.cur - 1e-9) p.folded = true; }
+  for (const k in st.pl) st.pl[k].sb = 0;
+  st.cur = 0; st.minInc = 1; st.street = ev.street; st.board = st.board.concat(ev.cards);
+}
+function applyAct(st, ev) {
+  const p = st.pl[ev.pos]; if (!p || p.folded) return null;
+  st.turn = (st.seats.indexOf(ev.pos) + 1) % st.seats.length;
+  const potBefore = potOf(st), E = 1e-9, curBefore = st.cur;
+  const toCall = Math.max(0, st.cur - p.sb);
+  const rem = Math.max(0, p.stack - p.inv);
+  let kind = ev.kind, add = 0, to = null, est = false;
+  if (kind === 'fold') { p.folded = true; }
+  else if (kind === 'check') { if (toCall > E) { kind = 'call'; add = Math.min(toCall, rem); } }
+  else if (kind === 'call') { add = Math.min(toCall, rem); if (toCall <= E) kind = 'check'; }
+  else {
+    let target;
+    if (kind === 'allin') target = p.sb + rem;
+    else if (ev.pct != null) target = st.cur + ev.pct / 100 * (potBefore + toCall);
+    else if (ev.amt != null) target = ev.amt;
+    else { est = true; target = st.cur === 0 ? potBefore * 0.5 : (st.cur <= 1 + E ? 2.5 : st.cur * 3); }
+    target = Math.min(target, p.sb + rem);
+    if (target > st.cur + E) { kind = st.cur === 0 ? 'bet' : 'raise'; add = target - p.sb; to = target; st.minInc = Math.max(1, target - st.cur); st.cur = target; }
+    else { kind = toCall > E ? 'call' : 'check'; add = Math.min(toCall, rem); }
+  }
+  p.sb += add; p.inv += add;
+  if (add > 0 && p.inv >= p.stack - E) p.allin = true;
+  return { pos: ev.pos, kind, add, to, est, allin: p.allin && kind !== 'fold', potBefore, potAfter: potOf(st), toCall, curBefore, street: st.street };
+}
+function replay(H, upTo) {
+  const st = initState(H);
+  const log = [{ type: 'street', street: 'preflop', cards: [], pot: potOf(st) }];
+  for (let k = 0; k < upTo && k < H.events.length; k++) {
+    const ev = H.events[k];
+    if (ev.t === 'street') { nextStreet(st, ev); log.push({ type: 'street', street: ev.street, cards: ev.cards, pot: potOf(st) }); }
+    else { foldBefore(st, ev.pos); const a = applyAct(st, ev); if (a) { a.type = 'act'; a.hero = ev.pos === H.heroPos; log.push(a); } }
+  }
+  const nx = H.events[upTo];
+  if (nx && nx.t === 'act') foldBefore(st, nx.pos);
+  return { st, log };
+}
+const cat = k => (k === 'bet' || k === 'raise') ? 'aggro' : k;
+/*CORE-END*/
+
+/* Interface */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const SYM = { s: '♠', h: '♥', d: '♦', c: '♣' }, SNAME = { s: 'pique', h: 'cœur', d: 'carreau', c: 'trèfle' };
+const STREET = { preflop: 'Preflop', flop: 'Flop', turn: 'Turn', river: 'River' };
+const KEY = 'cariocace-replay:last';
+const SAMPLE = [
+  'Hero: BTN, Ah Qs',
+  'Stack: 40bb',
+  'Preflop: UTG fold, CO raise 2.2, Hero raise 6, SB fold, BB fold, CO call',
+  'Flop: Qd 7s 2h',
+  'CO check, Hero bet 4, CO call',
+  'Turn: 3c',
+  'CO check, Hero bet 11, CO call',
+  'River: 9s',
+  'CO check, Hero check',
+  'Résultat: showdown, Hero gagne'
+].join('\n');
+
+const PCTS = [20, 40, 50, 66, 80, 100];
+const calm = () => !(typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const delayFor = ev => calm() ? (ev.t === 'street' ? 1700 : 1600) : 600;
+const r1 = n => Math.round(n * 10) / 10;
+
+let H = null, idx = 0, phase = 'playing', guesses = [], aggroOpen = false, customOpen = false, lastEv = null, timer = null;
+/* Mode invité : si une main est intégrée ici, la page ne propose que celle-là (pas de saisie, pas de « nouvelle main »). */
+const GUEST_HAND = "Main Event · 2 nov. 2026 · main n°2\n6-max · ante 1 bb · Début\nHero BTN 200 bb : 7♦️ 7♠️\nUTG 200 bb : J♥️ J♣️\n\nPreflop (pot 2.5 bb) · SRP :\n  UTG raise to 2, Hero (BTN) call 2\nFlop 4♠️ 2♣️ 5♠️ (pot 6.5 bb, SPR 30.5) :\n  UTG check, Hero (BTN) bet 4.3 (66% pot), UTG call 4.3\nTurn 6♠️ (pot 15.1 bb, SPR 12.8) :\n  UTG check, Hero (BTN) bet 15.1 (100% pot), UTG call 15.1\nRiver 7♣️ (pot 45.3 bb, SPR 3.9) :\n  UTG check, Hero (BTN) check\n\nRésultat : Gagnée\n";
+const NTFY_TOPIC = "cariocace-94375a0493d9"; /* version web : les réponses partent en notification vers ce sujet ntfy */
+let ownerRows = null; /* mode invité, côté propriétaire : les réponses reçues */
+let GH = null, GUEST_NAME = '', sendState = 'idle'; /* idle | sending | sent | exists | fail | nowrite */
+const NAME_KEY = 'cariocace-replay:guest-name';
+
+const load = () => { try { return localStorage.getItem(KEY); } catch (e) { return null; } };
+const store = t => { try { localStorage.setItem(KEY, t); } catch (e) {} };
+const rp = n => replay(H, n);
+const ord = k => { const i = ORDER.indexOf(k); return i < 0 ? 99 : i; };
+
+function cardHtml(c, cw, cls) {
+  const red = c.s === 'h' || c.s === 'd', r = c.r === 'T' ? '10' : c.r;
+  return `<span class="pc${red ? ' red' : ''}${cls ? ' ' + cls : ''}" style="--cw:${cw}px" role="img" aria-label="${r} de ${SNAME[c.s]}"><b>${r}</b><i>${SYM[c.s]}</i></span>`;
+}
+
+/* Textes d'action */
+function pctOf(a) {
+  if (a.street === 'preflop' || a.to == null) return null;
+  const base = a.kind === 'bet' ? a.potBefore : a.potBefore + a.toCall;
+  const from = a.kind === 'bet' ? 0 : a.curBefore;
+  return base > 0 ? Math.round((a.to - from) / base * 100) : null;
+}
+function descAct(a) {
+  const t = a.est ? '~' : '', al = a.allin ? ' · all-in' : '', p = pctOf(a), ps = p != null ? ` (${p} % pot)` : '';
+  switch (a.kind) {
+    case 'fold': return 'Fold';
+    case 'check': return 'Check';
+    case 'call': return `Call ${fmt(a.add)} bb${al}`;
+    case 'bet': return `Bet ${t}${fmt(a.to)} bb${ps}${al}`;
+    default: return `Raise to ${t}${fmt(a.to)} bb${ps}${al}`;
+  }
+}
+function descLog(a) {
+  const t = a.est ? '~' : '', al = a.allin ? ' · all-in' : '', p = pctOf(a), ps = p != null ? ` (${p} %)` : '';
+  switch (a.kind) {
+    case 'fold': return 'fold';
+    case 'check': return 'check';
+    case 'call': return `call ${fmt(a.add)}${al}`;
+    case 'bet': return `bet ${t}${fmt(a.to)}${ps}${al}`;
+    default: return `raise to ${t}${fmt(a.to)}${ps}${al}`;
+  }
+}
+const GNAME = { fold: 'Fold', check: 'Check', call: 'Call' };
+const guessLabel = g => g.guess === 'aggro' ? `${g.verb}${g.spec ? ' ' + g.spec.text : ''}` : GNAME[g.guess];
+
+/* Tailles proposées pour un bet ou un raise */
+function sizeOptions(st) {
+  const me = st.pl[H.heroPos], pot = potOf(st);
+  const toCall = Math.max(0, st.cur - me.sb);
+  const maxTo = r1(me.sb + (me.stack - me.inv));
+  const minTo = Math.min(r1(st.cur + st.minInc), maxTo);
+  const clamp = v => r1(Math.min(Math.max(v, minTo), maxTo));
+  const opts = [];
+  if (st.street === 'preflop') {
+    if (st.cur <= 1 + 1e-9) {
+      [2, 2.5, 3, 4].forEach(b => { const to = clamp(b); opts.push({ key: 'b' + b, to, main: fmt(b) + ' bb', sub: '', text: fmt(to) + ' bb' }); });
+    } else {
+      [2.2, 2.5, 3, 4].forEach(m => { const to = clamp(st.cur * m); opts.push({ key: 'x' + m, to, main: fmt(m) + 'x', sub: fmt(to) + ' bb', text: fmt(m) + 'x · ' + fmt(to) + ' bb' }); });
+    }
+  } else {
+    PCTS.forEach(p => {
+      const raw = toCall > 0 ? st.cur + p / 100 * (pot + toCall) : p / 100 * pot;
+      const to = clamp(raw), low = raw < minTo - 1e-9;
+      opts.push({ key: 'p' + p, to, main: low ? 'Min' : p + ' %', sub: fmt(to) + ' bb', text: (low ? 'Min' : p + ' %') + ' · ' + fmt(to) + ' bb' });
+    });
+  }
+  const seen = new Set();
+  const uniq = opts.filter(o => { if (seen.has(o.to)) return false; seen.add(o.to); return true; });
+  uniq.push({ key: 'allin', special: 'allin', to: maxTo, main: 'All-in', sub: fmt(maxTo) + ' bb', text: 'All-in · ' + fmt(maxTo) + ' bb' });
+  return { opts: uniq, minTo, maxTo };
+}
+function sizeMatch(spec, opts, actualTo, actualAllin) {
+  if (spec.special) return Math.abs(spec.to - actualTo) <= Math.max(0.1 * actualTo, 0.3);
+  if (actualAllin) return false;
+  const presets = opts.filter(o => !o.special);
+  const nearest = presets.reduce((a, b) => Math.abs(b.to - actualTo) < Math.abs(a.to - actualTo) ? b : a);
+  return nearest.key === spec.key;
+}
+
+/* Déroulé de la main */
+function isDecisionAt(i) {
+  const ev = H.events[i];
+  return !!ev && ev.t === 'act' && ev.pos === H.heroPos && !rp(i).st.pl[H.heroPos].folded;
+}
+function step() {
+  clearTimeout(timer);
+  if (idx >= H.events.length) {
+    phase = 'done';
+    if (GUEST_HAND && sendState === 'idle') sendState = 'sending';
+    render();
+    if (GUEST_HAND) sendAnswers();
+    return;
+  }
+  if (isDecisionAt(idx)) { phase = 'ask'; render(); return; }
+  lastEv = H.events[idx]; idx++; phase = 'playing'; render();
+  timer = setTimeout(step, delayFor(lastEv));
+}
+function start() {
+  clearTimeout(timer);
+  idx = 0; guesses = []; aggroOpen = false; customOpen = false; lastEv = null; phase = 'playing';
+  render(); toTop();
+  timer = setTimeout(step, calm() ? 1000 : 400);
+}
+function skip() {
+  clearTimeout(timer);
+  while (idx < H.events.length && !isDecisionAt(idx)) { lastEv = H.events[idx]; idx++; }
+  phase = idx >= H.events.length ? 'done' : 'ask';
+  render();
+}
+function next() {
+  lastEv = H.events[idx]; idx++; phase = 'playing'; render();
+  timer = setTimeout(step, delayFor(lastEv));
+}
+function reveal(guess, spec) {
+  if (phase !== 'ask') return;
+  const { st } = rp(idx);
+  const me = st.pl[H.heroPos];
+  const pre = applyAct(JSON.parse(JSON.stringify(st)), H.events[idx]);
+  const g = { guess, spec: spec || null, pre, actual: cat(pre.kind), street: st.street, verb: st.cur - me.sb > 1e-9 ? 'Raise' : 'Bet' };
+  if (guess === 'aggro' && g.actual === 'aggro' && spec) g.sizeOk = sizeMatch(spec, sizeOptions(st).opts, pre.to, pre.allin);
+  g.full = g.guess === g.actual && g.sizeOk !== false;
+  guesses.push(g); phase = 'revealed'; aggroOpen = false; customOpen = false;
+  render();
+}
+function pick(v) {
+  if (phase !== 'ask') return;
+  if (v === 'aggro') { aggroOpen = !aggroOpen; customOpen = false; render(); return; }
+  reveal(v);
+}
+function pickSize(k) {
+  const spec = sizeOptions(rp(idx).st).opts.find(o => o.key === k);
+  if (spec) reveal('aggro', spec);
+}
+function customOk() {
+  const inp = $('custom-size'); if (!inp) return;
+  const v = parseFloat(String(inp.value).replace(',', '.'));
+  if (!isFinite(v) || v <= 0) { inp.focus(); return; }
+  const { minTo, maxTo } = sizeOptions(rp(idx).st);
+  const to = r1(Math.min(Math.max(v, minTo), maxTo));
+  reveal('aggro', { key: 'custom', special: 'custom', to, text: fmt(to) + ' bb' });
+}
+function showError(msg) { const e = $('err'); e.textContent = msg; e.hidden = false; }
+function toTop() { try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }
+function run() {
+  const t = $('hand-input').value; store(t); $('err').hidden = true;
+  try { H = parseHand(t); } catch (err) { showError(err.message); return; }
+  start();
+}
+
+/* Affichage */
+function liveHtml(log) {
+  const last = log[log.length - 1];
+  let inner;
+  if (!lastEv) inner = `<div class="now-line"><span class="what">La main commence…</span></div>`;
+  else if (lastEv.t === 'street') inner = `<div class="now-line"><span class="who">Street</span><span class="what">${STREET[lastEv.street]}</span></div>`;
+  else if (last && last.type === 'act' && last.pos === lastEv.pos)
+    inner = `<div class="now-line${last.hero ? ' hero-now' : ''}"><span class="who">${last.hero ? 'Hero' : esc(last.pos)}</span><span class="what">${esc(descAct(last))}</span></div>`;
+  else inner = `<div class="now-line"><span class="what">…</span></div>`;
+  return `<div class="panel live" aria-live="polite"><div class="live-row"><span class="lab">Action en cours</span><button class="btn ghost sm" data-do="skip" type="button">Passer</button></div>${inner}</div>`;
+}
+
+function beforeHtml(log) {
+  let i = log.length - 1; while (i >= 0 && log[i].type !== 'street') i--;
+  const acts = log.slice(i + 1).filter(x => x.type === 'act');
+  if (!acts.length) return `<p class="muted">Hero parle en premier.</p>`;
+  const villain = acts.filter(x => !x.hero);
+  const key = [...villain].reverse().find(x => x.kind !== 'fold') || villain[villain.length - 1];
+  const big = key ? `<div class="now-line facing"><span class="who">${esc(key.pos)}</span><span class="what">${esc(descAct(key))}</span></div>` : '';
+  const chips = acts.length > 1 ? `<div class="seats">${acts.map(x => `<span class="seat${x.hero ? ' me' : ''}"><b>${x.hero ? 'Hero' : esc(x.pos)}</b><em>${esc(descLog(x))}</em></span>`).join('')}</div>` : '';
+  return `<div class="before"><span class="lab">Avant toi</span>${big}${chips}</div>`;
+}
+
+function decideHtml(st, toCall, log) {
+  const g = phase === 'revealed' ? guesses[guesses.length - 1] : null;
+  const o = toCall > 1e-9
+    ? [['fold', 'Fold', ''], ['call', 'Call', fmt(toCall) + ' bb'], ['aggro', 'Raise', '']]
+    : [['check', 'Check', ''], ['aggro', 'Bet', '']];
+  let h = `<div class="panel decide">${beforeHtml(log)}<p class="q">Que fait Hero ?</p><div class="opts" style="--n:${o.length}">` +
+    o.map(([v, l, s]) => {
+      const sel = g ? g.guess === v : (v === 'aggro' && aggroOpen);
+      return `<button class="opt${sel ? ' sel' : ''}" data-do="pick" data-v="${v}" type="button"${g ? ' disabled' : ''}>${l}${s ? `<small>${s}</small>` : ''}</button>`;
+    }).join('') + `</div>`;
+
+  if (!g && aggroOpen) {
+    const so = sizeOptions(st).opts;
+    h += `<div class="sizes"><span class="lab">Taille</span><div class="grid4">` +
+      so.map(x => `<button class="opt sz" data-do="size" data-k="${x.key}" type="button">${esc(x.main)}${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</button>`).join('') +
+      `<button class="opt sz${customOpen ? ' sel' : ''}" data-do="custom" type="button">Autre<small>bb</small></button></div>` +
+      (customOpen ? `<div class="custom"><input id="custom-size" type="text" inputmode="decimal" autocomplete="off" placeholder="Montant en bb"><button class="btn primary sm" data-do="custom-ok" type="button">Valider</button></div>` : '') +
+      `</div>`;
+  }
+  if (g) {
+    const same = g.guess === g.actual, ok = g.full;
+    const tag = ok ? 'Même décision' : (same ? 'Même action, taille différente' : 'Décision différente');
+    h += `<div class="verdict ${ok ? 'ok' : 'miss'}"><span class="tag ${ok ? 'ok' : 'miss'}">${tag}</span>
+      <span class="big">Hero : ${esc(descAct(g.pre))}</span>`;
+    if (g.guess === 'aggro' && g.spec) h += `<span class="muted">Toi : ${esc(g.verb)} ${esc(g.spec.text)}</span>`;
+    h += `</div><button class="btn primary" data-do="next" type="button">Continuer</button>`;
+  }
+  return h + `</div>`;
+}
+
+function recapHtml(st, me) {
+  const okN = guesses.filter(g => g.full).length, okA = guesses.filter(g => g.guess === g.actual).length;
+  const sized = guesses.filter(g => g.sizeOk != null), okS = sized.filter(g => g.sizeOk).length;
+  const alive = Object.keys(st.pl).filter(k => !st.pl[k].folded);
+  const shown = (st.street === 'river' && !me.folded && alive.length >= 2) ? alive.filter(k => k !== H.heroPos && H.villains[k]) : [];
+  const sd = shown.length ? `<div class="show"><span class="lab">Showdown</span>${shown.map(k => `<div class="sd"><span class="mono">${esc(k)}</span><div class="sdcards">${H.villains[k].map(c => cardHtml(c, 64)).join('')}</div></div>`).join('')}</div>` : '';
+  return `<div class="panel decide">${sd}<div class="score">${okN} / ${guesses.length}<small>décisions identiques</small></div>
+    ${sized.length ? `<p class="muted">Actions identiques : ${okA} / ${guesses.length} · Tailles identiques : ${okS} / ${sized.length}</p>` : ''}
+    <div class="recap">${guesses.map(g => {
+      const ok = g.full, same = g.guess === g.actual;
+      return `<div><div class="top"><span class="lab">${STREET[g.street]}</span><span class="tag ${ok ? 'ok' : 'miss'}">${ok ? 'Identique' : (same ? 'Taille différente' : 'Différent')}</span></div>
+        <span>Toi : ${esc(guessLabel(g))} · Hero : ${esc(descAct(g.pre))}</span></div>`;
+    }).join('')}</div>
+    ${H.results.length ? `<p class="muted">Résultat : ${esc(H.results.join(' · '))}</p>` : ''}
+    ${GUEST_HAND ? '' : H.notes.map(n => `<p class="muted">${esc(n.label)} : ${esc(n.text)}</p>`).join('')}
+    ${GUEST_HAND ? shareHtml() : ''}
+    <div class="row"><button class="btn ${GUEST_HAND ? 'ghost' : 'primary'}" data-do="again" type="button">Rejouer cette main</button>${GUEST_HAND ? '' : '<button class="btn ghost" data-do="new" type="button">Nouvelle main</button>'}</div></div>`;
+}
+
+/* Mode invité : les réponses partent dans la base de la page (une fiche par personne) */
+function shareText() {
+  const okN = guesses.filter(g => g.full).length;
+  return [GUEST_NAME ? `Réponse de ${GUEST_NAME}` : 'Ma réponse', ...guesses.map(g => `${STREET[g.street]} : ${guessLabel(g)} (Hero : ${descAct(g.pre)}) ${g.full ? '✓' : '✗'}`), `Score : ${okN} / ${guesses.length}`].join('\n');
+}
+function copyBlock() {
+  const t = shareText();
+  const canShare = typeof navigator !== 'undefined' && navigator && typeof navigator.share === 'function';
+  return `<textarea id="share-text" readonly rows="${t.split('\n').length}">${esc(t)}</textarea>
+    <div class="row">${canShare ? '<button class="btn primary" data-do="share" type="button">Envoyer</button>' : ''}<a class="btn ${canShare ? 'ghost' : 'primary'}" href="https://wa.me/?text=${encodeURIComponent(t)}" target="_blank" rel="noopener">WhatsApp</a><button class="btn ghost" data-do="copy" type="button">Copier</button></div>`;
+}
+function shareHtml() {
+  const who = GUEST_NAME ? ` ${esc(GUEST_NAME)}` : '';
+  let inner;
+  if (sendState === 'sending') inner = `<p class="hint">Envoi de tes réponses…</p>`;
+  else if (sendState === 'sent') inner = `<span class="tag ok">Envoyé</span><p class="hint">Tes réponses sont bien arrivées. Merci${who} !</p>`;
+  else if (sendState === 'exists') inner = `<span class="tag ok">Déjà envoyé</span><p class="hint">Tu avais déjà répondu à cette main : ta première réponse est conservée.</p>`;
+  else if (sendState === 'fail') inner = `<p class="hint">L'envoi n'a pas marché. Réessaie, ou envoie ta réponse toi-même :</p><button class="btn ghost" data-do="retry" type="button">Réessayer l'envoi</button>${copyBlock()}`;
+  else inner = `<p class="hint">Avec ton accès, l'envoi automatique n'est pas possible. Envoie ta réponse toi-même à celui qui t'a envoyé la main :</p>${copyBlock()}`;
+  return `<div class="share"><span class="lab">Tes réponses</span>${inner}</div>`;
+}
+function ownerHtml(rows) {
+  const when = iso => { try { return new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
+  const items = rows.map(r => `<div class="ans"><div class="top"><span class="nm">${esc(r.name || '?')}</span><span class="tag ${r.total && r.score === r.total ? 'ok' : 'miss'}">${esc(r.score)} / ${esc(r.total)}</span></div>
+    <span class="dt">${esc(when(r.at))}</span>
+    <div class="seats">${(Array.isArray(r.steps) ? r.steps : []).map(x => `<span class="seat"><b>${esc(STREET[x.street] || x.street)} ${x.full ? '✓' : '✗'}</b><em>Toi : ${esc(x.guess)}</em><em>Hero : ${esc(x.hero)}</em></span>`).join('')}</div></div>`).join('');
+  return `<div class="panel"><span class="lab">Réponses reçues · ${rows.length}</span>${items || '<p class="hint">Aucune réponse pour l\'instant.</p>'}</div>`;
+}
+function paintOwner() { const el = $('view-owner'); el.innerHTML = ownerHtml(ownerRows || []); el.hidden = !!H; }
+async function ownerPanel() {
+  try {
+    const c = window.claude; if (!c || !c.use) return;
+    const [db, user] = await Promise.all([c.use('db'), c.use('user')]);
+    if (!db || !user || !(await user.canEdit())) return;
+    db.collection('answers').onSnapshot(snap => {
+      ownerRows = snap.docs.map(d => d.data()).filter(Boolean).sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+      paintOwner();
+    }, () => {});
+  } catch (e) {}
+}
+/* Version web : une notification ntfy par main terminée. Un seul envoi par navigateur et par main (la première réponse compte). */
+async function sendViaNtfy() {
+  let h = 0; for (const ch of GUEST_HAND) h = (h * 31 + ch.charCodeAt(0)) | 0;
+  const key = 'cariocace-replay:sent:' + (h >>> 0).toString(36);
+  try { if (localStorage.getItem(key)) return 'exists'; } catch (e) {}
+  const okN = guesses.filter(g => g.full).length;
+  const r = await fetch('https://ntfy.sh', {
+    method: 'POST',
+    body: JSON.stringify({
+      topic: NTFY_TOPIC,
+      title: `${GUEST_NAME} : ${okN} / ${guesses.length}`,
+      message: shareText(),
+      tags: ['spades']
+    })
+  });
+  if (!r.ok) throw { code: 'http_' + r.status };
+  try { localStorage.setItem(key, '1'); } catch (e) {}
+  return 'sent';
+}
+async function sendAnswers() {
+  if (sendState !== 'sending') return;
+  const fin = st => { sendState = st; if (phase === 'done') render(); };
+  const timeout = new Promise((_, rej) => setTimeout(() => rej({ code: 'timeout' }), 15000));
+  const job = NTFY_TOPIC ? sendViaNtfy() : (async () => {
+    const c = window.claude;
+    if (!c || !c.use) return 'nowrite';
+    const [db, user] = await Promise.all([c.use('db'), c.use('user')]);
+    if (!db || !user) return 'nowrite';
+    if ((await user.can('data.write')) === false) return 'nowrite';
+    const uid = await user.id();
+    if (!uid) return 'nowrite';
+    const ref = db.doc('answers/' + uid);
+    if ((await ref.get()).exists) return 'exists';
+    const okN = guesses.filter(g => g.full).length;
+    await ref.set({
+      name: GUEST_NAME, at: new Date().toISOString(), score: okN, total: guesses.length,
+      steps: guesses.map(g => ({ street: g.street, guess: guessLabel(g), hero: descAct(g.pre), sameAction: g.guess === g.actual, full: !!g.full })),
+      text: shareText()
+    });
+    return 'sent';
+  })();
+  try { fin(await Promise.race([job, timeout])); }
+  catch (e) { fin(e && e.code === 'invalid_argument' ? 'nowrite' : 'fail'); }
+}
+async function shareOut(b) {
+  try { await navigator.share({ text: shareText() }); }
+  catch (e) { if (!e || e.name !== 'AbortError') copyShare(b); }
+}
+function copyShare(b) {
+  const ta = $('share-text'); if (!ta) return;
+  const old = b.textContent;
+  const done = ok => { b.textContent = ok ? 'Copié' : 'Texte sélectionné : copie-le à la main'; setTimeout(() => { b.textContent = old; }, 2200); };
+  ta.focus(); ta.select();
+  let ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+  if (ok) { done(true); return; }
+  try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(ta.value).then(() => done(true), () => done(false)); return; } } catch (e) {}
+  done(false);
+}
+const savedName = () => { try { return localStorage.getItem(NAME_KEY) || ''; } catch (e) { return ''; } };
+function goGuest() {
+  const inp = $('guest-name'), n = inp ? String(inp.value).trim().slice(0, 40) : '';
+  if (!n) { const er = $('guest-err'); if (er) er.hidden = false; if (inp) inp.focus(); return; }
+  GUEST_NAME = n; try { localStorage.setItem(NAME_KEY, n); } catch (e) {}
+  H = GH; start();
+}
+function guestIntro() {
+  const hp = GH.heroPos === 'HERO' ? '' : ` · ${esc(GH.heroPos)}`;
+  $('head').querySelector('.sub').textContent = "Une main à deviner. Elle se joue toute seule et s'arrête à chaque décision de Hero : à toi de dire ce qu'il fait.";
+  $('view-input').innerHTML = `<div class="panel intro"><span class="lab">Hero${hp} · ${fmt(GH.stack)} bb · ${GH.seats.length}-max</span>
+    <div class="cards">${GH.heroCards.map(c => cardHtml(c, 56)).join('')}</div>
+    <p class="hint">${GH.heroCount} décision${GH.heroCount > 1 ? 's' : ''} à deviner. Les cartes des adversaires restent cachées jusqu'au showdown.</p>
+    <label class="lab" for="guest-name">Ton prénom</label>
+    <div class="field"><input id="guest-name" type="text" maxlength="40" autocomplete="given-name" placeholder="Prénom" value="${esc(savedName())}"></div>
+    <p id="guest-err" class="err" role="alert" hidden>Écris ton prénom pour commencer.</p>
+    <p class="hint">Tes réponses seront envoyées à celui qui t'a envoyé la main.</p>
+    <div class="row"><button class="btn primary" data-do="go" type="button">Commencer</button></div></div>`;
+}
+
+/* Table ovale : Hero en bas, les autres placés dans l'ordre du jeu autour */
+function ovalHtml(st, acting, slots) {
+  const seats = H.seats, n = seats.length;
+  const hi = Math.max(0, seats.indexOf(H.heroPos));
+  const tiles = seats.map((k, i) => {
+    const th = (90 + ((i - hi + n) % n) * 360 / n) * Math.PI / 180;
+    const cx = Math.cos(th), sy = Math.sin(th);
+    const x = 50 + 41 * cx, y = 50 + 37 * sy;
+    const dir = cx < 0.25 ? 'right' : 'left'; /* jeton de mise sur le côté du siège, vers le centre */
+    const p = st.pl[k];
+    const sub = p.folded ? 'fold' : (p.allin ? 'all-in' : fmt(p.stack - p.inv));
+    const bet = (!p.folded && p.sb > 0) ? `<span class="bet">${fmt(p.sb)}</span>` : '';
+    return `<div class="oseat dir-${dir}${p.folded ? ' out' : ''}${k === H.heroPos ? ' me' : ''}${k === acting ? ' acting' : ''}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%"><b>${esc(k)}</b><em>${sub}</em>${bet}${k === 'BTN' ? '<i class="dbtn">D</i>' : ''}</div>`;
+  }).join('');
+  return `<div class="oval"><div class="ctr"><div class="board">${slots}</div><span class="info"><b>${STREET[st.street]}</b> · ${fmt(potOf(st))} bb</span></div>${tiles}</div>`;
+}
+
+function render() {
+  $('view-input').hidden = !!H; $('view-play').hidden = !H; $('head').hidden = !!H;
+  if (GUEST_HAND) $('view-owner').hidden = !!H || !ownerRows;
+  if (!H) return;
+  const { st, log } = rp(idx);
+  const me = st.pl[H.heroPos];
+  const toCall = Math.min(Math.max(0, st.cur - me.sb), me.stack - me.inv);
+  const total = H.heroCount;
+  const n = Math.min(guesses.length + (phase === 'revealed' ? 0 : 1), total);
+  const heroName = H.heroPos === 'HERO' ? 'Hero' : `Hero · ${H.heroPos}`;
+  const playing = phase === 'playing';
+  const acting = (playing && lastEv && lastEv.t === 'act') ? lastEv.pos : null;
+  const newFrom = (playing && lastEv && lastEv.t === 'street') ? st.board.length - lastEv.cards.length : 99;
+
+  const slots = Array.from({ length: 5 }, (_, i) => st.board[i] ? cardHtml(st.board[i], 28, i >= newFrom ? 'deal' : '') : '<span class="slot"></span>').join('');
+  const label = phase === 'done' ? 'Terminé' : playing ? 'En cours' : `Décision ${n} / ${total}`;
+
+  let h = `<div class="bar">${GUEST_HAND ? '<span class="lab">Une main à deviner</span>' : '<button class="btn ghost sm" data-do="new" type="button">Nouvelle main</button>'}<span class="lab">${label}</span></div>`;
+  h += `<div class="table">
+    ${ovalHtml(st, acting, slots)}
+    <div class="tbl-hero">
+      <div class="hand">${H.heroCards.map(c => cardHtml(c, 46)).join('')}</div>
+      <div class="who"><span class="lab">${esc(heroName)}</span><span class="mono">${fmt(me.stack - me.inv)} bb</span></div>
+      <div class="tocall${toCall > 1e-9 && phase !== 'done' ? ' due' : ''}"><span class="lab">To call</span><span class="mono">${phase === 'done' ? '–' : fmt(toCall) + ' bb'}</span></div>
+    </div>
+  </div>`;
+
+  if (playing) h += liveHtml(log);
+  else if (phase === 'done') h += recapHtml(st, me);
+  else h += decideHtml(st, toCall, log);
+
+  h += `<div class="log">` + log.map(x => x.type === 'street'
+    ? `<div class="lg-h"><span class="s">${STREET[x.street]}</span><span class="c">${x.cards.map(c => cardHtml(c, 26)).join('')}</span><span class="p mono">pot ${fmt(x.pot)}</span></div>`
+    : `<div class="act${x.hero ? ' hero-act' : ''}"><span class="p">${x.hero ? 'Hero' : esc(x.pos)}</span><span class="mono">${esc(descLog(x))}</span></div>`
+  ).join('') + `</div>`;
+  if (H.hasEst) h += `<p class="note">~ : taille non précisée dans la main, estimée.</p>`;
+  h += `<p class="note">Blinds 0,5 / 1${H.ante ? `, ante ${fmt(H.ante)}` : ''}. Hero part avec ${fmt(H.stack)} bb.</p>`;
+  $('play').innerHTML = h;
+  if (phase === 'ask' && aggroOpen) {
+    const s = $('play').querySelector && $('play').querySelector('.sizes');
+    if (s && s.scrollIntoView) { try { s.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {} }
+  }
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-do]'); if (!b || b.disabled) return;
+  const d = b.dataset.do, ta = $('hand-input');
+  if (d === 'run') run();
+  else if (d === 'pick') pick(b.dataset.v);
+  else if (d === 'size') pickSize(b.dataset.k);
+  else if (d === 'custom') { customOpen = !customOpen; render(); if (customOpen) setTimeout(() => { const i = $('custom-size'); if (i) i.focus(); }, 0); }
+  else if (d === 'custom-ok') customOk();
+  else if (d === 'skip') skip();
+  else if (d === 'next') next();
+  else if (d === 'again') start();
+  else if (d === 'go' && GH) goGuest();
+  else if (d === 'retry' && GUEST_HAND) { sendState = 'sending'; render(); sendAnswers(); }
+  else if (d === 'copy') copyShare(b);
+  else if (d === 'share') shareOut(b);
+  else if (d === 'new' && !GUEST_HAND) { clearTimeout(timer); H = null; render(); }
+  else if (d === 'clear') { ta.value = ''; $('sample-note').hidden = true; $('err').hidden = true; ta.focus(); }
+  else if (d === 'sample') { ta.value = SAMPLE; $('sample-note').hidden = false; $('err').hidden = true; }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target && e.target.id === 'custom-size') { e.preventDefault(); customOk(); }
+  if (e.key === 'Enter' && e.target && e.target.id === 'guest-name') { e.preventDefault(); goGuest(); }
+});
+
+(function init() {
+  if (GUEST_HAND) {
+    try { GH = parseHand(GUEST_HAND); guestIntro(); ownerPanel(); }
+    catch (err) { $('view-input').innerHTML = '<p class="err">Cette main ne peut pas être lue.</p>'; }
+    return;
+  }
+  const ta = $('hand-input'), saved = load();
+  ta.value = saved && saved.trim() ? saved : SAMPLE;
+  $('sample-note').hidden = ta.value.trim() !== SAMPLE.trim();
+  ta.addEventListener('input', () => { $('sample-note').hidden = ta.value.trim() !== SAMPLE.trim(); $('err').hidden = true; });
+})();
+</script>
+
+</body>
+</html>
