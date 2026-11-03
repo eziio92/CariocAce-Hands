@@ -378,6 +378,9 @@ textarea.view{min-height:220px;font:12.5px/1.5 var(--f-mono)}
   .chip,.btn{transition:background .15s ease,box-shadow .15s ease}
 }
 #sec-action,#sec-result{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 156px)}
+.ask-sum{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--edge);border-radius:18px;background:var(--glass);font-size:14px;line-height:1.4}
+.ask-b{display:flex;flex-direction:column;gap:10px}
+.ask-b .btn{width:100%;min-height:50px;height:auto;padding:10px 18px;line-height:1.25;text-align:center;white-space:normal}
 /* date field: drawn by us (so the text is centred the same on every browser, iOS included); the real date input lies on top, invisible, and still opens the native picker on tap */
 .datebox{position:relative;display:flex;align-items:center;justify-content:space-between;gap:8px;height:46px;min-width:0;padding:0 14px;overflow:hidden;
   border:1px solid var(--edge);border-radius:16px;background:var(--field);box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
@@ -698,7 +701,7 @@ let editingId = null;
 /* a computer screen (or a tablet held wide): the review gets its own two-column layout */
 const WIDE_Q = window.matchMedia ? window.matchMedia('(min-width: 1000px)') : null;
 const isWide = () => !!(WIDE_Q && WIDE_Q.matches);
-const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, toastTimer: null };
+const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, toastTimer: null };
 
 /* ===== betting engine: replays the logged actions to get amounts, pot and SPR ===== */
 function actorsOf(h) {
@@ -1039,6 +1042,22 @@ function renderSheet() {
       '<textarea class="inp view" id="modal-text" readonly>' + esc(ui.modal.text) + '</textarea>' +
       '<p class="hint" style="margin:0">' + esc(ui.modal.hint || '') + '</p></div></div>';
     setTimeout(() => { const t = $('#modal-text'); if (t) { t.focus(); t.select(); } }, 30);
+    return;
+  }
+  if (ui.askOpen) {
+    /* another hand was tapped while an entry is unsaved: say what is pending and let the person decide */
+    const ed = !!editingId, iss = issues(H), no = ed ? ((groupInfo()[editingId] || {}).no || H.handNo || '') : nextHandNo(H);
+    const cards = H.hero.cards.some(c => c) ? '<span class="hand-cards">' + H.hero.cards.map(c => c ? cardFace(c, 'mini') : '<span class="card mini empty"><span class="r">?</span></span>').join('') + '</span>' : '';
+    const bits = [H.hero.pos ? posLabel(H.table, H.hero.pos) : '', num(H.hero.stack) > 0 ? fmt(num(H.hero.stack)) + ' bb' : ''].filter(Boolean);
+    root.innerHTML = '<div class="scrim" data-act="askopen-cancel"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="Saisie en cours"><div class="sheet-in">' +
+      '<div class="sheet-h"><span class="lbl">' + (ed ? 'Modifications non enregistrées' : 'Une saisie est en cours') + '</span></div>' +
+      '<p class="hint" style="margin:0;font-size:14px">' + (ed ? 'Tu as modifié la main n°' + esc(no) + ' sans l\'enregistrer.' : 'Cette main n\'est pas encore enregistrée.') + ' Qu\'en fait-on avant d\'ouvrir l\'autre ?</p>' +
+      '<div class="ask-sum">' + cards + '<span><b>' + esc(H.tournament || 'Tournoi') + '</b> · main n°' + esc(no) + (bits.length ? '<br><span class="hint">' + esc(bits.join(' · ')) + '</span>' : '') + '</span></div>' +
+      '<div class="ask-b"><button type="button" class="btn" data-act="askopen-save"' + (iss.length ? ' disabled' : '') + '>' + (ed ? 'Enregistrer les modifications, puis ouvrir' : 'Enregistrer cette main, puis ouvrir') + '</button>' +
+      (iss.length ? '<p class="hint" style="margin:0">Pas encore enregistrable, il manque : ' + esc(iss.join(', ')) + '.</p>' : '') +
+      '<button type="button" class="btn danger" data-act="askopen-drop">' + (ed ? 'Abandonner les modifications, puis ouvrir' : 'Vider la saisie, puis ouvrir') + '</button>' +
+      '<p class="hint" style="margin:0">' + (ed ? 'Les modifications seront perdues.' : 'Cette saisie sera perdue.') + '</p>' +
+      '<button type="button" class="btn ghost" data-act="askopen-cancel">Annuler, rester ici</button></div></div></div>';
     return;
   }
   if (!ui.picker) { root.innerHTML = ''; return; }
@@ -1513,6 +1532,14 @@ function setCardPart(kind, v) {
   /* all-in runout: nobody can act on this street, so once its cards are in, move on */
   if (!wasFull && !ui.picker && BOARD_LEN[g] && g === ui.street && !H.streets[g].length) flowNext(g);
 }
+const hasUnsaved = () => editingId ? JSON.stringify(H) !== origJson : !isPristine(H);
+function openHand(id) {
+  const h = store.hands.find(x => x.id === id);
+  if (!h) return;
+  H = normHand(clone(h)); editingId = h.id; origJson = JSON.stringify(H);
+  ui.tab = 'edit'; ui.street = 'preflop'; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = '';
+  renderAll(); window.scrollTo(0, 0); saveDraftSoon();
+}
 function resetEditor(ctx) {
   H = newHand(ctx || { tournament: H.tournament, date: H.date, table: H.table, ante: H.ante });
   editingId = null; origJson = '';
@@ -1836,12 +1863,16 @@ const A = {
     if (wrap && wrap.classList.contains('open')) { setSwipe(wrap, false); return; }
     const h = store.hands.find(x => x.id === el.dataset.id);
     if (!h) return;
-    const unsaved = editingId ? JSON.stringify(H) !== origJson : !isPristine(H);
-    if (unsaved) { ui.tab = 'edit'; renderAll(); toast('Enregistre, vide ou abandonne la saisie en cours d\'abord'); return; }
-    H = normHand(clone(h)); editingId = h.id; origJson = JSON.stringify(H);
-    ui.tab = 'edit'; ui.street = 'preflop'; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = '';
-    renderAll(); window.scrollTo(0, 0); saveDraftSoon();
+    if (hasUnsaved()) { ui.askOpen = { id: h.id }; renderSheet(); return; }   /* stay where we are and ask, instead of throwing the person into the form */
+    openHand(h.id);
   },
+  'askopen-cancel'() { ui.askOpen = null; renderSheet(); },
+  'askopen-save'() {
+    const a = ui.askOpen; if (!a) return;
+    ui.askOpen = null;
+    saveHand().then(() => { if (hasUnsaved()) { ui.askOpen = a; renderSheet(); return; } openHand(a.id); });   /* a failed save keeps the question open */
+  },
+  'askopen-drop'() { const a = ui.askOpen; if (!a) return; ui.askOpen = null; resetEditor(freshCtx()); openHand(a.id); },
   filter(el) { ui.filter = el.dataset.v; ui.delGroup = null; renderList(); },
   copygrp(el) { const g = findGroup(el.dataset.id); if (g) copyText(exportTexts(g.hands), 'Texte du tournoi'); },
   askdelgrp(el) { ui.delGroup = el.dataset.id; renderList(); },
@@ -1874,6 +1905,7 @@ document.addEventListener('click', e => {
   const f = A[el.dataset.act];
   if (f) f(el, e);
 });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.askOpen) A['askopen-cancel'](); });
 document.addEventListener('click', e => {
   const t = e.target;
   if (t && t.id === 'in-date' && typeof t.showPicker === 'function' && window.matchMedia('(hover:hover)').matches) { try { t.showPicker(); } catch (err) { /* the browser refuses: it still opens by its own icon */ } }
@@ -1910,7 +1942,7 @@ document.addEventListener('keydown', e => {
     if (((e.key === 'Enter' && !e.shiftKey) || e.key === 'Escape') && !e.isComposing) { e.preventDefault(); (isWide() ? A.pcfixdone : A.rvfixdone)(); }
     return;
   }
-  if (ui.tab !== 'review' || !isWide() || ui.modal || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (ui.tab !== 'review' || !isWide() || ui.modal || ui.askOpen || e.ctrlKey || e.metaKey || e.altKey) return;
   const t = e.target;
   if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key, end = ui.pc.end;
