@@ -225,6 +225,72 @@ ol.log li:first-child{border-top:0}
 .vbtn.bad.on,.vbtn.bad:active{background:rgba(242,139,130,.24);border-color:var(--bad)}
 .vbtn.good.on,.vbtn.good:active{background:rgba(134,209,168,.24);border-color:var(--ok)}
 
+/* review on a computer (wide screens only: the body gets .wide-rv): suivi + tournaments on the left, the hand and two big buttons on the right */
+body.wide-rv .wrap,body.wide-rv .top{max-width:1280px}
+body.wide-rv .top{flex-direction:row;align-items:center;justify-content:space-between;gap:20px;padding:10px 14px}
+body.wide-rv .top-row{flex:1;padding:0 6px}
+body.wide-rv .seg{flex:0 0 440px}
+.pc-rv{display:grid;grid-template-columns:minmax(340px,400px) minmax(0,1fr);gap:18px;align-items:start;margin-top:14px}
+.pc-side{position:sticky;top:92px;height:calc(100vh - 108px);display:flex;flex-direction:column;gap:14px;min-height:0}
+.pc-side .sec{margin-top:0;padding:16px 14px;gap:14px}
+.pc-sum{flex:none}
+.pc-sum .tiles{grid-template-columns:repeat(4,1fr);gap:6px}
+.pc-sum .tile{padding:10px 9px 11px;gap:6px;border-radius:16px;min-width:0}
+.pc-sum .tile .k{font-size:9px;letter-spacing:.06em;white-space:nowrap}
+.pc-sum .tile .v{font-size:24px}
+.pc-trn{flex:1;min-height:0}
+.pc-list{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px;margin:0 -6px;padding:10px 6px 22px;scrollbar-width:thin;scrollbar-color:var(--fg-3) transparent;
+  -webkit-mask-image:linear-gradient(to bottom,transparent,#000 10px,#000 calc(100% - 26px),transparent);mask-image:linear-gradient(to bottom,transparent,#000 10px,#000 calc(100% - 26px),transparent)}
+.pg{display:flex;flex-direction:column;flex:none}
+.pg-h{display:flex;flex-direction:column;gap:8px;width:100%;text-align:left;padding:12px 14px;border:1px solid var(--edge);border-radius:18px;background:var(--glass);box-shadow:inset 0 1px 0 var(--edge-hi)}
+.pg-h:hover{background:var(--glass-2)}
+.pg.open .pg-h{background:var(--glass-2);border-color:var(--edge-hi)}
+.pg-rows{display:flex;flex-direction:column;gap:3px;margin:6px 0 4px}
+.pg-r{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:5px 10px;min-height:46px;border:1px solid transparent;border-radius:14px;background:transparent}
+.pg-r:hover{background:var(--glass)}
+.pg-r.sel{background:var(--glass-3);border-color:var(--edge-hi)}
+.pg-r .no{font:600 11.5px var(--f-body);font-variant-numeric:tabular-nums;color:var(--fg-2);min-width:30px}
+.pg-r .card.mini{width:24px;height:34px;border-radius:6px;box-shadow:none}
+.pg-r .card.mini .r{font-size:12px}
+.pg-r .card.mini .s{font-size:9px;margin-top:1px}
+.pg-s{flex:1;min-width:0;font:500 12.5px var(--f-body);color:var(--fg-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pst{font:600 15px var(--f-body);color:var(--fg-3);width:18px;text-align:center;flex:none}
+.pst.good{color:var(--ok)} .pst.bad{color:var(--bad)}
+.pc-main{margin-top:0;gap:22px;padding:22px 26px}
+.pc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.pc-ttl{margin-top:9px;font:600 28px/1.1 var(--f-disp);letter-spacing:-.03em;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pc-of{font:500 15px var(--f-body);letter-spacing:0;color:var(--fg-2)}
+.pc-nav{gap:8px;flex-wrap:nowrap}
+.pc-cards{display:flex;gap:36px;align-items:center;flex-wrap:wrap}
+.pc-main .card.big{width:72px;height:100px;border-radius:15px}
+.pc-main .card.big .r{font-size:36px}
+.pc-main .card.big .s{font-size:28px}
+.pc-board{display:flex;gap:8px;flex-wrap:wrap}
+.pc-text{white-space:pre-wrap;overflow-wrap:anywhere;font:500 16px/1.7 var(--f-body);padding:20px 24px;border-radius:22px;background:var(--field);border:1px solid var(--edge);min-height:300px;user-select:text;-webkit-user-select:text}
+.pc-v{position:sticky;bottom:14px;z-index:4;display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:10px;border-radius:34px;border:1px solid var(--edge-hi);background:#0d0d0f;box-shadow:0 -16px 24px 4px #050506,0 14px 44px rgba(0,0,0,.6),inset 0 1px 0 var(--edge-hi)}
+.pvb{min-height:84px;display:flex;align-items:center;justify-content:center;gap:14px;border-radius:25px;border:1px solid;font:700 20px var(--f-body);background:transparent;transition:background .12s ease,border-color .12s ease}
+.pvb .g{font:500 32px/1}
+.pvb.bad{color:var(--bad);border-color:rgba(242,139,130,.55);background:rgba(242,139,130,.08)}
+.pvb.good{color:var(--ok);border-color:rgba(134,209,168,.55);background:rgba(134,209,168,.08)}
+.pvb.bad:hover,.pvb.bad.on,.pvb.bad:active{background:rgba(242,139,130,.24);border-color:var(--bad)}
+.pvb.good:hover,.pvb.good.on,.pvb.good:active{background:rgba(134,209,168,.24);border-color:var(--ok)}
+.kbd{display:inline-block;min-width:22px;padding:2px 7px;border-radius:7px;border:1px solid var(--edge-hi);background:var(--field);color:var(--fg-2);font:600 12px/1.4 var(--f-body);text-align:center;letter-spacing:0}
+.pvb .kbd{font-size:13px;color:inherit;opacity:.8;border-color:currentColor;background:transparent}
+.pc-act{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.pc-links{justify-content:flex-end;gap:14px;min-height:36px}
+/* laptop screens: a little tighter so more of the hand shows above the buttons */
+@media (max-height:820px){
+  .pc-main{gap:16px;padding:18px 22px}
+  .pc-ttl{font-size:24px;margin-top:6px}
+  .pc-main .card.big{width:62px;height:88px;border-radius:13px}
+  .pc-main .card.big .r{font-size:31px} .pc-main .card.big .s{font-size:24px}
+  .pc-text{font-size:15px;line-height:1.6;padding:14px 20px;min-height:200px}
+  .pvb{min-height:68px;font-size:18px}
+  .pc-side{top:88px;height:calc(100vh - 100px)}
+}
+.pc-empty{padding:90px 8px}
+.pc-empty .hint{max-width:460px;margin:0 auto 22px}
+
 /* floating save bar, sheet, toast */
 .savebar{position:fixed;left:0;right:0;bottom:0;z-index:20;pointer-events:none;
   padding:0 max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
@@ -585,7 +651,10 @@ function clearDraft() { try { localStorage.removeItem(LS_DRAFT); } catch (e) { /
 /* ===== state ===== */
 let H = null;
 let editingId = null;
-const ui = { tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, toastTimer: null };
+/* a computer screen (or a tablet held wide): the review gets its own two-column layout */
+const WIDE_Q = window.matchMedia ? window.matchMedia('(min-width: 1000px)') : null;
+const isWide = () => !!(WIDE_Q && WIDE_Q.matches);
+const ui = { pc: { sel: null, end: false }, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, toastTimer: null };
 
 /* ===== betting engine: replays the logged actions to get amounts, pot and SPR ===== */
 function actorsOf(h) {
@@ -940,6 +1009,7 @@ function renderSheet() {
 
 /* ===== header, banner, save bar ===== */
 function renderTabs() {
+  document.body.classList.toggle('wide-rv', ui.tab === 'review' && isWide());
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === ui.tab));
   $('#view-edit').hidden = ui.tab !== 'edit';
   $('#view-list').hidden = ui.tab !== 'list';
@@ -964,7 +1034,7 @@ function renderBanner() {
   }
 }
 function renderSave() {
-  const reviewing = ui.tab === 'review' && ui.rv && !ui.rv.done;
+  const reviewing = ui.tab === 'review' && !isWide() && ui.rv && !ui.rv.done;
   $('#savebar').hidden = !(ui.tab === 'edit' || reviewing);
   $('#savebar-in').className = 'savebar-in' + (reviewing ? ' vd' : '');
   if (reviewing) {   /* ✗ / ✓ stay under the thumb, whatever the length of the hand */
@@ -1090,9 +1160,112 @@ function reviewDone() {
     '<button type="button" class="btn" data-act="rvquit">Voir le suivi</button></div>';
 }
 
+/* ===== review on a computer: suivi + tournaments on the left, the hand and its two big buttons on the right ===== */
+const kbd = k => '<kbd class="kbd">' + k + '</kbd>';
+const pcGroups = () => tournamentGroups(store.hands).sort((a, b) => b.last - a.last || String(b.start).localeCompare(String(a.start)));
+/* the hand shown: keep it if it still exists, otherwise the first one waiting in the most recent tournament that has any */
+function pcEnsure() {
+  if (ui.pc.sel && store.hands.some(h => h.id === ui.pc.sel)) return;
+  ui.pc.end = false;
+  const gs = pcGroups(), g = gs.find(x => x.hands.some(h => !h.verdict)) || gs[0];
+  const h = g && (g.hands.find(x => !x.verdict) || g.hands[g.hands.length - 1]);
+  ui.pc.sel = h ? h.id : null;
+}
+function pcSum(h) {
+  const n = normHand(h), sim = simulate(n);
+  let s = (n.hero.pos ? posLabel(n.table, n.hero.pos) : 'Position ?') + (num(n.hero.stack) > 0 ? ' · ' + fmt(num(n.hero.stack)) + ' bb' : '');
+  if (sim.streets.preflop.rows.length) s += ' · ' + potKind(sim.raises);
+  return s;
+}
+const pcStatus = h => h.verdict === 'good' ? '<span class="pst good" title="Bon">✓</span>' : h.verdict === 'bad' ? '<span class="pst bad" title="Mauvais">✗</span>' : '<span class="pst" title="À revoir">○</span>';
+
+function pcSide() {
+  const all = store.hands, s = reviewStats(all), r = goodRate(s), judged = s.good + s.bad, info = groupInfo();
+  const sum = '<div class="sec pc-sum"><div class="sec-h"><span class="lbl">Suivi</span><span class="pot">' + judged + ' analysée' + (judged > 1 ? 's' : '') + '</span></div>' +
+    '<div class="tiles">' + tile('Mains', s.total) + tile('À revoir', s.pending) + tile('✓ Bon', s.good, 'good') + tile('✗ Mauvais', s.bad, 'bad') + '</div>' +
+    (splitBar(s.good, s.bad) || '<div class="rbar" aria-hidden="true"></div>') +
+    '<div class="rate">' + (r == null ? 'Aucune main notée pour l\'instant.' : '<b>' + r + ' %</b> de bonnes décisions · ' + s.good + ' sur ' + judged) + '</div>' +
+    '<div class="row"><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer</button></div>' +
+    (document.querySelector('#view-list #in-import') ? '' : IMPORT_INPUT) + '</div>';
+  const list = pcGroups().map(g => {
+    const t = reviewStats(g.hands), rr = goodRate(t), open = g.hands.some(h => h.id === ui.pc.sel);
+    const rows = open ? '<div class="pg-rows">' + g.hands.map(h => {
+      const n = normHand(h), cards = n.hero.cards.map(c => c ? cardFace(c, 'mini') : '<span class="card mini empty"><span class="r">?</span></span>').join('');
+      return '<button type="button" class="pg-r' + (h.id === ui.pc.sel ? ' sel' : '') + '" data-act="pcsel" data-id="' + esc(h.id) + '"><span class="no">n°' + esc((info[h.id] || {}).no || '–') + '</span>' +
+        '<span class="hand-cards">' + cards + '</span><span class="pg-s">' + esc(pcSum(h)) + '</span>' + pcStatus(h) + '</button>';
+    }).join('') + '</div>' : '';
+    return '<div class="pg' + (open ? ' open' : '') + '"><button type="button" class="pg-h" data-act="pcgrp" data-id="' + esc(g.hands[0].id) + '">' +
+      '<span class="trn-h"><span class="trn-n">' + esc(g.name || 'Sans nom') + '</span><span class="meta">' + esc(fmtDate(g.start)) + ' · ' + t.total + ' main' + (t.total > 1 ? 's' : '') + '</span></span>' +
+      '<span class="trn-c"><span class="good">✓ ' + t.good + '</span><span class="bad">✗ ' + t.bad + '</span>' + (t.pending ? '<span class="pend">' + t.pending + ' à revoir</span>' : '') + '<span class="rt">' + (rr == null ? '–' : rr + ' %') + '</span></span>' +
+      (splitBar(t.good, t.bad, true) || '<span class="rbar thin" aria-hidden="true"></span>') + '</button>' + rows + '</div>';
+  }).join('');
+  return '<aside class="pc-side">' + sum + '<div class="sec pc-trn"><div class="sec-h"><span class="lbl">Tournois</span></div><div class="pc-list">' + list + '</div></div></aside>';
+}
+
+function pcEnd(g) {
+  const t = reviewStats(g.hands), r = goodRate(t), me = g.hands[0].id;
+  const next = pcGroups().find(x => x.hands[0].id !== me && reviewStats(x.hands).pending);
+  return '<section class="sec pc-main"><div class="sec-h"><span class="lbl">Tournoi noté</span><span class="pot">' + esc(g.name || 'Sans nom') + ' · ' + esc(fmtDate(g.start)) + '</span></div>' +
+    '<div class="tiles">' + tile('✓ Bon', t.good, 'good') + tile('✗ Mauvais', t.bad, 'bad') + '</div>' + splitBar(t.good, t.bad) +
+    (r == null ? '' : '<div class="rate"><b>' + r + ' %</b> de bonnes décisions</div>') +
+    '<div class="row">' + (next ? '<button type="button" class="btn" data-act="pcgrp" data-id="' + esc(next.hands[0].id) + '">Revoir ' + esc(next.name || 'Sans nom') + ' (' + reviewStats(next.hands).pending + ')</button>' : '<span class="hint">Toutes tes mains sont notées.</span>') +
+    '<button type="button" class="link" data-act="pcback">Revenir sur la dernière main</button></div></section>';
+}
+
+function pcMain() {
+  const h0 = store.hands.find(x => x.id === ui.pc.sel);
+  if (!h0) return '<section class="pc-main"></section>';
+  const g = findGroup(h0.id), i = g.hands.findIndex(x => x.id === h0.id), total = g.hands.length;
+  if (ui.pc.end) return pcEnd(g);
+  const h = normHand(h0), no = (groupInfo()[h0.id] || {}).no || (i + 1);
+  const hero = h.hero.cards.map(c => c ? cardFace(c, 'big') : '<span class="card big empty"><span class="r">?</span></span>').join('');
+  const board = ['flop', 'turn', 'river'].reduce((a, s) => a.concat(h.board[s]), []).filter(Boolean).map(c => cardFace(c, 'big')).join('');
+  const st = h.verdict ? '<span class="tag ver-' + h.verdict + '">' + (h.verdict === 'good' ? '✓ ' : '✗ ') + VERDICT_FR[h.verdict] + '</span>' : '<span class="tag">À revoir</span>';
+  const vb = (v, glyph, label, key) => '<button type="button" class="pvb ' + v + (h.verdict === v ? ' on' : '') + '" data-act="pcset" data-v="' + v + '"><span class="g" aria-hidden="true">' + glyph + '</span><span>' + label + '</span>' + kbd(key) + '</button>';
+  return '<section class="sec pc-main">' +
+    '<div class="pc-top"><div><div class="lbl">' + esc(g.name || 'Sans nom') + ' · ' + esc(fmtDate(g.start)) + '</div>' +
+    '<div class="pc-ttl">Main n°' + esc(no) + ' <span class="pc-of">sur ' + total + '</span>' + st + '</div></div>' +
+    '<div class="pc-act"><div class="row pc-nav"><button type="button" class="btn ghost sm" data-act="pcprev"' + (i ? '' : ' disabled') + '>' + kbd('←') + ' Précédente</button>' +
+    '<button type="button" class="btn ghost sm" data-act="pccopy">Copier la main ' + kbd('C') + '</button>' +
+    '<button type="button" class="btn ghost sm" data-act="pcnext"' + (i < total - 1 ? '' : ' disabled') + '>Suivante ' + kbd('→') + '</button></div>' +
+    '<div class="row pc-links"><button type="button" class="link" data-act="open" data-id="' + esc(h0.id) + '">Modifier la main</button>' +
+    (h.verdict ? '<button type="button" class="link" data-act="pcclear">Retirer le verdict</button>' : '') + '</div></div></div>' +
+    '<div class="pc-cards"><span class="hand-cards pc-hero">' + hero + '</span>' + (board ? '<span class="hand-board pc-board">' + board + '</span>' : '') + '</div>' +
+    '<div class="pc-text">' + esc(exportTexts([h0])) + '</div>' +
+    '<div class="pc-v">' + vb('bad', '✗', 'Mauvais', 'M') + vb('good', '✓', 'Bon', 'B') + '</div></section>';
+}
+
+function pcView() {
+  if (!store.hands.length) {
+    return '<div class="empty-state pc-empty"><p>Aucune main sur cet ordinateur.</p>' +
+      '<p class="hint">Sur ton téléphone : onglet Mains → Sauvegarde .json, envoie le fichier à ton ordinateur (AirDrop, Fichiers, mail…), puis importe-le ici.</p>' +
+      '<div class="row" style="justify-content:center"><button type="button" class="btn" data-act="importjson">Importer une sauvegarde</button></div>' +
+      (document.querySelector('#view-list #in-import') ? '' : IMPORT_INPUT) + '</div>';
+  }
+  pcEnsure();
+  return '<div class="pc-rv">' + pcSide() + pcMain() + '</div>';
+}
+/* next hand of the same tournament that still waits for a verdict (after this one, then from the start) */
+function pcNext(id) {
+  const g = findGroup(id);
+  if (!g) return null;
+  const i = g.hands.findIndex(h => h.id === id);
+  return g.hands.slice(i + 1).concat(g.hands.slice(0, i)).find(h => !h.verdict) || null;
+}
+
 function renderReview() {
   const el = $('#view-review');
   if (!store.ready) { el.innerHTML = '<div class="empty-state">Chargement des mains...</div>'; return; }
+  if (isWide()) {
+    const old = el.querySelector('.pc-list'), keep = old ? old.scrollTop : 0;
+    el.innerHTML = pcView();
+    const box = el.querySelector('.pc-list'), cur = el.querySelector('.pg-r.sel');
+    if (box) {   /* keep the list where it was, and the chosen hand in view */
+      box.scrollTop = keep;
+      if (cur) { const b = box.getBoundingClientRect(), r = cur.getBoundingClientRect(); if (r.top < b.top) box.scrollTop += r.top - b.top - 8; else if (r.bottom > b.bottom) box.scrollTop += r.bottom - b.bottom + 8; }
+    }
+    return;
+  }
   el.innerHTML = ui.rv ? (ui.rv.done ? reviewDone() : reviewCard()) : reviewSummary();
 }
 
@@ -1148,21 +1321,31 @@ async function shareFile(data, filename) {
   } catch (e) { if (e && e.name === 'AbortError') return 'cancelled'; }
   return 'unsupported';
 }
-/* restore or move hands from a backup file; same id = same hand, so it is updated, never duplicated */
+/* restore or move hands from a backup file; same id = same hand, so it is updated, never duplicated.
+   The most recently changed copy wins: an older file never overwrites a verdict given since on this device. */
 async function importFile(file) {
   let data;
   try { data = JSON.parse(await file.text()); } catch (e) { toast('Fichier illisible'); return; }
   const list = Array.isArray(data) ? data : (data && Array.isArray(data.hands) ? data.hands : []);
   const ok = list.filter(x => x && typeof x === 'object' && typeof x.id === 'string' && /^[\w-]{1,64}$/.test(x.id) && x.hero && typeof x.hero === 'object');
   if (!ok.length) { toast('Aucune main dans ce fichier'); return; }
-  let n = 0;
-  for (const x of ok) { try { await storeSave(normHand(clone(x))); n++; } catch (e) { /* skip this one */ } }
-  toast(n + ' main' + (n > 1 ? 's' : '') + ' importée' + (n > 1 ? 's' : ''));
+  let n = 0, same = 0;
+  for (const x of ok) {
+    const cur = store.hands.find(y => y.id === x.id);
+    if (cur && cur.updatedAt && String(x.updatedAt || '') <= String(cur.updatedAt)) { same++; continue; }
+    try { await storeSave(normHand(clone(x))); n++; } catch (e) { /* skip this one */ }
+  }
+  toast(!n && same ? 'Rien à importer : tout est déjà à jour' : n + ' main' + (n > 1 ? 's' : '') + ' importée' + (n > 1 ? 's' : '') + (same ? ' · ' + same + ' déjà à jour' : ''));
 }
 async function downloadJson() {
   const data = JSON.stringify({ app: 'cariocace-hands', exportedAt: new Date().toISOString(), hands: sortedHands() }, null, 2);
   let dl = null;
   try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dl = null; }
+  if (!dl && isWide()) {   /* a computer: a plain download, not a share sheet */
+    const u = URL.createObjectURL(new Blob([data], { type: 'application/json' })), a = document.createElement('a');
+    a.href = u; a.download = 'cariocace-hands-' + todayStr() + '.json'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 4000); toast('Fichier enregistré'); return;
+  }
   if (!dl) {
     const r = await shareFile(data, 'cariocace-hands-' + todayStr() + '.json');
     if (r === 'shared') { toast('Sauvegarde partagée'); return; }
@@ -1248,6 +1431,14 @@ function resetEditor(ctx) {
 function freshCtx() {
   const last = sortedHands()[0];
   return last ? { tournament: continuing(last) ? (last.tournament || '') : '', date: todayStr(), table: last.table, ante: last.ante } : {};
+}
+/* review on a computer: previous / next hand of the same tournament */
+function pcStep(d) {
+  const g = findGroup(ui.pc.sel);
+  if (!g) return;
+  const j = g.hands.findIndex(h => h.id === ui.pc.sel) + d;
+  if (j < 0 || j >= g.hands.length) return;
+  ui.pc.sel = g.hands[j].id; ui.pc.end = false; renderReview(); window.scrollTo(0, 0);
 }
 /* review helpers */
 function rvGo(d) {
@@ -1426,6 +1617,36 @@ const A = {
     ui.rv = { ids: ids, i: 0, done: false, busy: false };
     renderAll(); window.scrollTo(0, 0);
   },
+  /* ----- review on a computer ----- */
+  pcsel(el) { ui.pc.sel = el.dataset.id; ui.pc.end = false; renderReview(); window.scrollTo(0, 0); },
+  pcgrp(el) {
+    const g = findGroup(el.dataset.id);
+    if (!g) return;
+    ui.pc.sel = (g.hands.find(x => !x.verdict) || g.hands[0]).id; ui.pc.end = false; renderReview(); window.scrollTo(0, 0);
+  },
+  pcprev() { pcStep(-1); },
+  pcnext() { pcStep(1); },
+  pcback() { ui.pc.end = false; renderReview(); },
+  pccopy() { const h = store.hands.find(x => x.id === ui.pc.sel); if (h) copyText(exportTexts([h]), 'Texte de la main'); },
+  pcset(el) {
+    const id = ui.pc.sel, h = store.hands.find(x => x.id === id), v = el.dataset.v;
+    if (!h || ui.pc.end || (v !== 'good' && v !== 'bad')) return;
+    /* a hand that was waiting: straight on to the next one. One that already had a verdict: fix it and stay. */
+    let moved = false;
+    if (!h.verdict) { const nx = pcNext(id); if (nx) ui.pc.sel = nx.id; else ui.pc.end = true; moved = true; }
+    try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) { /* not supported */ }
+    applyVerdict(id, v).catch(e => {
+      ui.pc.sel = id; ui.pc.end = false; renderReview();
+      toast('Enregistrement impossible' + (e && e.code ? ' (' + e.code + ')' : ''));
+    });
+    renderReview(); if (moved) window.scrollTo(0, 0);
+  },
+  pcclear() {
+    const id = ui.pc.sel;
+    if (!id) return;
+    applyVerdict(id, '').catch(e => { toast('Enregistrement impossible' + (e && e.code ? ' (' + e.code + ')' : '')); });
+    renderReview();
+  },
   rvquit() { ui.rv = null; renderAll(); window.scrollTo(0, 0); },
   rvprev() { if (ui.rv && ui.rv.i > 0) { ui.rv.i--; ui.rv.done = false; renderAll(); window.scrollTo(0, 0); } },
   rvskip() { rvGo(1); },
@@ -1525,6 +1746,21 @@ document.addEventListener('change', e => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'in-tag') { e.preventDefault(); A.addtag(); }
 });
+/* review on a computer: keys. B = Bon, M = Mauvais, ← → = previous / next, C = copy. Never while typing in a field. */
+document.addEventListener('keydown', e => {
+  if (ui.tab !== 'review' || !isWide() || ui.modal || e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = e.target;
+  if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
+  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key, end = ui.pc.end;
+  let f = null;
+  if (k === 'ArrowRight') f = end ? A.pcback : A.pcnext;
+  else if (k === 'ArrowLeft') f = end ? A.pcback : A.pcprev;
+  else if (!end && !e.repeat && k === 'b') f = () => A.pcset({ dataset: { v: 'good' } });   /* a held key must not judge the next hands too */
+  else if (!end && !e.repeat && k === 'm') f = () => A.pcset({ dataset: { v: 'bad' } });
+  else if (!end && k === 'c') f = A.pccopy;
+  if (!f) return;
+  e.preventDefault(); f();
+});
 document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(draftTimer); writeDraft(); } });
 window.addEventListener('pagehide', () => { clearTimeout(draftTimer); writeDraft(); });
 
@@ -1532,6 +1768,8 @@ window.addEventListener('pagehide', () => { clearTimeout(draftTimer); writeDraft
 const saved = loadDraft();
 if (saved) { H = saved.h; editingId = saved.editingId; draftLoaded = true; }
 else H = newHand({});
+if (isWide()) ui.tab = 'review';   /* a computer is for reviewing */
+if (WIDE_Q) { const onWide = () => renderAll(); if (WIDE_Q.addEventListener) WIDE_Q.addEventListener('change', onWide); else if (WIDE_Q.addListener) WIDE_Q.addListener(onWide); }
 renderAll();
 initStore();
 
