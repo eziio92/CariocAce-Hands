@@ -870,7 +870,8 @@ const isWide = () => !!(WIDE_Q && WIDE_Q.matches);
 /* ===== reading the board with Claude (optional) =====
    Needs the person's own API key, typed in the app and kept on this device until "Oublier la clé".
    The key is never part of a hand, a draft or the .json backup. The photo is sent to the Claude API only when a read is asked for.
-   The answer is a proposal: nothing is written into the hand until it is confirmed, and a card Claude is not sure of is left empty. */
+   The answer is a proposal: nothing is written into the hand until it is confirmed, and a card Claude is not sure of is left empty.
+   (Sonnet 5.5 refuses a forced tool call: the tool is offered with tool_choice left on auto, and the prompt asks for the call.) */
 const LS_KEY = 'carnet-claude-key', LS_USE = 'carnet-claude-use';
 const AI_URL = 'https://api.anthropic.com/v1/messages', AI_MODEL = 'claude-sonnet-5-5';
 const AI_PRICE_IN = 2, AI_PRICE_OUT = 10;   /* dollars per million tokens, for the estimate shown to the person */
@@ -924,7 +925,7 @@ const BOARD_SYSTEM = 'You read photos taken at a live poker table. Look ONLY at 
   'The photo may be taken at an angle and cards may look rotated or overlap: read the corner indices carefully. ' +
   'Ignore hole cards, cards held in hands, folded or burned cards, chips and everything else. ' +
   'Never invent a card. If only the flop is visible, report 3 cards. If a card is partly hidden or you are not certain of it, set sure to false, or code "??" when it cannot be read at all. ' +
-  'If no board is visible, return an empty list and say so in the note.';
+  'If no board is visible, return an empty list and say so in the note. Always answer by calling the report_board tool exactly once, with no other text.';
 const blobB64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
 async function readBoard(photoId, signal) {
   const key = keyGet();
@@ -938,7 +939,7 @@ async function readBoard(photoId, signal) {
       method: 'POST', signal: signal,
       headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
       body: JSON.stringify({
-        model: AI_MODEL, max_tokens: 500, system: BOARD_SYSTEM, tools: [BOARD_TOOL], tool_choice: { type: 'tool', name: BOARD_TOOL.name },
+        model: AI_MODEL, max_tokens: 4000, system: BOARD_SYSTEM, tools: [BOARD_TOOL],
         messages: [{ role: 'user', content: [
           { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: data } },
           { type: 'text', text: 'Read the community cards on this table.' }
@@ -955,11 +956,21 @@ async function readBoard(photoId, signal) {
     const msg = j && j.error && j.error.message ? String(j.error.message).slice(0, 160) : '', st = res.status;
     throw new AiError(st === 401 ? 'auth' : st === 403 ? 'forbidden' : st === 429 ? 'rate' : (st === 400 && /credit|balance|billing/i.test(msg)) ? 'credit' : st >= 500 ? 'busy' : 'http', msg);
   }
-  const tu = j && Array.isArray(j.content) ? j.content.find(b => b && b.type === 'tool_use' && b.name === BOARD_TOOL.name) : null;
-  if (!tu || !tu.input || !Array.isArray(tu.input.cards)) throw new AiError('parse');
+  const blocks = j && Array.isArray(j.content) ? j.content : [];
+  const tu = blocks.find(b => b && b.type === 'tool_use' && b.name === BOARD_TOOL.name);
+  let inp = tu && tu.input && Array.isArray(tu.input.cards) ? tu.input : null;
+  if (!inp) {   /* the tool call cannot be forced on this model: accept a JSON object written in text instead */
+    for (const b of blocks) {
+      if (!b || b.type !== 'text' || typeof b.text !== 'string') continue;
+      const a = b.text.indexOf('{'), z = b.text.lastIndexOf('}');
+      if (a < 0 || z <= a) continue;
+      try { const o = JSON.parse(b.text.slice(a, z + 1)); if (o && Array.isArray(o.cards)) { inp = o; break; } } catch (e) { /* not JSON */ }
+    }
+  }
+  if (!inp) throw new AiError('parse');
   const u = j.usage || {}, usd = ((u.input_tokens || 0) * AI_PRICE_IN + (u.output_tokens || 0) * AI_PRICE_OUT) / 1e6;
   useAdd(usd);
-  return { cards: tu.input.cards.slice(0, 5), note: String(tu.input.note || '').slice(0, 300), usd: usd };
+  return { cards: inp.cards.slice(0, 5), note: String(inp.note || '').slice(0, 300), usd: usd };
 }
 /* where the n-th board card goes */
 const BOARD_SLOT = [['flop', 0], ['flop', 1], ['flop', 2], ['turn', 0], ['river', 0]];
