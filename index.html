@@ -421,6 +421,8 @@ img.wait{opacity:0}
 .pv.tall .pv-i{max-height:calc(100dvh - 400px)}
 /* reading the board with Claude */
 .kf,.rd{display:flex;flex-direction:column;gap:10px}
+.rd-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px}
+.rd-h .link{white-space:nowrap}
 .rd-cards{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end}
 .rd-g{display:flex;flex-direction:column;gap:6px}
 .rd-g .cards{display:flex;gap:6px}
@@ -977,11 +979,12 @@ const BOARD_SLOT = [['flop', 0], ['flop', 1], ['flop', 2], ['turn', 0], ['river'
 const BOARD_CAP = ['Flop', 'Flop', 'Flop', 'Turn', 'River'];
 /* what to put in the hand: only cards that are readable, certain, not repeated, and not already held by Hero or a villain */
 function boardProposal(res, h) {
-  const n = res.cards.length, taken = new Set();
+  const cards = res.rev ? res.cards.slice().reverse() : res.cards;   /* "Inverser l'ordre": photo taken from the other side of the table */
+  const n = cards.length, taken = new Set();
   h.hero.cards.forEach(c => { if (isFull(c)) taken.add(c); });
   h.villains.forEach(v => v.cards.forEach(c => { if (isFull(c)) taken.add(c); }));
   BOARD_SLOT.forEach((s, i) => { const c = h.board[s[0]][s[1]]; if (i >= n && isFull(c)) taken.add(c); });
-  return res.cards.map((c, i) => {
+  return cards.map((c, i) => {
     const raw = c && typeof c.code === 'string' ? c.code.trim() : '';
     const code = raw.length === 2 ? raw[0].toUpperCase() + raw[1].toLowerCase() : '';
     const valid = /^[2-9TJQKA][shdc]$/.test(code);
@@ -1364,7 +1367,8 @@ function readHtml(p) {
   const warns = prop.filter(x => x.why).map(x => '<li>' + esc(x.cap + ' · ' + cardTxt(x) + ' : ' + x.why + ', laissée vide') + '</li>').join('');
   const n = prop.filter(x => x.use).length;
   const over = prop.some(x => x.use && isFull(H.board[BOARD_SLOT[x.i][0]][BOARD_SLOT[x.i][1]]) && H.board[BOARD_SLOT[x.i][0]][BOARD_SLOT[x.i][1]] !== x.use);
-  return '<div class="rd"><span class="lbl">Lecture de Claude</span>' +
+  return '<div class="rd"><div class="rd-h"><span class="lbl">Lecture de Claude</span>' +
+    (r.res.cards.length > 1 ? '<button type="button" class="link" data-act="phrev">' + (r.res.rev ? '⇄ Ordre inversé · annuler' : '⇄ Inverser l\'ordre') + '</button>' : '') + '</div>' +
     (prop.length ? '<div class="rd-cards">' + cards + '</div>' : '<p class="hint" style="margin:0">Aucune carte du board repérée sur cette photo.</p>') +
     (r.res.note ? '<p class="hint" style="margin:0">' + esc(r.res.note) + '</p>' : '') +
     (warns ? '<ul class="rd-w">' + warns + '</ul>' : '') +
@@ -1983,11 +1987,13 @@ function syncChips(act, id, val) {
 /* asks Claude to read the board of the photo shown in the viewer (a result already received is reused unless a new read is asked for) */
 async function startRead(p, fresh) {
   if (!fresh && ui.readCache[p.id]) { p.read = { state: 'done', res: ui.readCache[p.id] }; renderSheet(); return; }
+  const prevRes = (p.read && p.read.res) || ui.readCache[p.id] || null;
   const ctl = new AbortController();
   p.read = { state: 'busy', ctl: ctl };
   renderSheet();
   try {
     const res = await readBoard(p.id, ctl.signal);
+    res.rev = !!(prevRes && prevRes.rev);   /* a new read keeps the order chosen for this photo */
     ui.readCache[p.id] = res;
     if (ui.pview === p) { p.read = { state: 'done', res: res }; renderSheet(); }
   } catch (e) {
@@ -2315,6 +2321,7 @@ const A = {
     if (!keyGet()) { p.keyForm = true; p.keyErr = ''; ui.keyDraft = ''; renderSheet(); return; }
     startRead(p, true);
   },
+  phrev() { const p = ui.pview; if (p && p.read && p.read.state === 'done') { p.read.res.rev = !p.read.res.rev; renderSheet(); } },
   phreadstop() { const p = ui.pview; if (p && p.read && p.read.ctl) p.read.ctl.abort(); },
   phreadclear() { const p = ui.pview; if (!p) return; p.read = null; delete ui.readCache[p.id]; renderSheet(); },
   keyopen() { const p = ui.pview; if (!p) return; p.keyForm = true; p.keyErr = ''; ui.keyDraft = ''; renderSheet(); },
