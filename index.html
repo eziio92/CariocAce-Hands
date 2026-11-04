@@ -338,7 +338,7 @@ body.wide-rv .seg{flex:0 0 440px}
 textarea.view{min-height:220px;font:12.5px/1.5 var(--f-mono)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:60;padding:11px 18px;border-radius:999px;
   background:var(--sheet);color:var(--fg);border:1px solid var(--edge);box-shadow:var(--shadow),inset 0 1px 0 var(--edge-hi);font:500 14px var(--f-body);
-  max-width:calc(100% - 32px);text-align:center;-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
+  max-width:calc(100% - 32px);text-align:center;pointer-events:none;-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
 
 
 /* save confirmation */
@@ -417,6 +417,21 @@ img.wait{opacity:0}
 .pv-a .btn{width:100%}
 .pv-a .row{flex-wrap:nowrap}
 .pv-a .row .btn{flex:1}
+.pv-a{max-height:58dvh;overflow:auto}
+.pv.tall .pv-i{max-height:calc(100dvh - 400px)}
+/* reading the board with Claude */
+.kf,.rd{display:flex;flex-direction:column;gap:10px}
+.rd-cards{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end}
+.rd-g{display:flex;flex-direction:column;gap:6px}
+.rd-g .cards{display:flex;gap:6px}
+.rd-g .card{width:48px;height:66px}
+.card.rd-no{opacity:.5;outline:1.5px dashed var(--warn);outline-offset:2px}
+.rd-w{margin:0;padding-left:18px;font-size:13px;line-height:1.4;color:var(--warn)}
+.rd-e{font-size:14px;line-height:1.4;color:var(--bad)}
+.rd-busy{animation:pulse 1.3s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
+.ai-row{padding:0 4px}
+@media (prefers-reduced-motion:reduce){.rd-busy{animation:none}}
 </style>
 <style>body{padding-top:env(safe-area-inset-top,0px)}</style>
 </head>
@@ -852,7 +867,121 @@ let editingId = null;
 /* a computer screen (or a tablet held wide): the review gets its own two-column layout */
 const WIDE_Q = window.matchMedia ? window.matchMedia('(min-width: 1000px)') : null;
 const isWide = () => !!(WIDE_Q && WIDE_Q.matches);
-const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, toastTimer: null };
+/* ===== reading the board with Claude (optional) =====
+   Needs the person's own API key, typed in the app and kept on this device until "Oublier la clé".
+   The key is never part of a hand, a draft or the .json backup. The photo is sent to the Claude API only when a read is asked for.
+   The answer is a proposal: nothing is written into the hand until it is confirmed, and a card Claude is not sure of is left empty. */
+const LS_KEY = 'carnet-claude-key', LS_USE = 'carnet-claude-use';
+const AI_URL = 'https://api.anthropic.com/v1/messages', AI_MODEL = 'claude-sonnet-5-5';
+const AI_PRICE_IN = 2, AI_PRICE_OUT = 10;   /* dollars per million tokens, for the estimate shown to the person */
+const keyGet = () => { try { return localStorage.getItem(LS_KEY) || ''; } catch (e) { return ''; } };
+const keyOk = k => /^sk-ant-[A-Za-z0-9_-]{20,}$/.test(k);
+const keyTail = k => '…' + k.slice(-4);
+function keySet(k) { try { localStorage.setItem(LS_KEY, k); return true; } catch (e) { return false; } }
+function keyForget() { try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_USE); } catch (e) { /* ignore */ } }
+function useGet() { try { const u = JSON.parse(localStorage.getItem(LS_USE) || 'null'); return u && typeof u.n === 'number' ? u : { n: 0, usd: 0 }; } catch (e) { return { n: 0, usd: 0 }; } }
+function useAdd(usd) { try { const u = useGet(); u.n += 1; u.usd += usd; localStorage.setItem(LS_USE, JSON.stringify(u)); } catch (e) { /* ignore */ } }
+const usdTxt = x => '≈ ' + (x < 0.005 ? '< 0,01' : x.toFixed(2).replace('.', ',')) + ' $';
+class AiError extends Error { constructor(kind, msg) { super(msg || kind); this.kind = kind; } }
+function aiErrText(e) {
+  const k = e && e.kind;
+  if (k === 'auth') return 'Clé refusée par Claude. Vérifie-la ou colles-en une autre.';
+  if (k === 'forbidden') return 'Accès refusé pour cette clé.';
+  if (k === 'rate') return 'Trop de demandes, ou plafond atteint. Réessaie plus tard.';
+  if (k === 'credit') return 'Crédits épuisés. Ils reviennent au prochain cycle.';
+  if (k === 'busy') return 'Claude est surchargé. Réessaie dans un instant.';
+  if (k === 'net') return 'Pas de connexion à Claude. Vérifie ton réseau puis réessaie.';
+  if (k === 'nophoto') return 'Photo introuvable sur cet appareil.';
+  if (k === 'parse') return 'Réponse illisible. Réessaie.';
+  return 'Lecture impossible' + (e && e.message ? ' (' + String(e.message).slice(0, 120) + ')' : '') + '.';
+}
+const BOARD_TOOL = {
+  name: 'report_board',
+  description: 'Report the community cards (the board) visible on the photo, in dealing order.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      cards: {
+        type: 'array', maxItems: 5,
+        description: 'Board cards in dealing order: the three flop cards first, then the turn, then the river. Only cards really visible.',
+        items: {
+          type: 'object',
+          properties: {
+            code: { type: 'string', description: 'Rank then suit, e.g. "Ah", "Td", "7c", "2s". Ranks: A K Q J T 9 8 7 6 5 4 3 2 (T = ten). Suits: s = spades, h = hearts, d = diamonds, c = clubs. Use "??" if the card is there but cannot be read.' },
+            sure: { type: 'boolean', description: 'false if you are not certain of the rank or the suit of this card.' }
+          },
+          required: ['code', 'sure']
+        }
+      },
+      note: { type: 'string', description: 'One short sentence in French: anything the player should double-check (hidden card, glare, doubt about which card is turn or river). Empty string if nothing.' }
+    },
+    required: ['cards', 'note']
+  }
+};
+const BOARD_SYSTEM = 'You read photos taken at a live poker table. Look ONLY at the community cards (the board) lying face up on the table. ' +
+  'Report them in dealing order: the flop (3 cards, usually laid side by side), then the turn (1 card), then the river (1 card). ' +
+  'Identify every card by its rank AND by the shape of its suit symbol (spade, heart, diamond, club), not by colour alone: black means spade or club, red means heart or diamond. ' +
+  'The photo may be taken at an angle and cards may look rotated or overlap: read the corner indices carefully. ' +
+  'Ignore hole cards, cards held in hands, folded or burned cards, chips and everything else. ' +
+  'Never invent a card. If only the flop is visible, report 3 cards. If a card is partly hidden or you are not certain of it, set sure to false, or code "??" when it cannot be read at all. ' +
+  'If no board is visible, return an empty list and say so in the note.';
+const blobB64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
+async function readBoard(photoId, signal) {
+  const key = keyGet();
+  if (!key) throw new AiError('nokey');
+  const rec = await photoGet(photoId).catch(() => null);
+  if (!rec || !rec.blob) throw new AiError('nophoto');
+  const data = await blobB64(rec.blob);
+  let res;
+  try {
+    res = await fetch(AI_URL, {
+      method: 'POST', signal: signal,
+      headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: AI_MODEL, max_tokens: 500, system: BOARD_SYSTEM, tools: [BOARD_TOOL], tool_choice: { type: 'tool', name: BOARD_TOOL.name },
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: data } },
+          { type: 'text', text: 'Read the community cards on this table.' }
+        ] }]
+      })
+    });
+  } catch (e) {
+    if (e && e.name === 'AbortError') throw new AiError('abort');
+    throw new AiError('net');
+  }
+  let j = null;
+  try { j = await res.json(); } catch (e) { /* not json */ }
+  if (!res.ok) {
+    const msg = j && j.error && j.error.message ? String(j.error.message).slice(0, 160) : '', st = res.status;
+    throw new AiError(st === 401 ? 'auth' : st === 403 ? 'forbidden' : st === 429 ? 'rate' : (st === 400 && /credit|balance|billing/i.test(msg)) ? 'credit' : st >= 500 ? 'busy' : 'http', msg);
+  }
+  const tu = j && Array.isArray(j.content) ? j.content.find(b => b && b.type === 'tool_use' && b.name === BOARD_TOOL.name) : null;
+  if (!tu || !tu.input || !Array.isArray(tu.input.cards)) throw new AiError('parse');
+  const u = j.usage || {}, usd = ((u.input_tokens || 0) * AI_PRICE_IN + (u.output_tokens || 0) * AI_PRICE_OUT) / 1e6;
+  useAdd(usd);
+  return { cards: tu.input.cards.slice(0, 5), note: String(tu.input.note || '').slice(0, 300), usd: usd };
+}
+/* where the n-th board card goes */
+const BOARD_SLOT = [['flop', 0], ['flop', 1], ['flop', 2], ['turn', 0], ['river', 0]];
+const BOARD_CAP = ['Flop', 'Flop', 'Flop', 'Turn', 'River'];
+/* what to put in the hand: only cards that are readable, certain, not repeated, and not already held by Hero or a villain */
+function boardProposal(res, h) {
+  const n = res.cards.length, taken = new Set();
+  h.hero.cards.forEach(c => { if (isFull(c)) taken.add(c); });
+  h.villains.forEach(v => v.cards.forEach(c => { if (isFull(c)) taken.add(c); }));
+  BOARD_SLOT.forEach((s, i) => { const c = h.board[s[0]][s[1]]; if (i >= n && isFull(c)) taken.add(c); });
+  return res.cards.map((c, i) => {
+    const raw = c && typeof c.code === 'string' ? c.code.trim() : '';
+    const code = raw.length === 2 ? raw[0].toUpperCase() + raw[1].toLowerCase() : '';
+    const valid = /^[2-9TJQKA][shdc]$/.test(code);
+    let use = valid && c.sure !== false ? code : null, why = !valid ? 'illisible' : (c.sure === false ? 'incertaine' : '');
+    if (use && taken.has(use)) { use = null; why = 'déjà utilisée ailleurs dans la main'; }
+    if (use) taken.add(use);
+    return { i: i, cap: BOARD_CAP[i], read: valid ? code : '', use: use, why: why };
+  });
+}
+
+const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
 
 /* ===== betting engine: replays the logged actions to get amounts, pot and SPR ===== */
 function actorsOf(h) {
@@ -1204,6 +1333,57 @@ function renderEdit() {
 }
 
 /* ===== sheet: card picker and text viewer ===== */
+/* the area under a photo: actions, key form, reading in progress, or what Claude read */
+const aiBtn = '<button type="button" class="btn ghost" data-act="phread">Lire le board avec Claude</button>';
+function keyFormHtml(p) {
+  return '<div class="kf"><span class="lbl">Clé API Claude</span>' +
+    '<p class="hint" style="margin:0">Colle ici une clé de ton espace dédié (avec plafond). Elle reste sur cet appareil jusqu\'à « Oublier la clé ». Quand tu lis un board, la photo est envoyée à Claude ; rien d\'autre ne quitte l\'appareil.</p>' +
+    '<input class="inp" id="in-key" type="password" data-in="apikey" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="sk-ant-…" aria-label="Clé API Claude">' +
+    (p.keyErr ? '<p class="rd-e" style="margin:0">' + esc(p.keyErr) + '</p>' : '') +
+    '<div class="row"><button type="button" class="btn" data-act="keysave">Enregistrer et lire</button><button type="button" class="btn ghost sm" data-act="keycancel">Annuler</button></div></div>';
+}
+function readHtml(p) {
+  const r = p.read, prop = boardProposal(r.res, H);
+  const gs = [['Flop', [0, 1, 2]], ['Turn', [3]], ['River', [4]]].filter(g => g[1].some(i => i < prop.length));
+  const cards = prop.length ? gs.map(g => '<div class="rd-g"><div class="cards">' + g[1].filter(i => i < prop.length).map(i => {
+    const x = prop[i];
+    return x.read ? cardFace(x.read, x.use ? '' : 'rd-no') : '<span class="card empty rd-no"><span class="r">?</span></span>';
+  }).join('') + '</div><span class="lbl">' + g[0] + '</span></div>').join('') : '';
+  const cardTxt = x => x.read ? rankLabel(x.read[0]) + GLYPH[x.read[1]] : 'carte';
+  const warns = prop.filter(x => x.why).map(x => '<li>' + esc(x.cap + ' · ' + cardTxt(x) + ' : ' + x.why + ', laissée vide') + '</li>').join('');
+  const n = prop.filter(x => x.use).length;
+  const over = prop.some(x => x.use && isFull(H.board[BOARD_SLOT[x.i][0]][BOARD_SLOT[x.i][1]]) && H.board[BOARD_SLOT[x.i][0]][BOARD_SLOT[x.i][1]] !== x.use);
+  return '<div class="rd"><span class="lbl">Lecture de Claude</span>' +
+    (prop.length ? '<div class="rd-cards">' + cards + '</div>' : '<p class="hint" style="margin:0">Aucune carte du board repérée sur cette photo.</p>') +
+    (r.res.note ? '<p class="hint" style="margin:0">' + esc(r.res.note) + '</p>' : '') +
+    (warns ? '<ul class="rd-w">' + warns + '</ul>' : '') +
+    '<p class="hint" style="margin:0">Compare avec la photo avant d\'appliquer. ' + (over ? 'Remplace des cartes déjà saisies. ' : '') + usdTxt(r.res.usd) + '</p>' +
+    '<button type="button" class="btn" data-act="phapply"' + (n ? '' : ' disabled') + '>' + (p.from === 'queue' ? 'Appliquer et utiliser la photo' : 'Appliquer au board') + '</button>' +
+    '<div class="row"><button type="button" class="btn ghost sm" data-act="phread">Relire</button><button type="button" class="btn ghost sm" data-act="phreadclear">Ignorer</button></div></div>';
+}
+function pvActs(p) {
+  const rd = p.read;
+  if (p.keyForm) return keyFormHtml(p);
+  if (rd && rd.state === 'busy') return '<div class="rd"><p class="hint rd-busy" style="margin:0">Claude lit la photo…</p><button type="button" class="btn ghost sm" data-act="phreadstop">Annuler</button></div>';
+  if (rd && rd.state === 'err') return '<div class="rd"><p class="rd-e" style="margin:0">' + esc(aiErrText(rd.err)) + '</p><div class="row"><button type="button" class="btn sm" data-act="phread">Réessayer</button>' +
+    (rd.err && rd.err.kind === 'auth' ? '<button type="button" class="btn ghost sm" data-act="keyopen">Changer la clé</button>' : '') + '<button type="button" class="btn ghost sm" data-act="phreadclear">Fermer</button></div></div>';
+  if (rd && rd.state === 'done') return readHtml(p);
+  if (p.from === 'queue') return p.ask
+    ? '<p class="hint" style="margin:0">Supprimer cette photo définitivement ?</p><div class="row"><button type="button" class="btn danger sm" data-act="phdel">Oui, supprimer</button><button type="button" class="btn ghost sm" data-act="phno">Non</button></div>'
+    : '<button type="button" class="btn" data-act="phuse">Utiliser pour la main en cours</button>' + aiBtn + '<button type="button" class="btn ghost sm" data-act="phaskdel">Supprimer cette photo</button>';
+  if (p.from === 'panel') return aiBtn + '<button type="button" class="btn ghost" data-act="phdetach">Remettre de côté</button>';
+  return '';
+}
+/* Mains tab: where the key can be forgotten (shown only while a key is kept) */
+function aiRow() {
+  const k = keyGet();
+  if (!k) return '';
+  const u = useGet();
+  return '<p class="hint ai-row" style="margin:0">Lecture du board : clé ' + esc(keyTail(k)) + (u.n ? ' · ' + u.n + ' lecture' + (u.n > 1 ? 's' : '') + ' ' + usdTxt(u.usd) : '') + ' · ' +
+    (ui.keyAsk ? 'Oublier la clé ? <button type="button" class="link bad" data-act="keyforget">Oui</button> <button type="button" class="link" data-act="keyno">Non</button>'
+               : '<button type="button" class="link" data-act="keyask">Oublier la clé</button>') + '</p>';
+}
+
 function renderSheet() {
   const root = $('#sheet-root');
   if (ui.modal) {
@@ -1235,11 +1415,8 @@ function renderSheet() {
     const p = ui.pview, m = photoMeta.find(x => x.id === p.id);
     if (!m) { ui.pview = null; }
     else {
-      const acts = p.from === 'queue'
-        ? (p.ask ? '<p class="hint" style="margin:0">Supprimer cette photo définitivement ?</p><div class="row"><button type="button" class="btn danger sm" data-act="phdel">Oui, supprimer</button><button type="button" class="btn ghost sm" data-act="phno">Non</button></div>'
-                 : '<button type="button" class="btn" data-act="phuse">Utiliser pour la main en cours</button><button type="button" class="btn ghost sm" data-act="phaskdel">Supprimer cette photo</button>')
-        : p.from === 'panel' ? '<button type="button" class="btn ghost" data-act="phdetach">Remettre de côté</button>' : '';
-      root.innerHTML = '<div class="pv" role="dialog" aria-modal="true" aria-label="Photo du board"><div class="pv-b"><span class="hint">Touche la photo pour zoomer</span><button type="button" class="btn ghost sm" data-act="phclose">Fermer</button></div>' +
+      const acts = pvActs(p), tall = !!(p.keyForm || (p.read && p.read.state !== 'idle'));
+      root.innerHTML = '<div class="pv' + (tall ? ' tall' : '') + '" role="dialog" aria-modal="true" aria-label="Photo du board"><div class="pv-b"><span class="hint">Touche la photo pour zoomer</span><button type="button" class="btn ghost sm" data-act="phclose">Fermer</button></div>' +
         '<div class="pv-s"><span data-act="phzoom" class="pv-h">' + photoImg(p.id, 'pv-i', 'Photo du board') + '</span></div>' + (acts ? '<div class="pv-a">' + acts + '</div>' : '') + '</div>';
       return;
     }
@@ -1396,7 +1573,7 @@ function renderList() {
   }).join('')
     : '<div class="empty-state">Aucune main dans ce filtre.</div>';
   el.innerHTML = '<div class="sec plain"><div class="scroll-row">' + filters.map(f => chip(esc(f[1]), { on: ui.filter === f[0], attrs: 'data-act="filter" data-v="' + esc(f[0]) + '"' })).join('') + '</div>' +
-    '<div class="row"><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer</button></div>' + IMPORT_INPUT + '<p class="hint" style="margin:0">Glisse une main vers la gauche pour la supprimer.</p></div>' + body;
+    '<div class="row"><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer</button></div>' + IMPORT_INPUT + '<p class="hint" style="margin:0">Glisse une main vers la gauche pour la supprimer.</p>' + aiRow() + '</div>' + body;
 }
 
 /* ===== review: the summary, then the hands one by one ===== */
@@ -1792,6 +1969,24 @@ function syncChips(act, id, val) {
   document.querySelectorAll(sel).forEach(b => b.classList.toggle('on', +b.dataset.v === val));
 }
 
+/* asks Claude to read the board of the photo shown in the viewer (a result already received is reused unless a new read is asked for) */
+async function startRead(p, fresh) {
+  if (!fresh && ui.readCache[p.id]) { p.read = { state: 'done', res: ui.readCache[p.id] }; renderSheet(); return; }
+  const ctl = new AbortController();
+  p.read = { state: 'busy', ctl: ctl };
+  renderSheet();
+  try {
+    const res = await readBoard(p.id, ctl.signal);
+    ui.readCache[p.id] = res;
+    if (ui.pview === p) { p.read = { state: 'done', res: res }; renderSheet(); }
+  } catch (e) {
+    if (ui.pview !== p) return;
+    if (e && e.kind === 'abort') { p.read = null; renderSheet(); return; }
+    if (e && e.kind === 'nokey') { p.read = null; p.keyForm = true; renderSheet(); return; }
+    p.read = { state: 'err', err: e };
+    renderSheet();
+  }
+}
 /* the pictures kept by these hands (read before they are removed) */
 const photosOf = ids => store.hands.filter(h => ids.indexOf(h.id) >= 0).map(h => h.photo).filter(Boolean);
 function attachPhoto(id) {
@@ -2090,8 +2285,8 @@ const A = {
   },
   /* photos */
   photoadd() { const i = $('#in-photo'); if (i) i.click(); },
-  phview(el) { ui.pview = { id: el.dataset.id, from: el.dataset.from || 'queue', ask: false }; renderSheet(); },
-  phclose() { ui.pview = null; renderSheet(); },
+  phview(el) { const id = el.dataset.id; ui.pview = { id: id, from: el.dataset.from || 'queue', ask: false, read: ui.readCache[id] ? { state: 'done', res: ui.readCache[id] } : null }; renderSheet(); },
+  phclose() { const p = ui.pview; if (p && p.read && p.read.ctl) p.read.ctl.abort(); ui.pview = null; renderSheet(); },
   phzoom(el, e) {
     const s = el.closest('.pv-s'), img = s && s.querySelector('.pv-i');
     if (!s || !img) return;
@@ -2102,6 +2297,42 @@ const A = {
     else { s.scrollLeft = 0; s.scrollTop = 0; }
   },
   phuse() { const p = ui.pview; if (p) attachPhoto(p.id); },
+  /* reading the board with Claude */
+  phread() {
+    const p = ui.pview;
+    if (!p || (p.read && p.read.state === 'busy')) return;
+    if (!keyGet()) { p.keyForm = true; p.keyErr = ''; ui.keyDraft = ''; renderSheet(); return; }
+    startRead(p, true);
+  },
+  phreadstop() { const p = ui.pview; if (p && p.read && p.read.ctl) p.read.ctl.abort(); },
+  phreadclear() { const p = ui.pview; if (!p) return; p.read = null; delete ui.readCache[p.id]; renderSheet(); },
+  keyopen() { const p = ui.pview; if (!p) return; p.keyForm = true; p.keyErr = ''; ui.keyDraft = ''; renderSheet(); },
+  keycancel() { const p = ui.pview; if (!p) return; p.keyForm = false; p.keyErr = ''; ui.keyDraft = ''; renderSheet(); },
+  keysave() {
+    const p = ui.pview;
+    if (!p) return;
+    const k = String(ui.keyDraft || '').trim();
+    ui.keyDraft = '';
+    if (!keyOk(k)) { p.keyErr = 'Ça ne ressemble pas à une clé Claude (elle commence par sk-ant-).'; renderSheet(); return; }
+    if (!keySet(k)) { p.keyErr = 'Impossible de garder la clé sur cet appareil.'; renderSheet(); return; }
+    p.keyForm = false; p.keyErr = '';
+    startRead(p, true);
+  },
+  keyask() { ui.keyAsk = true; renderList(); },
+  keyno() { ui.keyAsk = false; renderList(); },
+  keyforget() { keyForget(); ui.keyAsk = false; ui.readCache = {}; renderList(); toast('Clé oubliée'); },
+  phapply() {
+    const p = ui.pview;
+    if (!p || !p.read || p.read.state !== 'done') return;
+    const prop = boardProposal(p.read.res, H);
+    if (!prop.some(x => x.use)) return;
+    const id = p.id, from = p.from;
+    if (from === 'queue') attachPhoto(id); else { ui.pview = null; }
+    let n = 0;
+    prop.forEach(x => { if (x.use) { H.board[BOARD_SLOT[x.i][0]][BOARD_SLOT[x.i][1]] = x.use; n++; } });
+    ui.tab = 'edit'; rerender(); window.scrollTo(0, 0);
+    toast('Board appliqué : ' + prop.filter(x => x.use).map(x => rankLabel(x.use[0]) + GLYPH[x.use[1]]).join(' '));
+  },
   phdetach() { H.photo = ''; ui.pview = null; rerender(); },
   phaskdel() { if (ui.pview) { ui.pview.ask = true; renderSheet(); } },
   phno() { if (ui.pview) { ui.pview.ask = false; renderSheet(); } },
@@ -2164,6 +2395,7 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => {
   const t = e.target, k = t.dataset && t.dataset.in;
   if (!k) return;
+  if (k === 'apikey') { ui.keyDraft = t.value; return; }   /* the key: held only until saved, never part of the hand */
   if (k === 'fix') { ui.fixDraft = { id: t.dataset.id, text: t.value }; return; }   /* review field: kept until validated or left */
   if (k === 'tourn') { H.tournament = t.value; $('#stat').textContent = t.value; }
   else if (k === 'date') { H.date = t.value || todayStr(); const dt = $('#date-txt'); if (dt) dt.textContent = dateLbl(H.date); }
@@ -2186,6 +2418,7 @@ document.addEventListener('change', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'in-tag') { e.preventDefault(); A.addtag(); }
+  if (e.key === 'Enter' && e.target.id === 'in-key') { e.preventDefault(); A.keysave(); }
 });
 /* review on a computer: keys. B = Bon, M = Mauvais, ← → = previous / next, C = copy. Never while typing in a field. */
 document.addEventListener('keydown', e => {
