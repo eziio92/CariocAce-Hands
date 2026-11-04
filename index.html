@@ -389,6 +389,34 @@ textarea.view{min-height:220px;font:12.5px/1.5 var(--f-mono)}
 .datebox input{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;opacity:0;font-size:16px;cursor:pointer;-webkit-appearance:none;appearance:none}
 .datebox:focus-within{outline:2px solid var(--acc-ink);outline-offset:2px}
 .grid2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+/* photos: a memory aid for the board, kept on this device only */
+.sec-r{display:flex;align-items:center;gap:12px}
+.camb{flex:none;width:38px;height:38px;padding:0;display:grid;place-items:center;border-radius:50%;border:1px solid var(--edge-hi);background:var(--glass-2);color:var(--fg);box-shadow:inset 0 1px 0 var(--edge-hi)}
+.camb svg{width:20px;height:20px}
+.camb:active{background:var(--glass-3)}
+.ph-i,.pq-t,.pk-ph{position:relative;display:block;padding:0;border:1px solid var(--edge-hi);background:var(--field);overflow:hidden;color:var(--fg)}
+.ph-i{width:100%;height:190px;border-radius:20px}
+.ph-i img{width:100%;height:100%;object-fit:cover;display:block}
+.ph-z{position:absolute;right:10px;bottom:10px;padding:6px 12px;border-radius:999px;background:rgba(0,0,0,.6);font:600 12px var(--f-body);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.pq-t{flex:none;width:84px;height:112px;border-radius:16px}
+.pq-t img{width:100%;height:100%;object-fit:cover;display:block}
+.pq-n{position:absolute;left:0;right:0;bottom:0;padding:14px 4px 5px;text-align:center;font:600 11.5px var(--f-body);font-variant-numeric:tabular-nums;background:linear-gradient(transparent,rgba(0,0,0,.72))}
+.pk-ph{flex:none;width:52px;height:68px;border-radius:12px}
+.pk-ph img{width:100%;height:100%;object-fit:cover;display:block}
+img.wait{opacity:0}
+.pv{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;gap:10px;background:#000;
+  padding:calc(10px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
+.pv-b{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pv-s{flex:1;min-height:0;overflow:auto;display:flex;align-items:center;justify-content:center;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.pv-h{display:block;cursor:zoom-in}
+.pv-i{display:block;max-width:100%;max-height:calc(100dvh - 210px);width:auto;height:auto;border-radius:10px}
+.pv-s.zoom{display:block}
+.pv-s.zoom .pv-h{width:260%;cursor:zoom-out}
+.pv-s.zoom .pv-i{width:100%;max-width:none;max-height:none}
+.pv-a{flex:none;display:flex;flex-direction:column;gap:8px;max-width:520px;width:100%;margin:0 auto}
+.pv-a .btn{width:100%}
+.pv-a .row{flex-wrap:nowrap}
+.pv-a .row .btn{flex:1}
 </style>
 <style>body{padding-top:env(safe-area-inset-top,0px)}</style>
 </head>
@@ -414,6 +442,7 @@ textarea.view{min-height:220px;font:12.5px/1.5 var(--f-mono)}
 </main>
 <div class="savebar" id="savebar"><div class="savebar-in" id="savebar-in"></div></div>
 <div id="sheet-root"></div>
+<input type="file" id="in-photo" accept="image/*" multiple hidden>
 <div class="done" id="done" role="status" aria-live="polite" hidden></div>
 <div class="toast" id="toast" hidden></div>
 <script>
@@ -517,7 +546,7 @@ function newHand(ctx) {
     villains: [{ id: 'V1', pos: '', stack: '', cards: [null, null], read: '' }], nextV: 2,
     board: { flop: [null, null, null], turn: [null], river: [null] },
     streets: { preflop: [], flop: [], turn: [], river: [] },
-    result: '', phase: '', tags: [], note: '', verdict: '', reviewedAt: null, comment: ''
+    result: '', phase: '', tags: [], note: '', verdict: '', reviewedAt: null, comment: '', photo: ''
   };
 }
 function normHand(x) {
@@ -540,6 +569,7 @@ function normHand(x) {
   h.tags = x.tags || [];
   if (h.verdict !== 'good' && h.verdict !== 'bad') { h.verdict = ''; h.reviewedAt = null; }
   if (typeof h.comment !== 'string') h.comment = '';
+  if (typeof h.photo !== 'string') h.photo = '';
   if (!TABLES[h.table]) h.table = '9';
   const maxV = h.villains.reduce((m, v) => Math.max(m, parseInt(String(v.id).slice(1), 10) || 0), 0);
   h.nextV = Math.max(h.nextV || 1, maxV + 1);
@@ -548,7 +578,7 @@ function normHand(x) {
 const isPristine = h => !h.hero.pos && !h.hero.stack && h.hero.cards.every(c => !c) &&
   h.villains.every(v => !v.pos && !v.stack && v.cards.every(c => !c) && !v.read) &&
   STREETS.every(s => !h.streets[s].length) && ['flop','turn','river'].every(g => h.board[g].every(c => !c)) &&
-  !h.result && !h.phase && !h.tags.length && !h.note && !h.verdict && !h.comment;
+  !h.result && !h.phase && !h.tags.length && !h.note && !h.verdict && !h.comment && !h.photo;
 
 /* ===== storage: account database when available, otherwise this device ===== */
 const store = { mode: 'init', hands: [], ready: false, slow: false, error: '', col: null, persist: true };
@@ -637,7 +667,7 @@ function groupInfo() {
   return info;
 }
 function nextHandNo(h) {
-  const cand = Object.assign({}, h, { id: '~new', createdAt: new Date().toISOString() });
+  const cand = Object.assign({}, h, { id: '~new', createdAt: photoTime(h) || new Date().toISOString() });
   const g = tournamentGroups(store.hands.concat([cand])).find(x => x.hands.indexOf(cand) >= 0);
   return g ? g.hands.indexOf(cand) + 1 : 1;
 }
@@ -695,13 +725,134 @@ function loadDraft() {
 }
 function clearDraft() { try { localStorage.removeItem(LS_DRAFT); } catch (e) { /* ignore */ } }
 
+/* ===== photos (this device only) =====
+   A snapshot of the board taken at the table, kept only until the hand it belongs to is saved complete.
+   The pictures live in IndexedDB, reduced to JPEG; photoMeta is the in-memory list. A photo that no hand and no
+   open entry points to is "waiting": it sits in the strip at the top of Saisir until it is used or deleted.
+   Photos never go into the .json backup. */
+const PHOTO_EDGE = 2000, PHOTO_Q = 0.82;
+let photoMeta = [], photoDbP = null;
+const photoUrls = {};
+const clockOf = ms => new Date(ms).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+const dayOf = ms => { const d = new Date(ms); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
+const stripPhoto = h => { const c = Object.assign({}, h); delete c.photo; return c; };
+function photoDb() {
+  if (!photoDbP) photoDbP = new Promise((res, rej) => {
+    try {
+      const r = indexedDB.open('carnet-photos', 1);
+      r.onupgradeneeded = () => { r.result.createObjectStore('p', { keyPath: 'id' }); };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error || new Error('idb'));
+      r.onblocked = () => rej(new Error('idb blocked'));
+    } catch (e) { rej(e); }
+  });
+  return photoDbP;
+}
+function photoOp(mode, fn) {
+  return photoDb().then(db => new Promise((res, rej) => {
+    const t = db.transaction('p', mode); let req;
+    try { req = fn(t.objectStore('p')); } catch (e) { rej(e); return; }
+    t.oncomplete = () => res(req ? req.result : undefined);
+    t.onerror = t.onabort = () => rej(t.error || new Error('idb'));
+  }));
+}
+const photoPut = rec => photoOp('readwrite', s => s.put(rec));
+const photoGet = id => photoOp('readonly', s => s.get(id));
+const photoAll = () => photoOp('readonly', s => s.getAll());
+const photoDelRec = id => photoOp('readwrite', s => s.delete(id));
+const photoOk = id => !!id && photoMeta.some(m => m.id === id);
+async function photoInit() {
+  try { photoMeta = (await photoAll()).map(r => ({ id: r.id, t: r.t || 0, ct: r.ct || 0, w: r.w || 0, h: r.h || 0, sig: r.sig || '' })); }
+  catch (e) { photoMeta = []; }
+  if (H && H.photo && !photoOk(H.photo)) {   /* the picture is gone (cleared storage): do not keep pointing at it */
+    H.photo = '';
+    if (editingId) { try { const o = JSON.parse(origJson); o.photo = ''; origJson = JSON.stringify(o); } catch (e) { /* no baseline */ } }
+  }
+  onPhotosChange();
+}
+/* ids pointed to by a saved hand or by the entry being typed */
+function photoRefs() {
+  const s = new Set(store.hands.map(h => h.photo).filter(Boolean));
+  if (H && H.photo) s.add(H.photo);
+  return s;
+}
+const photosWaiting = () => { const r = photoRefs(); return photoMeta.filter(m => !r.has(m.id)).sort((a, b) => a.t - b.t); };
+/* when a hand has a photo with a trustworthy capture time, that is when the hand was played */
+const photoTime = h => { const m = h && h.photo ? photoMeta.find(x => x.id === h.photo) : null; return m && m.ct ? new Date(m.ct).toISOString() : null; };
+function photoUrl(id) {
+  if (!id) return '';
+  const u = photoUrls[id];
+  if (u) return u;
+  if (u === undefined) {
+    photoUrls[id] = '';
+    photoGet(id).then(r => {
+      if (!r || !r.blob) return;
+      photoUrls[id] = URL.createObjectURL(r.blob);
+      document.querySelectorAll('img[data-photo="' + id + '"]').forEach(im => { im.src = photoUrls[id]; im.classList.remove('wait'); });
+    }).catch(() => { /* the picture is gone: the placeholder stays */ });
+  }
+  return '';
+}
+function photoImg(id, cls, alt) {
+  const u = photoUrl(id);
+  return '<img class="' + (cls || '') + (u ? '' : ' wait') + '" data-photo="' + esc(id) + '" alt="' + esc(alt || '') + '"' + (u ? ' src="' + u + '"' : '') + '>';
+}
+function photoRemove(id) {
+  if (!id) return Promise.resolve();
+  photoMeta = photoMeta.filter(m => m.id !== id);
+  if (photoUrls[id]) { try { URL.revokeObjectURL(photoUrls[id]); } catch (e) { /* ignore */ } }
+  delete photoUrls[id];
+  return photoDelRec(id).catch(() => { /* nothing more to do */ });
+}
+async function shrinkPhoto(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image(); img.src = url;
+    await img.decode();   /* the browser applies the camera's rotation itself */
+    const k = Math.min(1, PHOTO_EDGE / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.max(1, Math.round(img.naturalWidth * k)), h = Math.max(1, Math.round(img.naturalHeight * k));
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    c.getContext('2d').drawImage(img, 0, 0, w, h);
+    const blob = await new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('toBlob')), 'image/jpeg', PHOTO_Q));
+    return { blob: blob, w: w, h: h };
+  } finally { URL.revokeObjectURL(url); }
+}
+async function addPhotos(files) {
+  const list = Array.from(files || []).filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|heic|heif|webp)$/i.test(f.name || ''));
+  if (!list.length) { toast('Aucune image reconnue'); return; }
+  try { await photoDb(); } catch (e) { toast('Photos indisponibles sur cet appareil'); return; }
+  list.sort((a, b) => (a.lastModified || 0) - (b.lastModified || 0));   /* playing order; ties keep the picking order */
+  const now = Date.now();
+  let ok = 0, dup = 0, bad = 0;
+  for (let i = 0; i < list.length; i++) {
+    const f = list[i], sig = (f.name || '') + '|' + f.size + '|' + f.lastModified;
+    if (photoMeta.some(m => m.sig === sig)) { dup++; continue; }
+    if (list.length > 1) toast('Photo ' + (i + 1) + ' sur ' + list.length + '…');
+    try {
+      const s = await shrinkPhoto(f);
+      const t = f.lastModified || now;
+      const ct = (t < now - 120000 && t > now - 400 * 86400000) ? t : 0;   /* a capture time only when it is plausible */
+      const rec = { id: 'p' + now.toString(36) + i + Math.random().toString(36).slice(2, 6), blob: s.blob, w: s.w, h: s.h, t: t, ct: ct, sig: sig, added: now };
+      await photoPut(rec);
+      photoMeta.push({ id: rec.id, t: t, ct: ct, w: s.w, h: s.h, sig: sig });
+      ok++;
+    } catch (e) { bad++; }
+  }
+  const bits = [];
+  if (ok) bits.push(ok + ' photo' + (ok > 1 ? 's ajoutées' : ' ajoutée'));
+  if (dup) bits.push(dup + ' déjà présente' + (dup > 1 ? 's' : ''));
+  if (bad) bits.push(bad + ' illisible' + (bad > 1 ? 's' : ''));
+  toast(bits.join(' · '));
+  onPhotosChange();
+}
+
 /* ===== state ===== */
 let H = null;
 let editingId = null;
 /* a computer screen (or a tablet held wide): the review gets its own two-column layout */
 const WIDE_Q = window.matchMedia ? window.matchMedia('(min-width: 1000px)') : null;
 const isWide = () => !!(WIDE_Q && WIDE_Q.matches);
-const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, toastTimer: null };
+const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, toastTimer: null };
 
 /* ===== betting engine: replays the logged actions to get amounts, pot and SPR ===== */
 function actorsOf(h) {
@@ -909,11 +1060,30 @@ function stackRow(kind, id, val) {
     '<div class="scroll-row">' + STACKS.map(s => chip(s, { on: n === s, cls: 'mono', attrs: 'data-act="' + kind + '" data-id="' + id + '" data-v="' + s + '"' })).join('') + '</div></div>';
 }
 
+/* photos: the one tied to this hand, then the ones still waiting to be used */
+function secPhotos() {
+  let out = '';
+  if (photoOk(H.photo)) {
+    out += '<div class="sec ph"><div class="sec-h"><span class="lbl">Photo du board</span><button type="button" class="link" data-act="phdetach">Remettre de côté</button></div>' +
+      '<button type="button" class="ph-i" data-act="phview" data-id="' + esc(H.photo) + '" data-from="panel" aria-label="Agrandir la photo">' + photoImg(H.photo, '', 'Photo du board') + '<span class="ph-z">Agrandir</span></button>' +
+      '<p class="hint" style="margin:0">Elle disparaît dès que la main est enregistrée complète.</p></div>';
+  }
+  const q = photosWaiting();
+  if (q.length) {
+    out += '<div class="sec pq"><div class="sec-h"><span class="lbl">Photos à traiter</span><span class="pot">' + q.length + '</span></div>' +
+      '<div class="scroll-row">' + q.map((m, i) => '<button type="button" class="pq-t" data-act="phview" data-id="' + esc(m.id) + '" data-from="queue" aria-label="Photo ' + (i + 1) + '">' +
+        photoImg(m.id, '', 'Photo ' + (i + 1)) + '<span class="pq-n">' + (m.ct ? clockOf(m.ct) : (i + 1)) + '</span></button>').join('') + '</div>' +
+      (H.photo ? '' : '<p class="hint" style="margin:0">Touche une photo, puis « Utiliser pour la main en cours ».</p>') + '</div>';
+  }
+  return out;
+}
+
 function secContext() {
   const no = editingId ? ((groupInfo()[editingId] || {}).no || H.handNo || '') : nextHandNo(H);
   const names = Array.from(new Set(sortedHands().map(h => h.tournament).filter(Boolean))).slice(0, 12);
   const ante = num(H.ante);
-  return '<div class="sec"><div class="sec-h"><span class="lbl">Tournoi</span><span class="pot">' + (editingId ? 'Modification · ' : '') + 'main n°<b>' + esc(no) + '</b></span></div>' +
+  return '<div class="sec"><div class="sec-h"><span class="lbl">Tournoi</span><span class="sec-r"><span class="pot">' + (editingId ? 'Modification · ' : '') + 'main n°<b>' + esc(no) + '</b></span>' +
+    '<button type="button" class="camb" data-act="photoadd" aria-label="Ajouter des photos du board" title="Ajouter des photos du board"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l1.1-1.6A1.5 1.5 0 0 1 10 3.8h4a1.5 1.5 0 0 1 1.2.6L16.3 6h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.3"/></svg></button></span></div>' +
     '<div class="grid2"><input class="inp" id="in-tourn" list="dl-tourn" placeholder="Nom du tournoi" value="' + esc(H.tournament) + '" data-in="tourn" autocomplete="off" aria-label="Nom du tournoi">' +
     '<div class="datebox"><span class="dt" id="date-txt">' + esc(dateLbl(H.date)) + '</span>' +
       '<svg class="dt-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>' +
@@ -1030,7 +1200,7 @@ function secResult() {
 
 function renderEdit() {
   const sim = simulate(H);
-  $('#view-edit').innerHTML = (editingId ? cmtShow(H) : '') + secContext() + secHero() + secVillains() + secStreets(sim) + secResult();
+  $('#view-edit').innerHTML = (editingId ? cmtShow(H) : '') + secPhotos() + secContext() + secHero() + secVillains() + secStreets(sim) + secResult();
 }
 
 /* ===== sheet: card picker and text viewer ===== */
@@ -1053,12 +1223,26 @@ function renderSheet() {
       '<div class="sheet-h"><span class="lbl">' + (ed ? 'Modifications non enregistrées' : 'Une saisie est en cours') + '</span></div>' +
       '<p class="hint" style="margin:0;font-size:14px">' + (ed ? 'Tu as modifié la main n°' + esc(no) + ' sans l\'enregistrer.' : 'Cette main n\'est pas encore enregistrée.') + ' Qu\'en fait-on avant d\'ouvrir l\'autre ?</p>' +
       '<div class="ask-sum">' + cards + '<span><b>' + esc(H.tournament || 'Tournoi') + '</b> · main n°' + esc(no) + (bits.length ? '<br><span class="hint">' + esc(bits.join(' · ')) + '</span>' : '') + '</span></div>' +
-      '<div class="ask-b"><button type="button" class="btn" data-act="askopen-save"' + (iss.length ? ' disabled' : '') + '>' + (ed ? 'Enregistrer les modifications, puis ouvrir' : 'Enregistrer cette main, puis ouvrir') + '</button>' +
-      (iss.length ? '<p class="hint" style="margin:0">Pas encore enregistrable, il manque : ' + esc(iss.join(', ')) + '.</p>' : '') +
+      '<div class="ask-b"><button type="button" class="btn" data-act="askopen-save">' + (ed ? 'Enregistrer les modifications, puis ouvrir' : 'Enregistrer cette main, puis ouvrir') + '</button>' +
+      (iss.length ? '<p class="hint" style="margin:0">Elle sera enregistrée comme « À compléter » : il manque ' + esc(iss.join(', ')) + '.</p>' : '') +
       '<button type="button" class="btn danger" data-act="askopen-drop">' + (ed ? 'Abandonner les modifications, puis ouvrir' : 'Vider la saisie, puis ouvrir') + '</button>' +
       '<p class="hint" style="margin:0">' + (ed ? 'Les modifications seront perdues.' : 'Cette saisie sera perdue.') + '</p>' +
       '<button type="button" class="btn ghost" data-act="askopen-cancel">Annuler, rester ici</button></div></div></div>';
     return;
+  }
+  if (ui.pview) {
+    /* a photo, full screen: touch it to zoom, then act on it */
+    const p = ui.pview, m = photoMeta.find(x => x.id === p.id);
+    if (!m) { ui.pview = null; }
+    else {
+      const acts = p.from === 'queue'
+        ? (p.ask ? '<p class="hint" style="margin:0">Supprimer cette photo définitivement ?</p><div class="row"><button type="button" class="btn danger sm" data-act="phdel">Oui, supprimer</button><button type="button" class="btn ghost sm" data-act="phno">Non</button></div>'
+                 : '<button type="button" class="btn" data-act="phuse">Utiliser pour la main en cours</button><button type="button" class="btn ghost sm" data-act="phaskdel">Supprimer cette photo</button>')
+        : p.from === 'panel' ? '<button type="button" class="btn ghost" data-act="phdetach">Remettre de côté</button>' : '';
+      root.innerHTML = '<div class="pv" role="dialog" aria-modal="true" aria-label="Photo du board"><div class="pv-b"><span class="hint">Touche la photo pour zoomer</span><button type="button" class="btn ghost sm" data-act="phclose">Fermer</button></div>' +
+        '<div class="pv-s"><span data-act="phzoom" class="pv-h">' + photoImg(p.id, 'pv-i', 'Photo du board') + '</span></div>' + (acts ? '<div class="pv-a">' + acts + '</div>' : '') + '</div>';
+      return;
+    }
   }
   if (!ui.picker) { root.innerHTML = ''; return; }
   const g = ui.picker.group, i = ui.picker.i, arr = cardsOf(H, g);
@@ -1073,7 +1257,8 @@ function renderSheet() {
   const suits = SUITS.map(s => chip(GLYPH[s], { on: cs === s, dis: cr !== '?' && used.has(cr + s), cls: 's-' + s, attrs: 'data-act="suit" data-v="' + s + '" aria-label="' + SUIT_FR[s] + '"' })).join('');
   root.innerHTML = '<div class="scrim" data-act="closesheet"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="Choisir une carte"><div class="sheet-in">' +
     '<div class="sheet-h"><div class="row" style="flex-wrap:nowrap;gap:14px">' + preview + '<div><div class="lbl">' + esc(who) + ' · carte ' + (i + 1) + '/' + arr.length + '</div><div class="hint">' + state + '</div></div></div>' +
-    '<button type="button" class="btn sm" data-act="closesheet">OK</button></div>' +
+    '<div class="row" style="flex-wrap:nowrap;gap:10px">' + (photoOk(H.photo) ? '<button type="button" class="pk-ph" data-act="phview" data-id="' + esc(H.photo) + '" data-from="sheet" aria-label="Voir la photo du board">' + photoImg(H.photo, '', 'Photo du board') + '</button>' : '') +
+    '<button type="button" class="btn sm" data-act="closesheet">OK</button></div></div>' +
     '<div class="ranks">' + ranks + '</div><div class="suits">' + suits + '</div></div></div>';
 }
 
@@ -1164,7 +1349,7 @@ function handRow(h, no) {
   const reached = STREETS.filter(s => sim.streets[s].rows.length || (s !== 'preflop' && n.board[s].some(Boolean))).map(s => STREET_LABEL[s].toLowerCase());
   const tags = (n.result ? '<span class="tag res-' + n.result + '">' + RESULT_FR[n.result] + '</span>' : '') +
     (n.verdict ? '<span class="tag ver-' + n.verdict + '">' + (n.verdict === 'good' ? '✓ ' : '✗ ') + VERDICT_FR[n.verdict] + '</span>' : '') +
-    n.tags.map(t => '<span class="tag">' + esc(t) + '</span>').join('') + (iss.length ? '<span class="tag warn">À compléter : ' + esc(iss.join(', ')) + '</span>' : '');
+    (photoOk(n.photo) ? '<span class="tag">Photo</span>' : '') + n.tags.map(t => '<span class="tag">' + esc(t) + '</span>').join('') + (iss.length ? '<span class="tag warn">À compléter : ' + esc(iss.join(', ')) + '</span>' : '');
   return '<div class="swipe"><button type="button" class="swipe-del" data-act="delrow" data-id="' + esc(n.id) + '" aria-label="Supprimer la main">Supprimer</button>' +
     '<button type="button" class="hand" data-act="open" data-id="' + esc(n.id) + '"><span class="hand-cards">' + cards + '</span><span class="hand-main">' +
     '<span class="hand-sum"><span class="no">n°' + esc(no || n.handNo || '–') + '</span>' + esc(sum) + '</span>' +
@@ -1386,6 +1571,13 @@ function renderAll() {
   renderSave(); renderSheet();
 }
 let adopted = false, draftLoaded = false;
+/* photos finished loading or changed: redraw what shows them, unless a field is being typed in */
+function onPhotosChange() {
+  const a = document.activeElement, typing = a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && $('#view-edit').contains(a);
+  if (ui.tab === 'edit' && !typing) renderEdit();
+  else if (ui.tab === 'list') renderList();
+  renderSheet();
+}
 function onStoreChange() {
   if (store.ready && !adopted) {
     adopted = true;
@@ -1443,12 +1635,12 @@ async function importFile(file) {
   for (const x of ok) {
     const cur = store.hands.find(y => y.id === x.id);
     if (cur && cur.updatedAt && String(x.updatedAt || '') <= String(cur.updatedAt)) { same++; continue; }
-    try { await storeSave(normHand(clone(x))); n++; } catch (e) { /* skip this one */ }
+    try { const nh = normHand(clone(x)); nh.photo = cur && cur.photo ? cur.photo : ''; await storeSave(nh); n++; } catch (e) { /* skip this one */ }
   }
   toast(!n && same ? 'Rien à importer : tout est déjà à jour' : n + ' main' + (n > 1 ? 's' : '') + ' importée' + (n > 1 ? 's' : '') + (same ? ' · ' + same + ' déjà à jour' : ''));
 }
 async function downloadJson() {
-  const data = JSON.stringify({ app: 'cariocace-hands', exportedAt: new Date().toISOString(), hands: sortedHands() }, null, 2);
+  const data = JSON.stringify({ app: 'cariocace-hands', exportedAt: new Date().toISOString(), hands: sortedHands().map(stripPhoto) }, null, 2);
   let dl = null;
   try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dl = null; }
   if (!dl && isWide()) {   /* a computer: a plain download, not a share sheet */
@@ -1600,6 +1792,18 @@ function syncChips(act, id, val) {
   document.querySelectorAll(sel).forEach(b => b.classList.toggle('on', +b.dataset.v === val));
 }
 
+/* the pictures kept by these hands (read before they are removed) */
+const photosOf = ids => store.hands.filter(h => ids.indexOf(h.id) >= 0).map(h => h.photo).filter(Boolean);
+function attachPhoto(id) {
+  const m = photoMeta.find(x => x.id === id);
+  if (!m) return;
+  const fresh = !editingId && isPristine(H);
+  H.photo = id;
+  if (fresh && m.ct) H.date = dayOf(m.ct);   /* a new entry takes the day the photo was taken */
+  ui.pview = null; ui.tab = 'edit';
+  rerender(); window.scrollTo(0, 0);
+}
+
 async function saveHand() {
   if (ui.saving) return;
   const h = clone(H);
@@ -1610,18 +1814,23 @@ async function saveHand() {
   h.ante = Number.isFinite(num(h.ante)) ? num(h.ante) : 0;
   h.note = (h.note || '').trim();
   const now = new Date().toISOString();
-  if (!editingId) { h.id = 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); h.createdAt = now; h.handNo = nextHandNo(h); }
+  if (!editingId) { h.id = 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); h.createdAt = photoTime(h) || now; h.handNo = nextHandNo(h); }
   h.updatedAt = now;
+  /* a complete hand no longer needs its picture; an unfinished one keeps it until it is completed */
+  const spent = h.photo && issues(h).length === 0 ? h.photo : '';
+  if (spent) h.photo = '';
   ui.saving = true;
   try { await storeSave(h); }
   catch (e) { ui.saving = false; toast('Enregistrement impossible' + (e && e.code ? ' (' + e.code + ')' : '')); return; }
   ui.saving = false;
+  if (spent) photoRemove(spent);
   const was = !!editingId;
   resetEditor(was ? freshCtx() : { tournament: h.tournament, date: h.date, table: h.table, ante: h.ante });
   if (was) ui.tab = 'list';
   renderAll();
   const gi = groupInfo()[h.id];
-  celebrate('Main n°' + ((gi && gi.no) || h.handNo || '') + (was ? ' mise à jour' : ' enregistrée'), was ? '' : 'Prêt pour la main suivante');
+  const nph = photosWaiting().length;
+  celebrate('Main n°' + ((gi && gi.no) || h.handNo || '') + (was ? ' mise à jour' : ' enregistrée'), was ? '' : (nph ? nph + ' photo' + (nph > 1 ? 's' : '') + ' à traiter' : 'Prêt pour la main suivante'));
   const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   window.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' });
   if (!was) {
@@ -1842,8 +2051,9 @@ const A = {
   },
   confirm(el) { ui.confirm = el.dataset.v; renderEdit(); },
   'do-del'() {
-    const id = editingId;
+    const id = editingId, ph = photosOf([id]);
     storeRemove(id).then(() => {
+      ph.forEach(photoRemove);
       toast('Main supprimée');
       resetEditor(freshCtx()); ui.tab = 'list'; renderAll(); window.scrollTo(0, 0);
     }).catch(e => { toast('Suppression impossible' + (e && e.code ? ' (' + e.code + ')' : '')); });
@@ -1878,6 +2088,30 @@ const A = {
     if (hasUnsaved()) { ui.askOpen = { id: h.id }; renderSheet(); return; }   /* stay where we are and ask, instead of throwing the person into the form */
     openHand(h.id);
   },
+  /* photos */
+  photoadd() { const i = $('#in-photo'); if (i) i.click(); },
+  phview(el) { ui.pview = { id: el.dataset.id, from: el.dataset.from || 'queue', ask: false }; renderSheet(); },
+  phclose() { ui.pview = null; renderSheet(); },
+  phzoom(el, e) {
+    const s = el.closest('.pv-s'), img = s && s.querySelector('.pv-i');
+    if (!s || !img) return;
+    const r = img.getBoundingClientRect(), cl = v => Math.min(1, Math.max(0, v));
+    const fx = e && r.width ? cl((e.clientX - r.left) / r.width) : .5, fy = e && r.height ? cl((e.clientY - r.top) / r.height) : .5;
+    s.classList.toggle('zoom');
+    if (s.classList.contains('zoom')) { s.scrollLeft = fx * img.offsetWidth - s.clientWidth / 2; s.scrollTop = fy * img.offsetHeight - s.clientHeight / 2; }
+    else { s.scrollLeft = 0; s.scrollTop = 0; }
+  },
+  phuse() { const p = ui.pview; if (p) attachPhoto(p.id); },
+  phdetach() { H.photo = ''; ui.pview = null; rerender(); },
+  phaskdel() { if (ui.pview) { ui.pview.ask = true; renderSheet(); } },
+  phno() { if (ui.pview) { ui.pview.ask = false; renderSheet(); } },
+  phdel() {
+    const p = ui.pview;
+    if (!p) return;
+    ui.pview = null;
+    if (H.photo === p.id) H.photo = '';
+    photoRemove(p.id); toast('Photo supprimée'); rerender();
+  },
   'askopen-cancel'() { ui.askOpen = null; renderSheet(); },
   'askopen-save'() {
     const a = ui.askOpen; if (!a) return;
@@ -1893,8 +2127,9 @@ const A = {
     const g = findGroup(el.dataset.id);
     ui.delGroup = null;
     if (!g) { renderList(); return; }
-    const ids = g.hands.map(h => h.id);
+    const ids = g.hands.map(h => h.id), ph = photosOf(ids);
     storeRemoveMany(ids).then(() => {
+      ph.forEach(photoRemove);
       if (editingId && ids.indexOf(editingId) >= 0) resetEditor(freshCtx());
       renderAll();
       toast(ids.length + (ids.length > 1 ? ' mains supprimées' : ' main supprimée'));
@@ -1903,8 +2138,9 @@ const A = {
   exportjson() { downloadJson(); },
   importjson() { const i = $('#in-import'); if (i) i.click(); },
   delrow(el) {
-    const id = el.dataset.id;
+    const id = el.dataset.id, ph = photosOf([id]);
     storeRemove(id).then(() => {
+      ph.forEach(photoRemove);
       if (editingId === id) resetEditor(freshCtx());
       toast('Main supprimée');
     }).catch(e => { toast('Suppression impossible' + (e && e.code ? ' (' + e.code + ')' : '')); });
@@ -1917,7 +2153,10 @@ document.addEventListener('click', e => {
   const f = A[el.dataset.act];
   if (f) f(el, e);
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.askOpen) A['askopen-cancel'](); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (ui.pview) A.phclose(); else if (ui.askOpen) A['askopen-cancel']();
+});
 document.addEventListener('click', e => {
   const t = e.target;
   if (t && t.id === 'in-date' && typeof t.showPicker === 'function' && window.matchMedia('(hover:hover)').matches) { try { t.showPicker(); } catch (err) { /* the browser refuses: it still opens by its own icon */ } }
@@ -1939,6 +2178,7 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', e => {
   const t = e.target;
+  if (t && t.id === 'in-photo') { const fs = Array.from(t.files || []); t.value = ''; if (fs.length) addPhotos(fs); return; }
   if (!t || t.id !== 'in-import') return;
   const f = t.files && t.files[0];
   t.value = '';
@@ -1954,7 +2194,7 @@ document.addEventListener('keydown', e => {
     if (((e.key === 'Enter' && !e.shiftKey) || e.key === 'Escape') && !e.isComposing) { e.preventDefault(); (isWide() ? A.pcfixdone : A.rvfixdone)(); }
     return;
   }
-  if (ui.tab !== 'review' || !isWide() || ui.modal || ui.askOpen || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (ui.tab !== 'review' || !isWide() || ui.modal || ui.askOpen || ui.pview || e.ctrlKey || e.metaKey || e.altKey) return;
   const t = e.target;
   if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key, end = ui.pc.end;
@@ -1981,6 +2221,7 @@ if (isWide()) ui.tab = 'review';   /* a computer is for reviewing */
 if (WIDE_Q) { const onWide = () => renderAll(); if (WIDE_Q.addEventListener) WIDE_Q.addEventListener('change', onWide); else if (WIDE_Q.addListener) WIDE_Q.addListener(onWide); }
 renderAll();
 initStore();
+photoInit();
 
 })();
 </script>
