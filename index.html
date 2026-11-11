@@ -1154,11 +1154,14 @@ function toAct(sim, st) {
 /* ===== keeping the log coherent when an action is deleted =====
    Deleting an action in the middle leaves the ones after it describing a hand that can no longer happen (a "call" with nothing to call,
    the same player speaking twice, a turn after a flop that is not finished). These helpers find the first action that no longer fits
-   and cut the log there. They apply the same rules as the action buttons: only someone who may still speak; check only when nothing
-   is owed; call or fold only when something is owed; bet only when nobody has bet; raise only after a bet. */
+   and cut the log there. They apply the same rules as the action buttons: only someone who may still speak, and only in turn (postflop
+   the big blind speaks before the button, so a button check cannot stay at the top once the big blind's action is gone); check only
+   when nothing is owed; call or fold only when something is owed; bet only when nobody has bet; raise only after a bet. */
 function legalNext(h, st, e) {
-  const sim = simulate(h), S = sim.streets[st];
-  if (!sim.byId[e.a] || !toAct(sim, st).some(x => x.id === e.a)) return false;
+  const sim = simulate(h), S = sim.streets[st], alive = toAct(sim, st);
+  if (!sim.byId[e.a] || !alive.some(x => x.id === e.a)) return false;
+  /* speaking order: only checked when every seat at the table is known, otherwise the order is not reliable */
+  if (sim.actors.every(a => orderIndex(h, st, a.pos) < 99) && defaultActor(h, sim, st, alive) !== e.a) return false;
   const owe = S.bet - S.cur[e.a] > 1e-9;
   if (e.t === 'check') return !owe;
   if (e.t === 'call' || e.t === 'fold') return owe;
