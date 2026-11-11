@@ -157,6 +157,9 @@ ol.log li:first-child{border-top:0}
 .what{flex:1;min-width:0;font:500 14px var(--f-body);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .after{font:500 11.5px var(--f-body);font-variant-numeric:tabular-nums;color:var(--fg-2);white-space:nowrap}
 .x{width:40px;height:40px;border:0;background:transparent;color:var(--fg-3);font-size:22px;line-height:1;flex:none}
+.x.armed{width:auto;padding:0 12px;border-radius:999px;font:700 12px var(--f-body);color:var(--bad);border:1px solid var(--bad);background:rgba(242,139,130,.12)}
+ol.log li.gone .who,ol.log li.gone .what,ol.log li.gone .after{opacity:.38;text-decoration:line-through}
+.delwarn{margin:0}
 .builder{display:flex;flex-direction:column;gap:12px;padding-top:2px}
 .vill{display:flex;flex-direction:column;gap:14px;padding:16px 14px;border:1px solid var(--edge);border-radius:22px;background:var(--glass-2);box-shadow:inset 0 1px 0 var(--edge-hi)}
 
@@ -995,7 +998,7 @@ function boardProposal(res, h) {
   });
 }
 
-const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
+const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, delAsk: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
 
 /* ===== betting engine: replays the logged actions to get amounts, pot and SPR ===== */
 function actorsOf(h) {
@@ -1146,6 +1149,53 @@ function toAct(sim, st) {
   let acted = {};
   S.rows.forEach(r => { if (r.raised) acted = {}; acted[r.id] = true; });
   return sim.actors.filter(a => !S.folded[a.id] && !S.allin[a.id] && !(acted[a.id] && S.cur[a.id] >= S.bet - 1e-9));
+}
+
+/* ===== keeping the log coherent when an action is deleted =====
+   Deleting an action in the middle leaves the ones after it describing a hand that can no longer happen (a "call" with nothing to call,
+   the same player speaking twice, a turn after a flop that is not finished). These helpers find the first action that no longer fits
+   and cut the log there. They apply the same rules as the action buttons: only someone who may still speak; check only when nothing
+   is owed; call or fold only when something is owed; bet only when nobody has bet; raise only after a bet. */
+function legalNext(h, st, e) {
+  const sim = simulate(h), S = sim.streets[st];
+  if (!sim.byId[e.a] || !toAct(sim, st).some(x => x.id === e.a)) return false;
+  const owe = S.bet - S.cur[e.a] > 1e-9;
+  if (e.t === 'check') return !owe;
+  if (e.t === 'call' || e.t === 'fold') return owe;
+  if (e.t === 'bet') return st === 'preflop' || S.bet === 0;
+  if (e.t === 'raise') return S.bet > 0;
+  return true;
+}
+function statesOf(h) {
+  const sim = simulate(h), o = {};
+  STREETS.forEach(s => { o[s] = streetState(sim, s); });
+  return o;
+}
+/* h = the hand after the change, from = first street the change can touch, was = statesOf(hand before the change).
+   Returns how many actions were removed. A street that was finished and no longer is cannot be followed by later streets. */
+function tidy(h, from, was) {
+  let removed = 0, cascade = false;
+  const f = STREETS.indexOf(from);
+  STREETS.forEach((st, si) => {
+    const list = h.streets[st];
+    if (cascade) { removed += list.length; h.streets[st] = []; return; }
+    if (si < f) return;
+    for (let i = 0; i < list.length; i++) {
+      const probe = Object.assign({}, h, { streets: Object.assign({}, h.streets, { [st]: list.slice(0, i) }) });
+      if (!legalNext(probe, st, list[i])) { removed += list.length - i; h.streets[st] = list.slice(0, i); break; }
+    }
+    if (was && was[st] === 'closed' && streetState(simulate(h), st) !== 'closed') cascade = true;
+  });
+  return removed;
+}
+/* what deleting action i of street st would do: the cleaned hand and how many other actions go with it */
+function delPlan(h, st, i) {
+  const c = clone(h), was = statesOf(h);
+  c.streets[st].splice(i, 1);
+  const n0 = STREETS.reduce((s, k) => s + c.streets[k].length, 0);
+  tidy(c, st, was);
+  const n1 = STREETS.reduce((s, k) => s + c.streets[k].length, 0);
+  return { h: c, extra: n0 - n1, keep: c.streets[st].length };
 }
 
 /* ===== completeness ===== */
@@ -1327,12 +1377,20 @@ function secStreets(sim) {
   const hud = '<div class="hud"><div><span class="k">Pot · bb</span><span class="v">' + fmt(S.potNow) + '</span>' + (S.rows.length ? '<span class="sub">départ ' + fmt(S.potStart) + '</span>' : '') + '</div>' +
     '<div><span class="k">SPR</span><span class="v">' + (Number.isFinite(S.spr) ? fmt(Math.round(S.spr * 10) / 10) : '–') + '</span></div>' +
     '<div><span class="k">' + (st === 'preflop' ? 'Type' : 'Actifs') + '</span><span class="v sm">' + esc(third) + '</span></div></div>';
+  /* a pending delete (first tap) that would also remove other actions: those are greyed out until the second tap or Annuler */
+  const ask = (ui.delAsk || '').split(':');
+  const plan = ask[0] === st && +ask[2] === H.streets[st].length ? delPlan(H, st, +ask[1]) : null;
   const log = S.rows.length ? '<ol class="log">' + S.rows.map(r => {
     const idx = H.streets[st].indexOf(r.e);
-    return '<li><span class="who' + (r.id === 'H' ? ' hero' : '') + '">' + esc(labelOf(H, r.id)) + '</span><span class="what">' + esc(rowText(r)) + '</span>' +
-      '<span class="after">pot ' + fmt(r.potAfter) + '</span><button type="button" class="x" data-act="delentry" data-st="' + st + '" data-i="' + idx + '" aria-label="Supprimer cette action">×</button></li>';
+    const armed = plan && idx === +ask[1], gone = plan && idx > +ask[1] && idx > plan.keep;
+    return '<li' + (gone ? ' class="gone"' : '') + '><span class="who' + (r.id === 'H' ? ' hero' : '') + '">' + esc(labelOf(H, r.id)) + '</span><span class="what">' + esc(rowText(r)) + '</span>' +
+      '<span class="after">pot ' + fmt(r.potAfter) + '</span><button type="button" class="x' + (armed ? ' armed' : '') + '" data-act="delentry" data-st="' + st + '" data-i="' + idx + '" aria-label="' +
+      (armed ? 'Confirmer la suppression' : 'Supprimer cette action') + '">' + (armed ? 'Supprimer' : '×') + '</button></li>';
   }).join('') + '</ol>' : '';
-  return '<div class="sec" id="sec-action"><div class="sec-h"><span class="lbl">Action</span></div><div class="seg">' + tabs + '</div>' + board + hud + log +
+  const warn = plan ? '<p class="hint delwarn"><b>' + (plan.extra === 1 ? 'Une autre action ne tiendrait plus' : plan.extra + ' autres actions ne tiendraient plus') + '.</b> ' +
+    'Les actions qui suivent ne seraient plus possibles sans celle-ci : elles partiraient avec elle' + (H.streets[st].length - 1 - plan.keep < plan.extra ? ' (y compris sur les tours suivants)' : '') + '. ' +
+    'Touche « Supprimer » pour confirmer.</p><div class="row"><button type="button" class="btn ghost sm" data-act="delcancel">Annuler</button></div>' : '';
+  return '<div class="sec" id="sec-action"><div class="sec-h"><span class="lbl">Action</span></div><div class="seg">' + tabs + '</div>' + board + hud + log + warn +
     '<div class="builder">' + builder(sim, st) + '</div></div>';
 }
 
@@ -1873,8 +1931,10 @@ let origJson = '';
 function rerender() { renderEdit(); renderSave(); renderSheet(); renderTabs(); saveDraftSoon(); }
 
 function removeVillain(id) {
+  const was = statesOf(H);
   H.villains = H.villains.filter(v => v.id !== id);
   STREETS.forEach(s => { H.streets[s] = H.streets[s].filter(e => e.a !== id); });
+  tidy(H, 'preflop', was);
   if (ui.actor === id) ui.actor = null;
   if (ui.picker && ui.picker.group === id) ui.picker = null;
 }
@@ -2167,7 +2227,15 @@ const A = {
     } else sz = { k: el.dataset.k, v: +el.dataset.v };
     pushAction(ui.pending, sz);
   },
-  delentry(el) { H.streets[el.dataset.st].splice(+el.dataset.i, 1); ui.actor = null; rerender(); },
+  delentry(el) {
+    /* an action in the middle cannot just vanish: the ones after it may no longer make sense. Those go too, after a second tap. */
+    const st = el.dataset.st, i = +el.dataset.i, plan = delPlan(H, st, i), key = st + ':' + i + ':' + H.streets[st].length;
+    if (plan.extra > 0 && ui.delAsk !== key) { ui.delAsk = key; renderEdit(); return; }
+    ui.delAsk = null; ui.actor = null; ui.pending = null;
+    H.streets = plan.h.streets;
+    rerender();
+  },
+  delcancel() { ui.delAsk = null; renderEdit(); },
   result(el) { H.result = H.result === el.dataset.v ? '' : el.dataset.v; rerender(); },
   phase(el) { H.phase = H.phase === el.dataset.v ? '' : el.dataset.v; rerender(); },
   tag(el) { const t = el.dataset.v, i = H.tags.indexOf(t); if (i >= 0) H.tags.splice(i, 1); else H.tags.push(t); rerender(); },
@@ -2417,6 +2485,7 @@ document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el || el.disabled) return;
   const f = A[el.dataset.act];
+  if (ui.delAsk && el.dataset.act !== 'delentry' && el.dataset.act !== 'delcancel') ui.delAsk = null;
   if (f) f(el, e);
 });
 document.addEventListener('keydown', e => {
