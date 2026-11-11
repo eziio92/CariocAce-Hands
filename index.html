@@ -1111,9 +1111,9 @@ function orderIndex(h, st, pos) {
   const i = seq.indexOf(pos);
   return i < 0 ? 99 : i;
 }
-function defaultActor(h, sim, st) {
+function defaultActor(h, sim, st, only) {
   const S = sim.streets[st];
-  const alive = sim.actors.filter(a => !S.folded[a.id] && !S.allin[a.id])
+  const alive = (only || sim.actors.filter(a => !S.folded[a.id] && !S.allin[a.id])).slice()
     .sort((x, y) => orderIndex(h, st, x.pos) - orderIndex(h, st, y.pos));
   if (!alive.length) return null;
   if (!S.rows.length) return alive[0].id;
@@ -1136,6 +1136,16 @@ function streetState(sim, st) {
   let acted = {};
   S.rows.forEach(r => { if (r.raised) acted = {}; acted[r.id] = true; });
   return able.every(a => acted[a.id] && !owes(a)) ? 'closed' : 'open';
+}
+
+/* Who may still act in this betting round: everyone still holding chips who has not acted since the last raise, or who still owes chips.
+   Nobody once the round is finished ('closed' or 'over'): a hand cannot go on after check-check, or after a bet that was called. */
+function toAct(sim, st) {
+  if (streetState(sim, st) !== 'open') return [];
+  const S = sim.streets[st];
+  let acted = {};
+  S.rows.forEach(r => { if (r.raised) acted = {}; acted[r.id] = true; });
+  return sim.actors.filter(a => !S.folded[a.id] && !S.allin[a.id] && !(acted[a.id] && S.cur[a.id] >= S.bet - 1e-9));
 }
 
 /* ===== completeness ===== */
@@ -1264,12 +1274,20 @@ function secVillains() {
     '<div class="row"><button type="button" class="btn ghost sm" data-act="addv"' + (full ? ' disabled' : '') + '>+ Adversaire</button></div></div>';
 }
 
+/* Betting round finished: no more actions to add. Offer the next street, or point at the result. */
+function closedHint(sim, st) {
+  const state = streetState(sim, st), i = STREETS.indexOf(st), nx = STREETS[i + 1];
+  const why = state === 'over' ? 'Il ne reste qu\'un joueur.' : 'Tout le monde a parlé.';
+  const next = state === 'over' || !nx ? '<p class="hint" style="margin:0">' + (state === 'over' ? 'La main est terminée : ' : '') + 'renseigne le résultat plus bas.</p>'
+    : '<div class="row"><button type="button" class="btn ghost sm" data-act="street" data-v="' + nx + '">Passer à la ' + STREET_LABEL[nx].toLowerCase() + '</button></div>';
+  return '<p class="hint" style="margin:0 0 8px"><b>Tour de mise terminé.</b> ' + why + ' Pour corriger, supprime une action avec ×.</p>' + next;
+}
 function builder(sim, st) {
   const S = sim.streets[st];
-  const alive = sim.actors.filter(a => !S.folded[a.id] && !S.allin[a.id]);
+  const alive = toAct(sim, st);
   let aid = ui.actor;
-  if (!alive.some(a => a.id === aid)) aid = defaultActor(H, sim, st);
-  if (!aid) return '<p class="hint" style="margin:0">Plus personne ne peut agir dans cette street.</p>';
+  if (!alive.some(a => a.id === aid)) aid = defaultActor(H, sim, st, alive);
+  if (!aid) return closedHint(sim, st);
   const a = sim.byId[aid];
   const toCall = Math.max(0, S.bet - S.cur[aid]);
   const left = Number.isFinite(a.stack) ? a.stack - S.before[aid] - S.cur[aid] : NaN;
@@ -1861,10 +1879,9 @@ function removeVillain(id) {
   if (ui.picker && ui.picker.group === id) ui.picker = null;
 }
 function currentActor() {
-  const sim = simulate(H), S = sim.streets[ui.street];
-  const alive = sim.actors.filter(a => !S.folded[a.id] && !S.allin[a.id]);
+  const sim = simulate(H), alive = toAct(sim, ui.street);
   if (alive.some(a => a.id === ui.actor)) return ui.actor;
-  return defaultActor(H, sim, ui.street);
+  return defaultActor(H, sim, ui.street, alive);
 }
 function scrollToEl(sel) {
   const el = $(sel);
