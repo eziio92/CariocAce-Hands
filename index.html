@@ -500,6 +500,7 @@ img.wait{opacity:0}
 .kvs b small{margin-left:4px;font:500 11px var(--f-body);letter-spacing:0;color:var(--fg-2)}
 .kvs i{font:500 11.5px/1.3 var(--f-body);font-style:normal;color:var(--fg-3);overflow-wrap:anywhere}
 .kvs .wide{grid-column:1/-1}
+.kvs .neg .k{min-height:24px}
 .cv{position:relative;height:176px;border-radius:20px;background:var(--field);border:1px solid var(--edge);overflow:hidden;touch-action:pan-y;cursor:crosshair}
 .cv-svg{position:absolute;inset:0;width:100%;height:100%;display:block}
 .cv-z{stroke:var(--edge-hi);stroke-width:1;stroke-dasharray:3 4;vector-effect:non-scaling-stroke}
@@ -2283,7 +2284,7 @@ function tRow(t, links) {
   const inv = cents(t.buyin * t.bullets), net = cents(t.gain - inv), hc = links.n[t.id] || 0;
   const d = new Date(+t.date.slice(0, 4), +t.date.slice(5, 7) - 1, +t.date.slice(8, 10));
   const bubble = t.place && t.paid && t.place === t.paid + 1;
-  const badges = (t.place === 1 ? '<i>Victoire</i>' : t.ft ? '<i>Table finale</i>' : '') + (bubble ? '<i>Bulle</i>' : '') + (t.gain > 0 ? '<i>ITM</i>' : '');
+  const badges = (t.place === 1 ? '<i>Victoire</i>' : t.ft ? '<i>Table finale</i>' : '') + (bubble ? '<i>Pure bulle</i>' : '') + (t.gain > 0 ? '<i>ITM</i>' : '');
   return '<li><button type="button" class="tr" data-act="tedit" data-id="' + esc(t.id) + '"><span class="tr-d"><b>' + d.getDate() + '</b>' +
     esc(d.toLocaleDateString('fr-FR', { month: 'short' })) + '</span>' +
     '<span class="tr-m"><b>' + esc(t.name || 'Sans nom') + '</b><span class="tr-s">' + t.bullets + ' bullet' + (t.bullets > 1 ? 's' : '') + ' · ' + esc(fmtBRL(inv)) +
@@ -2331,15 +2332,16 @@ function tDash(st, y) {
 }
 function tFigures(st) {
   const kv = (k, v, sub, cls) => '<div' + (cls ? ' class="' + cls + '"' : '') + '><span class="k">' + k + '</span><b>' + v + '</b>' + (sub ? '<i>' + sub + '</i>' : '') + '</div>';
-  const R = '<small>R$</small>';
+  const R = '<small>R$</small>', of = x => st.n ? esc(fmtPct(x / st.n, 1)) + ' des tournois' : '';
   return '<div class="kvs">' +
     kv('Tournois', st.n, '') + kv('Bullets', st.bullets, '') +
     kv('Investi', esc(fmtN(st.inv)) + R, '') + kv('Gagné', esc(fmtN(st.gain)) + R, '') +
     kv('Buy-in moyen (ABI)', st.abi === null ? '–' : esc(fmtN(Math.round(st.abi))) + R, 'par bullet') +
     kv('Meilleur cash', st.best ? esc(fmtN(st.best.gain)) + R : '–', st.best ? esc(st.best.name || 'Sans nom') : '') +
-    kv('Tables finales', st.ft, st.n ? esc(fmtPct(st.ft / st.n, 1)) + ' des tournois' : '') + kv('Victoires', st.wins, st.n ? esc(fmtPct(st.wins / st.n, 1)) + ' des tournois' : '') +
-    (st.paidKnown ? kv('Bulles', st.bubbles, 'finis juste avant l\'argent') : '') +
-    kv('Série sans ITM', st.streak + ' tournoi' + (st.streak > 1 ? 's' : ''), 'la plus longue de l\'année · en cours : ' + st.now, 'wide') + '</div>';
+    kv('ITM', st.itm, 'tournois avec un gain') + kv('% d\'ITM', st.itmPct === null ? '–' : esc(fmtPct(st.itmPct, 1)), st.itm + ' sur ' + st.n) +
+    kv('Tables finales', st.ft, of(st.ft)) + kv('Victoires', st.wins, of(st.wins)) +
+    kv('Série sans ITM', st.streak + ' tournoi' + (st.streak > 1 ? 's' : ''), 'record de l\'année · en cours : ' + st.now, 'neg') +
+    kv('Élimination à la pure bulle', st.paidKnown ? st.bubbles : '–', st.paidKnown ? 'à une place de l\'argent' : 'renseigne les places payées', 'neg') + '</div>';
 }
 function tMonthRows(list) {
   const rows = tMonths(list), max = Math.max.apply(null, rows.map(r => Math.abs(r.net)).concat(1));
@@ -2380,7 +2382,7 @@ function tSync() {
   if (ft) { const on = !!f.ft || win; ft.classList.toggle('on', on); ft.disabled = win; ft.setAttribute('aria-pressed', on ? 'true' : 'false'); }
   document.querySelectorAll('#view-suivi [data-act=tbuy]').forEach(c => c.classList.toggle('on', b === +c.dataset.v));
   const bub = $('#t-bubble');
-  if (bub) { const pl = +f.place, pd = +f.paid, on = pl > 0 && pd > 0 && pl === pd + 1; bub.textContent = on ? 'Bulle : tu finis juste avant les places payées.' : ''; bub.hidden = !on; }
+  if (bub) { const pl = +f.place, pd = +f.paid, on = pl > 0 && pd > 0 && pl === pd + 1; bub.textContent = on ? 'Pure bulle : tu finis juste avant les places payées.' : ''; bub.hidden = !on; }
   const er = $('#t-err'); if (er) { er.textContent = f.err || ''; er.hidden = !f.err; }
 }
 function tInput(t, k) {
