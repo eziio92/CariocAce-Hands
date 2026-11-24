@@ -531,6 +531,39 @@ img.wait{opacity:0}
 .mo-b u.lost{background:var(--bad)}
 .tlnk{border:0;background:transparent;padding:6px 0 6px 12px;color:var(--acc-ink);font:600 12.5px var(--f-body)}
 .mo-n{min-width:68px;text-align:right;font:700 14px var(--f-disp);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+/* tournament still being played, mental space, debrief form */
+.ld{display:inline-block;width:8px;height:8px;margin-right:8px;border-radius:50%;background:var(--acc-1);box-shadow:0 0 10px rgba(255,255,255,.7);vertical-align:middle}
+.chip .ld{margin-right:0}
+.live .lv{list-style:none;margin:0;padding:0}
+.lv-i{padding:12px 0;border-top:1px solid var(--edge)}
+.lv-i:first-child{border-top:0;padding-top:2px}
+.lv-h b{display:block;font:600 16px/1.25 var(--f-body);overflow-wrap:anywhere}
+.live .row{margin:10px 0 0;align-items:center;flex-wrap:wrap}
+.lv-i:last-child{padding-bottom:0}
+.sw{margin-top:8px}
+.tr-s em{font-style:normal;font-weight:700;color:var(--fg)}
+.tr-note{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;margin-top:4px;font:500 12.5px/1.35 var(--f-body);color:var(--fg-3);overflow-wrap:anywhere}
+.mcs{display:grid;gap:8px}
+.mc{padding:14px 16px;border:1px solid var(--edge);border-radius:20px;background:var(--glass-2);box-shadow:inset 0 1px 0 var(--edge-hi)}
+.mc-t{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.mc-t .k{font:600 10px/1.2 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--fg-2)}
+.mc-v{font:600 28px/1 var(--f-disp);letter-spacing:-.04em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mc-v small{margin-left:3px;font:500 12px var(--f-body);letter-spacing:0;color:var(--fg-2)}
+.mc-bar{height:6px;margin:10px 0 8px;border-radius:999px;background:var(--field);overflow:hidden}
+.mc-bar u{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--acc-2),var(--acc-1));text-decoration:none}
+.mc-s{display:flex;align-items:center;gap:12px;font:500 12px var(--f-body);color:var(--fg-3)}
+.mc-s span{flex:none;white-space:nowrap}
+.mc-sp{flex:1;min-width:0;height:30px}
+.mc-sp polyline{fill:none;stroke:var(--fg);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke;opacity:.8}
+.dbh{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:48px;padding:0 4px 0 0;border:0;border-top:1px solid var(--edge);background:transparent;color:var(--fg);font:600 15px var(--f-body);text-align:left}
+.dbh i{margin-left:8px;font-style:normal;font-weight:500;font-size:12.5px;color:var(--fg-3)}
+.dbh[aria-expanded=true] .mo-ch{transform:rotate(90deg)}
+.sc{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.sc-b{min-height:46px;padding:0;border-radius:14px;border:1px solid var(--edge);background:var(--field);color:var(--fg);font:600 17px var(--f-disp);font-variant-numeric:tabular-nums}
+.sc-b:active{background:var(--glass-3)}
+.sc-b.on{background:linear-gradient(180deg,var(--acc-1),var(--acc-2));border-color:transparent;color:var(--on-acc)}
+.sc-x{color:var(--fg-3);font:500 20px var(--f-body)}
+.sc-v{margin-left:6px;font-style:normal;font-weight:500;letter-spacing:0;text-transform:none;color:var(--fg-3)}
 </style>
 <style>body{padding-top:env(safe-area-inset-top,0px)}</style>
 </head>
@@ -2083,6 +2116,11 @@ async function downloadJson() {
 const LS_TOURN = 'carnet-tournois-local', LS_BACKUP = 'carnet-derniere-sauvegarde';
 const tStore = { list: [] };
 const T_MAX = { money: 1e9, bullets: 999, place: 1e6 };
+/* mental notes (a separate space): three marks from 0 to 10, never mixed with the money figures */
+const M_KEYS = ['g', 'd', 'r'];
+const M_LABEL = { g: 'Niveau de jeu', d: 'Discipline', r: 'Récupération émotionnelle' };
+const M_SHORT = { g: 'Jeu', d: 'Discipline', r: 'Récup.' };
+const fmt1 = n => n.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const cents = x => Math.round(x * 100) / 100;
 const fmtN = n => cents(n).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
 const fmtBRL = n => 'R$\u00a0' + fmtN(n);   /* no line break between R$ and the amount */
@@ -2121,11 +2159,16 @@ function tNorm(x) {
     const q = Math.floor(tMoney(x.paid));
     if (q >= 1 && q <= T_MAX.place) paid = q;
   }
+  const sc = v => { if (typeof v !== 'number' && typeof v !== 'string') return null; if (v === '') return null; const n = Math.round(Number(v)); return Number.isFinite(n) && n >= 0 && n <= 10 ? n : null; };
+  const mm = x.mental && typeof x.mental === 'object' ? { g: sc(x.mental.g), d: sc(x.mental.d), r: sc(x.mental.r) } : null;
   const iso = v => (typeof v === 'string' && v.length <= 40 ? v : '');
   const created = iso(x.createdAt) || new Date().toISOString();
   return {
     id: x.id, date: x.date, name: String(x.name == null ? '' : x.name).trim().slice(0, 120),
     buyin: cents(buyin), bullets: bullets, gain: cents(gain), place: place, paid: paid, ft: x.ft === true || place === 1,
+    live: x.live === true,   /* still playing: kept out of every figure until the result is written */
+    mental: mm && (mm.g !== null || mm.d !== null || mm.r !== null) ? mm : null,
+    debrief: String(x.debrief == null ? '' : x.debrief).trim().slice(0, 600),
     createdAt: created, updatedAt: iso(x.updatedAt) || created
   };
 }
@@ -2164,11 +2207,13 @@ function tTotals(list) {
   return { n: list.length, bullets: b, inv: cents(inv), gain: cents(g), net: cents(g - inv) };
 }
 
-/* ===== what the start screen shows ===== */
+const tLiveList = () => tSorted(tStore.list.filter(t => t.live));
+/* ===== what the start screen shows (tournaments still being played are not counted) ===== */
 function tHomeTile() {
-  const y = thisYear(), tot = tTotals(tStore.list.filter(t => tYear(t) === y));
-  if (!tot.n) return [String(y), 'aucun tournoi saisi', 'Touche pour commencer'];
-  return [String(y), tot.n + ' tournoi' + (tot.n > 1 ? 's' : ''), 'Gain net : ' + fmtNetBRL(tot.net)];
+  const y = thisYear(), tot = tTotals(tStore.list.filter(t => tYear(t) === y && !t.live)), lv = tStore.list.filter(t => t.live).length;
+  const lvTxt = lv + (lv > 1 ? ' tournois en cours' : ' tournoi en cours');
+  if (!tot.n) return lv ? [String(y), lvTxt, 'Touche pour ouvrir'] : [String(y), 'aucun tournoi saisi', 'Touche pour commencer'];
+  return [String(y), tot.n + ' tournoi' + (tot.n > 1 ? 's' : '') + (lv ? ' · ' + lv + ' en cours' : ''), 'Gain net : ' + fmtNetBRL(tot.net)];
 }
 const lastBackupMs = () => { try { const t = Date.parse(localStorage.getItem(LS_BACKUP) || ''); return Number.isFinite(t) ? t : 0; } catch (e) { return 0; } };
 const markBackup = () => { try { localStorage.setItem(LS_BACKUP, new Date().toISOString()); } catch (e) { /* not kept: the reminder simply stays */ } if (ui.block === 'home') renderHome(); else if (ui.block === 'suivi') renderSuivi(); };
@@ -2234,9 +2279,9 @@ function tHandLinks() {
 /* the editor of a hand offers the tournaments of the Suivi, newest first, one chip per name */
 function tPickRow() {
   const seen = new Set(), names = [];
-  tSorted(tStore.list).forEach(t => { const k = normName(t.name); if (k && !seen.has(k)) { seen.add(k); names.push(t.name); } });
+  tSorted(tStore.list).slice().sort((a, b) => (b.live === true) - (a.live === true)).forEach(t => { const k = normName(t.name); if (k && !seen.has(k)) { seen.add(k); names.push({ n: t.name, live: t.live === true }); } });
   if (!names.length) return '';
-  return fld('Depuis ton Suivi', '<div class="scroll-row">' + names.slice(0, 6).map(n => chip(esc(n), { on: normName(H.tournament) === normName(n), attrs: 'data-act="pickt" data-v="' + esc(n) + '"' })).join('') + '</div>');
+  return fld('Depuis ton Suivi', '<div class="scroll-row">' + names.slice(0, 6).map(o => chip((o.live ? '<i class="ld" aria-hidden="true"></i>' : '') + esc(o.n), { on: normName(H.tournament) === normName(o.n), attrs: 'data-act="pickt" data-v="' + esc(o.n) + '"' })).join('') + '</div>');
 }
 function syncPickT() { document.querySelectorAll('[data-act=pickt]').forEach(c => c.classList.toggle('on', normName(c.dataset.v) === normName(H.tournament))); }
 
@@ -2300,6 +2345,76 @@ function tRow(t, links) {
     '<span class="tr-r"><span class="tr-n ' + (net > 0 ? 'res-won' : net < 0 ? 'res-lost' : 'res-split') + '">' + esc(fmtNetBRL(net)) + '</span></span></button>' +
     (hc ? '<button type="button" class="tr-mn" data-act="tmains" data-id="' + esc(t.id) + '">Voir ' + (hc > 1 ? 'les ' + hc + ' mains' : 'la main') + ' ›</button>' : '') + '</li>';
 }
+
+/* ===== tournaments being played: a card at the top, kept out of every figure ===== */
+function tLiveBox(links) {
+  const L = tLiveList();
+  if (!L.length) return '';
+  return '<div class="sec live"><div class="sec-h"><span class="lbl"><i class="ld" aria-hidden="true"></i>En cours</span><span class="pot">' + L.length + ' tournoi' + (L.length > 1 ? 's' : '') + '</span></div><ol class="lv">' +
+    L.map(t => {
+      const hc = links.n[t.id] || 0, id = esc(t.id), d = new Date(+t.date.slice(0, 4), +t.date.slice(5, 7) - 1, +t.date.slice(8, 10));
+      return '<li class="lv-i"><div class="lv-h"><b>' + esc(t.name || 'Sans nom') + '</b><span class="tr-s">depuis le ' + esc(d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })) + ' · ' + t.bullets + ' bullet' + (t.bullets > 1 ? 's' : '') + ' · ' + esc(fmtBRL(cents(t.buyin * t.bullets))) + ' engagés</span></div>' +
+        '<div class="row"><button type="button" class="btn sm" data-act="tfinish" data-id="' + id + '">Terminer</button><button type="button" class="btn ghost sm" data-act="tedit" data-id="' + id + '">Modifier</button>' +
+        (hc ? '<button type="button" class="tlnk" data-act="tmains" data-id="' + id + '">Voir ' + (hc > 1 ? 'les ' + hc + ' mains' : 'la main') + ' ›</button>' : '') + '</div></li>';
+    }).join('') + '</ol><p class="hint" style="margin:8px 0 0">Pas compté dans tes chiffres tant que le résultat n\'est pas noté.</p></div>';
+}
+
+/* ===== mental space: averages and curve per mark, the debriefs, the tournaments still to debrief ===== */
+function mStats(list) {
+  const rows = tChrono(list.filter(t => t.mental)), o = { n: rows.length, k: {} };
+  M_KEYS.forEach(k => {
+    const v = rows.map(t => t.mental[k]).filter(x => x !== null), l5 = v.slice(-5), avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+    o.k[k] = { n: v.length, avg: avg(v), last: avg(l5), series: v };
+  });
+  return o;
+}
+function mSpark(pts) {
+  const n = pts.length, Y = v => (30 - v * 3).toFixed(1);
+  if (!n) return '';
+  const p = n === 1 ? '0,' + Y(pts[0]) + ' 100,' + Y(pts[0]) : pts.map((v, i) => (i / (n - 1) * 100).toFixed(1) + ',' + Y(v)).join(' ');
+  return '<svg class="mc-sp" viewBox="0 -2 100 34" preserveAspectRatio="none" aria-hidden="true"><polyline points="' + p + '"/></svg>';
+}
+function mRow(t, todo) {
+  const d = new Date(+t.date.slice(0, 4), +t.date.slice(5, 7) - 1, +t.date.slice(8, 10)), m = t.mental;
+  const sub = todo ? esc(t.bullets + ' bullet' + (t.bullets > 1 ? 's' : '') + ' · ' + fmtBRL(cents(t.buyin * t.bullets))) : M_KEYS.filter(k => m[k] !== null).map(k => M_SHORT[k] + ' <em>' + m[k] + '</em>').join(' · ');
+  return '<li><button type="button" class="tr" data-act="' + (todo ? 'tdebrief' : 'tedit') + '" data-id="' + esc(t.id) + '"><span class="tr-d"><b>' + d.getDate() + '</b>' + esc(d.toLocaleDateString('fr-FR', { month: 'short' })) + '</span>' +
+    '<span class="tr-m"><b>' + esc(t.name || 'Sans nom') + '</b><span class="tr-s">' + sub + '</span>' + (!todo && t.debrief ? '<span class="tr-note">' + esc(t.debrief) + '</span>' : '') + '</span>' +
+    (todo ? '<span class="tr-r"><span class="tlnk" style="padding:0">Débriefer ›</span></span>' : '') + '</button></li>';
+}
+function tMentalHtml(list, y) {
+  const ms = mStats(list), without = list.filter(t => !t.mental), rows = list.filter(t => t.mental), todo = without.slice(0, 5);
+  const cards = M_KEYS.map(k => {
+    const s = ms.k[k];
+    return '<div class="mc"><div class="mc-t"><span class="k">' + M_LABEL[k] + '</span><span class="mc-v">' + (s.avg === null ? '–' : esc(fmt1(s.avg)) + '<small>/10</small>') + '</span></div>' +
+      (s.avg === null ? '' : '<div class="mc-bar" aria-hidden="true"><u style="width:' + (s.avg * 10).toFixed(1) + '%"></u></div>' +
+        '<div class="mc-s">' + mSpark(s.series) + '<span>' + (s.n > 5 ? '5 derniers : ' + esc(fmt1(s.last)) : s.n + ' note' + (s.n > 1 ? 's' : '')) + '</span></div>') + '</div>';
+  }).join('');
+  return '<div class="sec"><div class="sec-h"><span class="lbl">Mental ' + y + '</span><span class="pot">' + (ms.n ? '<b>' + ms.n + '</b> débrief' + (ms.n > 1 ? 's' : '') + ' sur ' + list.length : list.length + ' tournoi' + (list.length > 1 ? 's' : '')) + '</span></div>' +
+    (ms.n ? '<div class="mcs">' + cards + '</div>' : '<p class="hint" style="margin:0">Aucun débrief en ' + y + '. Après un tournoi, note ton niveau de jeu, ta discipline et ta récupération émotionnelle de 0 à 10.</p>') +
+    '<p class="hint" style="margin:10px 0 0">Cet espace est à part : ces notes ne comptent ni dans ton ROI, ni dans ton ITM, ni dans ta courbe.</p></div>' +
+    (rows.length ? '<div class="sec"><div class="sec-h"><span class="lbl">Débriefs</span></div><ol class="tl">' + rows.map(t => mRow(t, false)).join('') + '</ol></div>' : '') +
+    (todo.length ? '<div class="sec"><div class="sec-h"><span class="lbl">À débriefer</span><span class="pot">' + without.length + ' sans débrief</span></div><ol class="tl">' + todo.map(t => mRow(t, true)).join('') + '</ol></div>' : '');
+}
+function tScoreFld(k, label, v) {
+  let b = '';
+  for (let i = 0; i <= 10; i++) b += '<button type="button" class="sc-b' + (v === i ? ' on' : '') + '" data-act="tscore" data-k="' + k + '" data-v="' + i + '" aria-pressed="' + (v === i ? 'true' : 'false') + '">' + i + '</button>';
+  b += '<button type="button" class="sc-b sc-x" data-act="tscore" data-k="' + k + '" data-v="" aria-label="Effacer la note">×</button>';
+  return fld(label + ' <em class="sc-v" id="sc-' + k + '-v">' + (v === null ? 'non noté' : v + '/10') + '</em>', '<div class="sc" role="group" aria-label="' + label + '">' + b + '</div>');
+}
+function tDebriefFld(f) {
+  const n = (f.mg !== null) + (f.md !== null) + (f.mr !== null);
+  return '<div class="fld"><button type="button" class="dbh" data-act="tdbt" aria-expanded="' + (f.dbo ? 'true' : 'false') + '"><span>Débrief mental <i>' + (n ? n + '/3 noté' + (n > 1 ? 's' : '') : 'facultatif') + '</i></span>' +
+    '<svg class="mo-ch" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>' +
+    (f.dbo ? tScoreFld('g', M_LABEL.g, f.mg) + tScoreFld('d', M_LABEL.d, f.md) + tScoreFld('r', M_LABEL.r, f.mr) +
+      fld('Note du débrief (facultatif)', '<textarea class="inp" id="in-tdb" data-in="t-db" maxlength="600" placeholder="Ce qui s\'est passé, ce que tu retiens...">' + esc(f.db) + '</textarea>') +
+      '<p class="hint" style="margin:0">De 0 à 10. Ces notes sont à part : elles ne comptent ni dans le ROI, ni dans l\'ITM.</p>' : '') + '</div>';
+}
+/* the form state of a saved tournament */
+function tFormFrom(t, over) {
+  const m = t.mental || {};
+  return Object.assign({ id: t.id, date: t.date, name: t.name, buyin: String(t.buyin), bullets: t.bullets, gain: String(t.gain), place: t.place ? String(t.place) : '', paid: t.paid ? String(t.paid) : '', ft: t.ft,
+    live: !!t.live, fin: false, mg: m.g === undefined ? null : m.g, md: m.d === undefined ? null : m.d, mr: m.r === undefined ? null : m.r, db: t.debrief || '', dbo: !!(t.mental || t.debrief), err: '', delAsk: false }, over || {});
+}
 function tFormHtml() {
   const f = ui.tf;
   if (!f) return '';
@@ -2310,22 +2425,24 @@ function tFormHtml() {
     ? '<div class="grp-ask">Supprimer définitivement ce tournoi ? Pense à faire une sauvegarde avant si besoin.</div>' +
       '<div class="row"><button type="button" class="btn ghost sm" data-act="tdelno">Annuler</button><button type="button" class="btn danger sm" data-act="tdelyes">Confirmer la suppression</button></div>'
     : '';
-  return '<div class="sec" id="t-form"><div class="sec-h"><span class="lbl">' + (f.id ? 'Modifier le tournoi' : 'Nouveau tournoi') + '</span></div>' +
+  return '<div class="sec" id="t-form"><div class="sec-h"><span class="lbl">' + (f.id ? (f.fin ? 'Terminer le tournoi' : 'Modifier le tournoi') : 'Nouveau tournoi') + '</span></div>' +
     '<div class="grid2"><input class="inp" id="in-tname" list="dl-tname" placeholder="Nom du tournoi" value="' + esc(f.name) + '" data-in="t-name" autocomplete="off" aria-label="Nom du tournoi">' +
     '<div class="datebox"><span class="dt" id="tdate-txt">' + esc(dateLbl(f.date)) + '</span>' +
       '<svg class="dt-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>' +
       '<input type="date" id="in-tdate" value="' + esc(f.date) + '" data-in="t-date" aria-label="Date de début"></div></div>' +
     '<datalist id="dl-tname">' + names.map(n => '<option value="' + esc(n) + '"></option>').join('') + '</datalist>' +
+    fld('Statut', '<div class="stackrow">' + chip('Tournoi en cours', { on: !!f.live, attrs: 'id="t-live" data-act="tlive" aria-pressed="' + (f.live ? 'true' : 'false') + '"' }) + '</div>' +
+      '<p class="hint" style="margin:0">' + (f.live ? 'Pas compté dans tes chiffres. Tu notes le résultat quand tu sors.' : 'Touche-le si tu es encore dans le tournoi.') + '</p>') +
     fld('Buy-in · R$ (une bullet, frais inclus)', '<input class="inp num" id="in-tbuy" inputmode="decimal" placeholder="Prix d\'entrée" value="' + esc(f.buyin) + '" data-in="t-buyin" autocomplete="off" aria-label="Buy-in en reais">' +
       (recent.length ? '<div class="scroll-row">' + recent.map(v => chip(esc(fmtN(v)), { cls: 'mono', attrs: 'data-act="tbuy" data-v="' + v + '"' })).join('') + '</div>' : '')) +
     fld('Bullets', '<div class="step"><button type="button" data-act="tbul" data-v="-1" aria-label="Une bullet de moins">−</button><output id="t-bul">' + f.bullets + '</output>' +
       '<button type="button" data-act="tbul" data-v="1" aria-label="Une bullet de plus">+</button></div><p class="hint" id="t-inv" style="margin:0"></p>') +
-    fld('Gain total · R$ (bounties et deal compris)', '<div class="stackrow"><input class="inp num" id="in-tgain" inputmode="decimal" placeholder="0 si rien gagné" value="' + esc(f.gain) + '" data-in="t-gain" autocomplete="off" aria-label="Gain total en reais">' +
+    (f.live ? '' : fld('Gain total · R$ (bounties et deal compris)', '<div class="stackrow"><input class="inp num" id="in-tgain" inputmode="decimal" placeholder="0 si rien gagné" value="' + esc(f.gain) + '" data-in="t-gain" autocomplete="off" aria-label="Gain total en reais">' +
       chip('0', { cls: 'mono', attrs: 'data-act="tgain0"' }) + '</div>') +
     fld('Place finale (facultatif)', '<div class="stackrow"><input class="inp num" id="in-tplace" inputmode="numeric" placeholder="1 = victoire" value="' + esc(f.place) + '" data-in="t-place" autocomplete="off" aria-label="Place finale">' +
       chip('Table finale', { attrs: 'id="t-ft" data-act="tft" aria-pressed="false"' }) + '</div>') +
     fld('Places payées (facultatif)', '<input class="inp num" id="in-tpaid" inputmode="numeric" placeholder="Combien de joueurs sont ITM" value="' + esc(f.paid) + '" data-in="t-paid" autocomplete="off" aria-label="Nombre de places payées">' +
-      '<p class="hint" id="t-bubble" style="margin:0" hidden></p>') +
+      '<p class="hint" id="t-bubble" style="margin:0" hidden></p>') + tDebriefFld(f)) +
     '<p class="hint err" id="t-err" role="alert" hidden></p>' + ask +
     '<div class="row"><button type="button" class="btn" data-act="tsave">Enregistrer</button><button type="button" class="btn ghost" data-act="tcancel">Annuler</button>' +
       (f.id && !f.delAsk ? '<button type="button" class="btn ghost sm" data-act="tdelask">Supprimer</button>' : '') + '</div></div>';
@@ -2347,7 +2464,7 @@ function tFigures(st) {
     kv('Meilleur cash', st.best ? esc(fmtN(st.best.gain)) + R : '–', st.best ? esc(st.best.name || 'Sans nom') : '') +
     kv('ITM', st.itm, 'tournois avec un gain') + kv('% d\'ITM', st.itmPct === null ? '–' : esc(fmtPct(st.itmPct, 1)), st.itm + ' sur ' + st.n) +
     kv('Tables finales', st.ft, of(st.ft)) + kv('Victoires', st.wins, of(st.wins)) +
-    kv('Série sans ITM', st.streak + ' tournoi' + (st.streak > 1 ? 's' : ''), 'record de l\'année · en cours : ' + st.now, 'neg') +
+    kv('Série sans ITM', st.streak + ' tournoi' + (st.streak > 1 ? 's' : ''), 'record de l\'année · série actuelle : ' + st.now, 'neg') +
     kv('Élimination à la pure bulle', st.paidKnown ? st.bubbles : '–', st.paidKnown ? 'à une place de l\'argent' : 'renseigne les places payées', 'neg') + '</div>';
 }
 /* which months are open, per year: the latest one at first; a saved tournament opens its month */
@@ -2376,22 +2493,25 @@ function tMonthsSync() {
   const a = $('#t-all'); if (a) a.textContent = hs.length && hs.every(h => set.has(+h.dataset.m)) ? 'Tout replier' : 'Tout ouvrir';
 }
 function renderSuivi() {
-  const y = tSel(), list = tSorted(tStore.list.filter(t => tYear(t) === y)), st = tStats(list);
-  const years = tYears(), last = lastBackupMs(), links = tHandLinks();
+  const y = tSel(), inYear = tStore.list.filter(t => tYear(t) === y), done = tSorted(inYear.filter(t => !t.live)), st = tStats(done);
+  const years = tYears(), last = lastBackupMs(), links = tHandLinks(), mv = ui.tv === 'm';
   const head = '<div class="sec"><div class="sec-h"><span class="lbl">Suivi des tournois</span></div>' +
     '<div class="seg" id="t-years">' + years.map(v => '<button type="button" class="' + (v === y ? 'on' : '') + '" data-act="tyear" data-v="' + v + '">' + v + '</button>').join('') + '</div>' +
-    (st.n ? tDash(st, y) : '') +
+    '<div class="seg sw" id="t-views"><button type="button" class="' + (mv ? '' : 'on') + '" data-act="tview" data-v="r">Résultats</button><button type="button" class="' + (mv ? 'on' : '') + '" data-act="tview" data-v="m">Mental</button></div>' +
+    (!mv && st.n ? tDash(st, y) : '') +
     (ui.tf ? '' : '<div class="row"><button type="button" class="btn" data-act="tadd">Ajouter un tournoi</button></div>') + '</div>';
-  const dash = st.n
+  let dash;
+  if (mv) { tCv = null; dash = tMentalHtml(done, y); }
+  else dash = st.n
     ? '<div class="sec"><div class="sec-h"><span class="lbl">Chiffres ' + y + '</span></div>' + tFigures(st) + '</div>' +
-      '<div class="sec"><div class="sec-h"><span class="lbl">Gain cumulé</span><span class="pot">' + st.n + ' tournoi' + (st.n > 1 ? 's' : '') + '</span></div>' + tChart(tChrono(list)) + '</div>' +
-      tMonthList(list, links, y)
-    : (tCv = null, '<div class="sec"><div class="sec-h"><span class="lbl">Tournois ' + y + '</span></div><p class="hint" style="margin:0">Aucun tournoi en ' + y + '. Touche « Ajouter un tournoi » pour commencer.</p></div>');
+      '<div class="sec"><div class="sec-h"><span class="lbl">Gain cumulé</span><span class="pot">' + st.n + ' tournoi' + (st.n > 1 ? 's' : '') + '</span></div>' + tChart(tChrono(done)) + '</div>' +
+      tMonthList(done, links, y)
+    : (tCv = null, '<div class="sec"><div class="sec-h"><span class="lbl">Tournois ' + y + '</span></div><p class="hint" style="margin:0">' + (inYear.length ? 'Aucun tournoi terminé en ' + y + '. Touche « Terminer » sur le tournoi en cours quand tu sors.' : 'Aucun tournoi en ' + y + '. Touche « Ajouter un tournoi » pour commencer.') + '</p></div>');
   const bk = '<div class="sec"><div class="sec-h"><span class="lbl">Sauvegarde</span></div>' +
     '<p class="hint" style="margin:0">Tes tournois sont enregistrés sur cet appareil, dans le même fichier .json que tes mains. ' +
     (last ? 'Dernière sauvegarde : ' + esc(new Date(last).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })) + '.' : 'Pas encore de sauvegarde faite ici.') + '</p>' +
     '<div class="row"><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer une sauvegarde</button></div></div>';
-  $('#view-suivi').innerHTML = head + tFormHtml() + dash + bk;
+  $('#view-suivi').innerHTML = tLiveBox(links) + head + tFormHtml() + dash + bk;
   tSync();
 }
 /* live bits of the form that do not need a redraw (a redraw would drop the keyboard) */
@@ -2406,6 +2526,13 @@ function tSync() {
   document.querySelectorAll('#view-suivi [data-act=tbuy]').forEach(c => c.classList.toggle('on', b === +c.dataset.v));
   const bub = $('#t-bubble');
   if (bub) { const pl = +f.place, pd = +f.paid, on = pl > 0 && pd > 0 && pl === pd + 1; bub.textContent = on ? 'Pure bulle : tu finis juste avant les places payées.' : ''; bub.hidden = !on; }
+  M_KEYS.forEach(k => {
+    const v = f['m' + k];
+    document.querySelectorAll('#view-suivi [data-act=tscore][data-k=' + k + ']').forEach(c => { const on = c.dataset.v !== '' && +c.dataset.v === v; c.classList.toggle('on', on); c.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    const o = $('#sc-' + k + '-v'); if (o) o.textContent = v === null ? 'non noté' : v + '/10';
+  });
+  const dh = document.querySelector('#view-suivi .dbh i');
+  if (dh) { const n = (f.mg !== null) + (f.md !== null) + (f.mr !== null); dh.textContent = n ? n + '/3 noté' + (n > 1 ? 's' : '') : 'facultatif'; }
   const er = $('#t-err'); if (er) { er.textContent = f.err || ''; er.hidden = !f.err; }
 }
 function tInput(t, k) {
@@ -2416,6 +2543,7 @@ function tInput(t, k) {
   else if (k === 't-buyin') f.buyin = t.value;
   else if (k === 't-gain') f.gain = t.value;
   else if (k === 't-place') { f.place = t.value.replace(/\D/g, '').slice(0, 7); if (f.place !== t.value) t.value = f.place; if (+f.place === 1) f.ft = true; }
+  else if (k === 't-db') f.db = t.value.slice(0, 600);
   else if (k === 't-paid') { f.paid = t.value.replace(/\D/g, '').slice(0, 7); if (f.paid !== t.value) t.value = f.paid; }
   f.err = ''; tSync();
 }
@@ -2441,16 +2569,29 @@ const AT = {
     ui.picker = null; ui.pending = null; ui.delGroup = null; ui.delAsk = null; ui.confirm = ''; ui.rv = null;
     renderAll(); window.scrollTo(0, 0);
   },
+  tview(el) { ui.tv = el.dataset.v === 'm' ? 'm' : 'r'; renderSuivi(); },
   tadd() {
-    ui.tf = { id: null, date: todayStr(), name: '', buyin: '', bullets: 1, gain: '', place: '', paid: '', ft: false, err: '', delAsk: false };
+    ui.tf = { id: null, date: todayStr(), name: '', buyin: '', bullets: 1, gain: '', place: '', paid: '', ft: false, live: false, fin: false, mg: null, md: null, mr: null, db: '', dbo: false, err: '', delAsk: false };
     renderSuivi(); scrollToEl('#t-form');
   },
   tedit(el) {
     const t = tStore.list.find(x => x.id === el.dataset.id);
     if (!t) return;
-    ui.tf = { id: t.id, date: t.date, name: t.name, buyin: String(t.buyin), bullets: t.bullets, gain: String(t.gain), place: t.place ? String(t.place) : '', paid: t.paid ? String(t.paid) : '', ft: t.ft, err: '', delAsk: false };
-    renderSuivi(); scrollToEl('#t-form');
+    ui.tf = tFormFrom(t); renderSuivi(); scrollToEl('#t-form');
   },
+  tfinish(el) {   /* leaving a tournament: the same form, no longer "en cours", ready for the result */
+    const t = tStore.list.find(x => x.id === el.dataset.id);
+    if (!t) return;
+    ui.tf = tFormFrom(t, { live: false, fin: true, gain: t.gain > 0 ? String(t.gain) : '' }); renderSuivi(); scrollToEl('#t-form');
+  },
+  tdebrief(el) {
+    const t = tStore.list.find(x => x.id === el.dataset.id);
+    if (!t) return;
+    ui.tf = tFormFrom(t, { dbo: true }); renderSuivi(); scrollToEl('#t-form');
+  },
+  tlive() { const f = ui.tf; if (!f) return; f.live = !f.live; f.err = ''; renderSuivi(); },
+  tdbt() { const f = ui.tf; if (!f) return; f.dbo = !f.dbo; renderSuivi(); },
+  tscore(el) { const f = ui.tf, k = el.dataset.k; if (!f || M_KEYS.indexOf(k) < 0) return; f['m' + k] = el.dataset.v === '' ? null : +el.dataset.v; tSync(); },
   tcancel() { ui.tf = null; renderSuivi(); },
   tbul(el) { const f = ui.tf; if (!f) return; f.bullets = Math.max(1, Math.min(T_MAX.bullets, f.bullets + (+el.dataset.v))); f.err = ''; tSync(); },
   tbuy(el) { const f = ui.tf; if (!f) return; f.buyin = String(+el.dataset.v); const i = $('#in-tbuy'); if (i) i.value = f.buyin; f.err = ''; tSync(); },
@@ -2469,8 +2610,14 @@ const AT = {
   tsave() {
     const f = ui.tf;
     if (!f) return;
-    const name = f.name.trim(), buyin = tMoney(f.buyin), gain = String(f.gain).trim() === '' ? NaN : tMoney(f.gain);
-    const place = f.place === '' ? null : parseInt(f.place, 10), paid = f.paid === '' ? null : parseInt(f.paid, 10);
+    const live = !!f.live, name = f.name.trim(), buyin = tMoney(f.buyin);
+    let gain = String(f.gain).trim() === '' ? NaN : tMoney(f.gain);
+    let place = f.place === '' ? null : parseInt(f.place, 10), paid = f.paid === '' ? null : parseInt(f.paid, 10);
+    if (live) {   /* still playing: the result fields are hidden, nothing typed there can block the save */
+      if (!(gain >= 0 && gain <= T_MAX.money)) gain = 0;
+      if (!(place >= 1 && place <= T_MAX.place)) place = null;
+      if (!(paid >= 1 && paid <= T_MAX.place)) paid = null;
+    }
     let err = '';
     if (!name) err = 'Donne un nom au tournoi.';
     else if (!validDate(f.date)) err = 'La date n\'est pas valide.';
@@ -2483,6 +2630,7 @@ const AT = {
     const rec = {
       id: old ? old.id : 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       date: f.date, name: name.slice(0, 120), buyin: cents(buyin), bullets: f.bullets, gain: cents(gain), place: place, paid: paid, ft: !!f.ft || place === 1,
+      live: live, mental: (f.mg !== null || f.md !== null || f.mr !== null) ? { g: f.mg, d: f.md, r: f.mr } : null, debrief: String(f.db || '').trim().slice(0, 600),
       createdAt: old ? old.createdAt : now, updatedAt: now
     };
     const before = tStore.list.slice();
@@ -2491,7 +2639,7 @@ const AT = {
     ui.tf = null; ui.ty = tYear(rec);
     if (!ui.tmo || ui.tmo.y !== ui.ty) ui.tmo = { y: ui.ty, open: new Set() };
     ui.tmo.open.add(+rec.date.slice(5, 7));   /* the month of what was just saved stays open */
-    renderSuivi(); window.scrollTo(0, 0); toast(old ? 'Tournoi modifié' : 'Tournoi enregistré');
+    renderSuivi(); window.scrollTo(0, 0); toast(live ? 'Tournoi en cours enregistré' : old && old.live ? 'Tournoi terminé' : old ? 'Tournoi modifié' : 'Tournoi enregistré');
   }
 };
 
