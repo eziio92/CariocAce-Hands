@@ -1,7 +1,7 @@
 {
-  "name": "CariocAce Hands",
+  "name": "CariocAce Copilot",
   "short_name": "CariocAce",
-  "description": "Carnet de mains de poker : positions, cartes, actions par street.",
+  "description": "Mains de poker (notes, revue, replay) et suivi annuel des tournois.",
   "lang": "fr",
   "start_url": "./",
   "scope": "./",

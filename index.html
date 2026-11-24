@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="CariocAce Hands">
+<meta name="apple-mobile-web-app-title" content="CariocAce Copilot">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#050506">
 <meta name="color-scheme" content="dark">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-192.png">
-<title>CariocAce Hands</title>
+<title>CariocAce Copilot</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400..700&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap">
 <style>
@@ -160,6 +160,24 @@ ol.log li:first-child{border-top:0}
 .x.armed{width:auto;padding:0 12px;border-radius:999px;font:700 12px var(--f-body);color:var(--bad);border:1px solid var(--bad);background:rgba(242,139,130,.12)}
 ol.log li.gone .who,ol.log li.gone .what,ol.log li.gone .after{opacity:.38;text-decoration:line-through}
 .delwarn{margin:0}
+/* start screen: two blocks, a switch in the header, the name as a way back */
+.brand-btn{background:none;border:0;padding:12px 0;margin:-12px 0;font:inherit;letter-spacing:inherit;color:inherit;text-align:left;white-space:nowrap}
+.seg.mini{padding:3px;gap:2px;flex:none}
+.seg.mini button{flex:none;min-height:32px;padding:0 13px;font-size:12.5px}
+#tabs[hidden],#blocks[hidden]{display:none}
+.top-row{flex-wrap:wrap}
+.stat{order:3;flex-basis:100%}
+.stat:empty{display:none}
+.hb{display:flex;flex-direction:column;align-items:flex-start;gap:6px;width:100%;margin-top:14px;padding:22px 20px 20px;border:1px solid var(--edge);border-radius:28px;text-align:left;color:var(--fg);
+  background:linear-gradient(180deg,var(--glass-2),var(--glass) 55%);box-shadow:var(--shadow),inset 0 1px 0 var(--edge-hi);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);position:relative}
+.hb:active{background:var(--glass-3)}
+.hb .lbl{color:var(--fg-2)}
+.hb .big{font:700 44px/1 var(--f-disp);letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin-top:6px}
+.hb .big.word{font-size:30px}
+.hb .unit{font:500 14px var(--f-body);color:var(--fg-2)}
+.hb .line{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.hb .sub{font:500 13px var(--f-body);color:var(--fg-2);margin-top:2px}
+.hb .go{position:absolute;right:20px;top:50%;transform:translateY(-50%);font:300 30px/1 var(--f-body);color:var(--fg-3)}
 .builder{display:flex;flex-direction:column;gap:12px;padding-top:2px}
 .vill{display:flex;flex-direction:column;gap:14px;padding:16px 14px;border:1px solid var(--edge);border-radius:22px;background:var(--glass-2);box-shadow:inset 0 1px 0 var(--edge-hi)}
 
@@ -444,10 +462,14 @@ img.wait{opacity:0}
 <div class="ambient" aria-hidden="true"></div>
 <div class="top">
   <div class="top-row">
-    <div class="brand"><h1>CariocAce <span>Hands</span></h1><i class="led" id="led" aria-hidden="true"></i></div>
+    <div class="brand"><h1><button type="button" class="brand-btn" data-act="block" data-v="home" aria-label="Accueil CariocAce Copilot">CariocAce <span>Copilot</span></button></h1><i class="led" id="led" aria-hidden="true"></i></div>
+    <div class="seg mini" id="blocks" hidden>
+      <button type="button" data-act="block" data-v="mains">Mains</button>
+      <button type="button" data-act="block" data-v="suivi">Suivi</button>
+    </div>
     <span class="stat" id="stat"></span>
   </div>
-  <div class="seg" id="tabs">
+  <div class="seg" id="tabs" hidden>
     <button type="button" class="on" data-act="tab" data-v="edit">Saisir</button>
     <button type="button" data-act="tab" data-v="list">Mains <span id="count"></span></button>
     <button type="button" data-act="tab" data-v="review">Revue <span id="rcount"></span></button>
@@ -455,6 +477,8 @@ img.wait{opacity:0}
 </div>
 <main class="wrap">
   <div id="banner"></div>
+  <section id="view-home"></section>
+  <section id="view-suivi" hidden></section>
   <section id="view-edit"></section>
   <section id="view-list" hidden></section>
   <section id="view-review" hidden></section>
@@ -998,7 +1022,7 @@ function boardProposal(res, h) {
   });
 }
 
-const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, delAsk: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
+const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, delAsk: null, block: 'home', filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
 
 /* ===== betting engine: replays the logged actions to get amounts, pot and SPR ===== */
 function actorsOf(h) {
@@ -1535,15 +1559,21 @@ function renderSheet() {
 
 /* ===== header, banner, save bar ===== */
 function renderTabs() {
-  document.body.classList.toggle('wide-rv', ui.tab === 'review' && isWide());
+  const mains = ui.block === 'mains';
+  document.body.classList.toggle('wide-rv', mains && ui.tab === 'review' && isWide());
+  $('#tabs').hidden = !mains;
+  $('#blocks').hidden = ui.block === 'home';
+  document.querySelectorAll('#blocks button').forEach(b => b.classList.toggle('on', b.dataset.v === ui.block));
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === ui.tab));
-  $('#view-edit').hidden = ui.tab !== 'edit';
-  $('#view-list').hidden = ui.tab !== 'list';
-  $('#view-review').hidden = ui.tab !== 'review';
+  $('#view-home').hidden = ui.block !== 'home';
+  $('#view-suivi').hidden = ui.block !== 'suivi';
+  $('#view-edit').hidden = !mains || ui.tab !== 'edit';
+  $('#view-list').hidden = !mains || ui.tab !== 'list';
+  $('#view-review').hidden = !mains || ui.tab !== 'review';
   $('#count').textContent = store.ready ? '(' + store.hands.length + ')' : '';
   const waiting = store.ready ? reviewStats(store.hands).pending : 0;
   $('#rcount').textContent = waiting ? '(' + waiting + ')' : '';
-  $('#stat').textContent = ui.tab === 'edit' ? (H.tournament || '') : '';
+  $('#stat').textContent = mains && ui.tab === 'edit' ? (H.tournament || '') : '';
 }
 function renderBanner() {
   let msg = '';
@@ -1560,8 +1590,9 @@ function renderBanner() {
   }
 }
 function renderSave() {
-  const reviewing = ui.tab === 'review' && !isWide() && ui.rv && !ui.rv.done;
-  $('#savebar').hidden = !(ui.tab === 'edit' || reviewing);
+  const mains = ui.block === 'mains';
+  const reviewing = mains && ui.tab === 'review' && !isWide() && ui.rv && !ui.rv.done;
+  $('#savebar').hidden = !(mains && ui.tab === 'edit' || reviewing);
   $('#savebar-in').className = 'savebar-in' + (reviewing ? ' vd' : '');
   if (reviewing && ui.rv.edit) {   /* writing the correction: switch to Bon, or move on */
     $('#savebar-in').innerHTML =
@@ -1835,16 +1866,41 @@ function renderReview() {
   focusFixBox(typing);
 }
 
+/* ===== start screen and the Suivi block ===== */
+function renderHome() {
+  const n = store.ready ? store.hands.length : null;
+  const pending = store.ready ? reviewStats(store.hands).pending : 0;
+  const draft = !editingId && !isPristine(H);
+  const sub = n === null ? 'Chargement…' : (n === 0 ? 'Aucune main notée pour l\'instant' : (pending ? pending + ' à revoir' : 'Tout est revu')) + (draft ? ' · saisie en cours' : '');
+  $('#view-home').innerHTML =
+    '<button type="button" class="hb" data-act="block" data-v="mains"><span class="lbl">Mains</span>' +
+      '<span class="line"><span class="big">' + (n === null ? '–' : n) + '</span><span class="unit">main' + (n > 1 ? 's' : '') + '</span></span>' +
+      '<span class="sub">' + esc(sub) + '</span><span class="go" aria-hidden="true">›</span></button>' +
+    '<button type="button" class="hb" data-act="block" data-v="suivi"><span class="lbl">Suivi</span>' +
+      '<span class="line"><span class="big word">Tournois</span></span>' +
+      '<span class="sub">Buy-in, bullets, gain : le tableau de bord de l\'année</span><span class="go" aria-hidden="true">›</span></button>';
+}
+function renderSuivi() {
+  $('#view-suivi').innerHTML = '<div class="sec"><div class="sec-h"><span class="lbl">Suivi des tournois</span></div>' +
+    '<p class="hint" style="margin:0">Ce bloc arrive à la prochaine étape : la saisie de chaque tournoi (buy-in, bullets, gain), puis le tableau de bord de l\'année.</p></div>';
+}
+function renderBlock() {
+  if (ui.block === 'home') renderHome();
+  else if (ui.block === 'suivi') renderSuivi();
+  else if (ui.tab === 'edit') renderEdit(); else if (ui.tab === 'list') renderList(); else renderReview();
+}
+
 /* ===== render all, toast, clipboard, downloads ===== */
 function renderAll() {
   renderTabs(); renderBanner();
-  if (ui.tab === 'edit') renderEdit(); else if (ui.tab === 'list') renderList(); else renderReview();
+  renderBlock();
   renderSave(); renderSheet();
 }
 let adopted = false, draftLoaded = false;
 /* photos finished loading or changed: redraw what shows them, unless a field is being typed in */
 function onPhotosChange() {
   const a = document.activeElement, typing = a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && $('#view-edit').contains(a);
+  if (ui.block !== 'mains') return;
   if (ui.tab === 'edit' && !typing) renderEdit();
   else if (ui.tab === 'list') renderList();
   renderSheet();
@@ -1862,7 +1918,8 @@ function onStoreChange() {
   const a = document.activeElement;
   const typing = a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && $('#view-edit').contains(a);
   renderTabs(); renderBanner();
-  if (ui.tab === 'list') renderList(); else if (ui.tab === 'review') renderReview(); else if (!typing) renderEdit();
+  if (ui.block !== 'mains') renderBlock();
+  else if (ui.tab === 'list') renderList(); else if (ui.tab === 'review') renderReview(); else if (!typing) renderEdit();
   renderSave();
 }
 function toast(msg) {
@@ -2194,6 +2251,12 @@ function closeSwipes(except) {
 })();
 
 const A = {
+  block(el) {
+    const v = el.dataset.v;
+    if (ui.block === v) { window.scrollTo(0, 0); return; }
+    closeFix(); ui.block = v; ui.picker = null; ui.pending = null; ui.delGroup = null; ui.delAsk = null; ui.confirm = '';
+    renderAll(); window.scrollTo(0, 0);
+  },
   tab(el) { closeFix(); ui.tab = el.dataset.v; ui.picker = null; ui.delGroup = null; ui.rv = null; renderAll(); window.scrollTo(0, 0); },
   table(el) {
     H.table = el.dataset.v;
@@ -2534,7 +2597,7 @@ document.addEventListener('keydown', e => {
     if (((e.key === 'Enter' && !e.shiftKey) || e.key === 'Escape') && !e.isComposing) { e.preventDefault(); (isWide() ? A.pcfixdone : A.rvfixdone)(); }
     return;
   }
-  if (ui.tab !== 'review' || !isWide() || ui.modal || ui.askOpen || ui.pview || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (ui.block !== 'mains' || ui.tab !== 'review' || !isWide() || ui.modal || ui.askOpen || ui.pview || e.ctrlKey || e.metaKey || e.altKey) return;
   const t = e.target;
   if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key, end = ui.pc.end;
