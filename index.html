@@ -2750,9 +2750,9 @@ function tFigures(st) {
     kv('Série sans ITM', st.streak + ' tournoi' + (st.streak > 1 ? 's' : ''), 'record de l\'année · série actuelle : ' + st.now, 'neg') +
     kv('Élimination à la pure bulle', st.paidKnown ? st.bubbles : '–', st.paidKnown ? 'à une place de l\'argent' : 'renseigne les places payées', 'neg') + '</div>';
 }
-/* which months are open, per year: the latest one at first; a saved tournament opens its month */
+/* which months are open, per year: none at first; a saved tournament opens its month */
 function tOpenSet(y, months) {
-  if (!ui.tmo || ui.tmo.y !== y) ui.tmo = { y: y, open: new Set(months.length ? [months[0]] : []) };
+  if (!ui.tmo || ui.tmo.y !== y) ui.tmo = { y: y, open: new Set() };
   return ui.tmo.open;
 }
 function tMonthList(list, links, y) {
