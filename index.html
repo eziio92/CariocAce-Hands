@@ -2342,7 +2342,7 @@ function tFigures(st) {
   const R = '<small>R$</small>', of = x => st.n ? esc(fmtPct(x / st.n, 1)) + ' des tournois' : '';
   return '<div class="kvs">' +
     kv('Tournois', st.n, '') + kv('Bullets', st.bullets, '') +
-    kv('Investi', esc(fmtN(st.inv)) + R, '') + kv('Gagné', esc(fmtN(st.gain)) + R, '') +
+    kv('Investi', esc(fmtN(st.inv)) + R, '') + kv('Gagné', '<span class="' + (st.gain > 0 ? 'res-won' : '') + '">' + esc(fmtN(st.gain)) + '</span>' + R, '') +
     kv('Buy-in moyen (ABI)', st.abi === null ? '–' : esc(fmtN(Math.round(st.abi))) + R, 'par bullet') +
     kv('Meilleur cash', st.best ? esc(fmtN(st.best.gain)) + R : '–', st.best ? esc(st.best.name || 'Sans nom') : '') +
     kv('ITM', st.itm, 'tournois avec un gain') + kv('% d\'ITM', st.itmPct === null ? '–' : esc(fmtPct(st.itmPct, 1)), st.itm + ' sur ' + st.n) +
