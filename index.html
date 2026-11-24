@@ -578,6 +578,28 @@ img.wait{opacity:0}
 .sr-v{font:600 16px var(--f-body);font-variant-numeric:tabular-nums;white-space:nowrap}
 .sr + .row .tlnk{padding-left:0}
 .sr-s{display:block;margin-top:3px;font:500 12.5px/1.4 var(--f-body);color:var(--fg-3)}
+/* tournament form in a sheet over the page, undo bar, glow on what was just touched */
+html.sheet-open,html.sheet-open body{overflow:hidden}
+.scrim{touch-action:none;overscroll-behavior:contain}
+.sheet:focus{outline:none}
+.sheet.tsheet{display:flex;flex-direction:column;overflow:hidden;max-height:92%;padding-bottom:0;overscroll-behavior:contain}
+.tsheet .sheet-in{flex:1;min-height:0;width:100%;gap:12px}
+.tsheet .sheet-h .lbl{font:600 17px/1.15 var(--f-disp);letter-spacing:-.015em;text-transform:none;color:var(--fg)}
+.ts-b{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:16px;padding:2px 2px 16px}
+.ts-f{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 0 calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--edge)}
+.ts-f .btn:not(.sm){flex:1;min-width:140px}
+.ts-f .hint{flex:0 0 100%;margin:0}
+.ts-f .tlnk{margin-left:auto;padding:10px 0 10px 12px}
+.toast.act{pointer-events:auto;display:flex;align-items:center;gap:14px;width:max-content;padding:6px 6px 6px 20px}
+.toast.act[hidden]{display:none}
+.t-undo{flex:none;min-height:44px;padding:0 18px;border:1px solid var(--edge-hi);border-radius:999px;background:var(--glass-3);color:var(--fg);font:600 14px var(--f-body);box-shadow:inset 0 1px 0 var(--edge-hi)}
+.t-undo:active{background:var(--glass-2)}
+.dr .lv{list-style:none;margin:0;padding:0}
+.dr .row{margin:10px 0 0;align-items:center;flex-wrap:wrap}
+.dr .pot{color:var(--fg-3)}
+.flash{animation:flash 1.8s ease-out}
+@keyframes flash{0%,30%{box-shadow:inset 0 0 0 2px var(--acc-ink),inset 0 0 36px var(--acc-glow)}100%{box-shadow:inset 0 0 0 2px transparent,inset 0 0 0 transparent}}
+@media (prefers-reduced-motion:reduce){.flash{animation:none;box-shadow:inset 0 0 0 2px var(--acc-ink)}}
 </style>
 <style>body{padding-top:env(safe-area-inset-top,0px)}</style>
 </head>
@@ -612,7 +634,7 @@ img.wait{opacity:0}
 <input type="file" id="in-photo" accept="image/*" multiple hidden>
 <input type="file" id="in-import" accept=".json,application/json" hidden>
 <div class="done" id="done" role="status" aria-live="polite" hidden></div>
-<div class="toast" id="toast" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <script>
 (function(){
 'use strict';
@@ -1147,7 +1169,7 @@ function boardProposal(res, h) {
   });
 }
 
-const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, delAsk: null, block: 'home', ty: null, tf: null, tmo: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
+const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, delAsk: null, block: 'home', ty: null, tf: null, tfBase: '', tsY: 0, pos: {}, undo: null, tmo: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
 
 /* ===== betting engine: replays the logged actions to get amounts, pot and SPR ===== */
 function actorsOf(h) {
@@ -1627,8 +1649,16 @@ function aiRow() {
                : '<button type="button" class="link" data-act="keyask">Oublier la clé</button>') + '</p>';
 }
 
+/* while a sheet covers the page: it does not scroll, and the keyboard / screen reader cannot wander behind it */
+function lockPage(on) {
+  document.documentElement.classList.toggle('sheet-open', !!on);
+  ['.top', 'main.wrap', '#savebar'].forEach(s => { const e = document.querySelector(s); if (e) e.inert = !!on; });
+}
 function renderSheet() {
   const root = $('#sheet-root');
+  const tOn = !!(ui.tf && ui.block === 'suivi' && !ui.modal);
+  lockPage(tOn);
+  if (tOn) { renderTSheet(); return; }   /* the tournament form: its own sheet, redrawn in place */
   if (ui.modal) {
     root.innerHTML = '<div class="scrim" data-act="closemodal"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="' + esc(ui.modal.title) + '"><div class="sheet-in">' +
       '<div class="sheet-h"><span class="lbl">' + esc(ui.modal.title) + '</span><button type="button" class="btn ghost sm" data-act="closemodal">Fermer</button></div>' +
@@ -2057,11 +2087,16 @@ function onStoreChange() {
   else if (ui.tab === 'list') renderList(); else if (ui.tab === 'review') renderReview(); else if (!typing) renderEdit();
   renderSave();
 }
-function toast(msg) {
-  const t = $('#toast');
-  t.textContent = msg; t.hidden = false;
+/* a message for a moment; with { undo: fn } it carries an « Annuler » button for 6 seconds */
+function toast(msg, opt) {
+  const t = $('#toast'), undo = opt && typeof opt.undo === 'function' ? opt.undo : null;
+  ui.undo = undo;
+  if (undo) t.innerHTML = '<span>' + esc(msg) + '</span><button type="button" class="t-undo" data-act="undo">Annuler</button>';
+  else t.textContent = msg;
+  t.classList.toggle('act', !!undo);
+  t.hidden = false;
   clearTimeout(ui.toastTimer);
-  ui.toastTimer = setTimeout(() => { t.hidden = true; }, 2600);
+  ui.toastTimer = setTimeout(() => { t.hidden = true; ui.undo = null; }, undo ? 6000 : 2600);
 }
 async function copyText(text, title) {
   try { await navigator.clipboard.writeText(text); toast('Copié'); }
@@ -2206,6 +2241,50 @@ function tPersist() {
   try { localStorage.setItem(LS_TOURN, JSON.stringify(tStore.list)); return true; }
   catch (e) { toast('Enregistrement impossible : le stockage de l\'appareil est plein ou bloqué'); return false; }
 }
+/* ===== drafts: what is typed in the form is kept on this device, one draft per form (a new tournament, or each tournament being edited) ===== */
+const LS_TDRAFT = 'carnet-tournoi-brouillons';
+const TF_DATA = ['date', 'name', 'buyin', 'bullets', 'gain', 'place', 'paid', 'joueurs', 'serie', 'etape', 'ft', 'live', 'mg', 'md', 'mr', 'db'];
+const tfKey = f => f.id || 'new';
+const tfSnap = f => JSON.stringify(TF_DATA.map(k => f[k]));
+function tdLoad() { try { const o = JSON.parse(localStorage.getItem(LS_TDRAFT) || '{}'); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch (e) { return {}; } }
+function tdSave(o) { try { if (Object.keys(o).length) localStorage.setItem(LS_TDRAFT, JSON.stringify(o)); else localStorage.removeItem(LS_TDRAFT); } catch (e) { /* not kept: the form still works */ } }
+function tdDrop(key) { const o = tdLoad(); if (o[key]) { delete o[key]; tdSave(o); } }
+let tdTimer = 0;
+function tdNow() {
+  clearTimeout(tdTimer);
+  const f = ui.tf;
+  if (!f) return;
+  const all = tdLoad(), k = tfKey(f);
+  if (tfSnap(f) === ui.tfBase) delete all[k];
+  else {
+    const c = {}; TF_DATA.concat(['sAuto', 'eAuto', 'eTouched', 'fin', 'dbo']).forEach(x => { c[x] = f[x]; });
+    const old = f.id ? tStore.list.find(t => t.id === f.id) : null;
+    all[k] = { f: c, base: old ? old.updatedAt : '', at: new Date().toISOString() };
+  }
+  tdSave(all);
+}
+const tdSoon = () => { clearTimeout(tdTimer); tdTimer = setTimeout(tdNow, 350); };
+/* a draft read back from the device: only known fields, each of the right type */
+function tdMerge(f, d) {
+  const str = (v, n) => typeof v === 'string' ? v.slice(0, n) : '';
+  const mk = v => Number.isInteger(v) && v >= 0 && v <= 10 ? v : null;
+  const r = Object.assign({}, f, {
+    date: validDate(d.date) ? d.date : f.date, name: str(d.name, 120), buyin: str(d.buyin, 20), gain: str(d.gain, 20), place: str(d.place, 7), paid: str(d.paid, 7), joueurs: str(d.joueurs, 7),
+    serie: str(d.serie, 40), etape: str(d.etape, 40), sAuto: str(d.sAuto, 40), eAuto: str(d.eAuto, 40), db: str(d.db, 600),
+    bullets: Number.isInteger(d.bullets) ? Math.max(1, Math.min(T_MAX.bullets, d.bullets)) : f.bullets,
+    ft: !!d.ft, live: !!d.live, eTouched: !!d.eTouched, dbo: !!(d.dbo || f.dbo), mg: mk(d.mg), md: mk(d.md), mr: mk(d.mr), resumed: true
+  });
+  if (f.fin) { r.fin = true; r.live = false; }   /* « Terminer » always ends the tournament */
+  return r;
+}
+const tDraftList = () => {
+  const o = tdLoad();
+  return Object.keys(o).map(k => {
+    const d = o[k], t = k === 'new' ? null : tStore.list.find(x => x.id === k);
+    if (!d || typeof d.f !== 'object' || !d.f || (k !== 'new' && (!t || d.base !== t.updatedAt))) return null;   /* the tournament changed (or is gone) since: that draft would undo it */
+    return { k: k, t: t, name: String(d.f.name || '').trim(), at: String(d.at || '') };
+  }).filter(Boolean);
+};
 /* backup file: add or update by id, never delete. Returns how many were added / updated / already up to date. */
 function tMerge(incoming) {
   let added = 0, updated = 0, same = 0;
@@ -2273,9 +2352,9 @@ function tSerieGuess(name) {
 /* ===== what the start screen shows (tournaments still being played are not counted) ===== */
 function tHomeTile() {
   const y = thisYear(), tot = tTotals(tStore.list.filter(t => tYear(t) === y && !t.live)), lv = tStore.list.filter(t => t.live).length;
-  const lvTxt = lv + (lv > 1 ? ' tournois en cours' : ' tournoi en cours');
-  if (!tot.n) return lv ? [String(y), lvTxt, 'Touche pour ouvrir'] : [String(y), 'aucun tournoi saisi', 'Touche pour commencer'];
-  return [String(y), tot.n + ' tournoi' + (tot.n > 1 ? 's' : '') + (lv ? ' · ' + lv + ' en cours' : ''), 'Gain net : ' + fmtNetBRL(tot.net)];
+  const lvTxt = lv + (lv > 1 ? ' tournois en cours' : ' tournoi en cours'), dr = tDraftList().length ? ' · brouillon en attente' : '';
+  if (!tot.n) return lv ? [String(y), lvTxt, 'Touche pour ouvrir' + dr] : [String(y), 'aucun tournoi saisi', 'Touche pour commencer' + dr];
+  return [String(y), tot.n + ' tournoi' + (tot.n > 1 ? 's' : '') + (lv ? ' · ' + lv + ' en cours' : ''), 'Gain net : ' + fmtNetBRL(tot.net) + dr];
 }
 const lastBackupMs = () => { try { const t = Date.parse(localStorage.getItem(LS_BACKUP) || ''); return Number.isFinite(t) ? t : 0; } catch (e) { return 0; } };
 const markBackup = () => { try { localStorage.setItem(LS_BACKUP, new Date().toISOString()); } catch (e) { /* not kept: the reminder simply stays */ } if (ui.block === 'home') renderHome(); else if (ui.block === 'suivi') renderSuivi(); };
@@ -2481,18 +2560,12 @@ function tFormFrom(t, over) {
   return Object.assign({ id: t.id, date: t.date, name: t.name, buyin: String(t.buyin), bullets: t.bullets, gain: String(t.gain), place: t.place ? String(t.place) : '', paid: t.paid ? String(t.paid) : '', joueurs: t.joueurs ? String(t.joueurs) : '', serie: t.serie || '', sAuto: '', etape: t.etape || '', eAuto: '', eTouched: false, ft: t.ft,
     live: !!t.live, fin: false, mg: m.g === undefined ? null : m.g, md: m.d === undefined ? null : m.d, mr: m.r === undefined ? null : m.r, db: t.debrief || '', dbo: !!(t.mental || t.debrief), err: '', delAsk: false }, over || {});
 }
-function tFormHtml() {
-  const f = ui.tf;
-  if (!f) return '';
+const tTitle = f => f.id ? (f.fin ? 'Terminer le tournoi' : 'Modifier le tournoi') : 'Nouveau tournoi';
+function tFormBody(f) {
   const names = Array.from(new Set(tSorted(tStore.list).map(t => t.name).concat(sortedHands().map(h => h.tournament)).filter(Boolean))).slice(0, 40);
   const recent = [];
   tSorted(tStore.list).slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).forEach(t => { if (recent.indexOf(t.buyin) < 0 && recent.length < 5) recent.push(t.buyin); });
-  const ask = f.delAsk
-    ? '<div class="grp-ask">Supprimer définitivement ce tournoi ? Pense à faire une sauvegarde avant si besoin.</div>' +
-      '<div class="row"><button type="button" class="btn ghost sm" data-act="tdelno">Annuler</button><button type="button" class="btn danger sm" data-act="tdelyes">Confirmer la suppression</button></div>'
-    : '';
-  return '<div class="sec" id="t-form"><div class="sec-h"><span class="lbl">' + (f.id ? (f.fin ? 'Terminer le tournoi' : 'Modifier le tournoi') : 'Nouveau tournoi') + '</span></div>' +
-    '<div class="grid2"><input class="inp" id="in-tname" list="dl-tname" placeholder="Nom du tournoi" value="' + esc(f.name) + '" data-in="t-name" autocomplete="off" aria-label="Nom du tournoi">' +
+  return '<div class="grid2"><input class="inp" id="in-tname" list="dl-tname" placeholder="Nom du tournoi" value="' + esc(f.name) + '" data-in="t-name" autocomplete="off" aria-label="Nom du tournoi">' +
     '<div class="datebox"><span class="dt" id="tdate-txt">' + esc(dateLbl(f.date)) + '</span>' +
       '<svg class="dt-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>' +
       '<input type="date" id="in-tdate" value="' + esc(f.date) + '" data-in="t-date" aria-label="Date de début"></div></div>' +
@@ -2515,10 +2588,41 @@ function tFormHtml() {
       '<p class="hint" id="t-fin" style="margin:0" hidden></p>') +
     fld('Places payées (facultatif)', '<input class="inp num" id="in-tpaid" inputmode="numeric" placeholder="Combien de joueurs sont ITM" value="' + esc(f.paid) + '" data-in="t-paid" autocomplete="off" aria-label="Nombre de places payées">' +
       '<p class="hint" id="t-bubble" style="margin:0" hidden></p>') + tDebriefFld(f)) +
-    '<p class="hint err" id="t-err" role="alert" hidden></p>' + ask +
-    '<div class="row"><button type="button" class="btn" data-act="tsave">Enregistrer</button><button type="button" class="btn ghost" data-act="tcancel">Annuler</button>' +
-      (f.id && !f.delAsk ? '<button type="button" class="btn ghost sm" data-act="tdelask">Supprimer</button>' : '') + '</div></div>';
+    '';
 }
+/* the form lives in a sheet over the page: closing it leaves the person exactly where they were (nothing is redrawn behind it) */
+function tSheetInner(f) {
+  return '<div class="sheet-h"><span class="lbl">' + esc(tTitle(f)) + '</span><button type="button" class="btn ghost sm" data-act="tclose">Fermer</button></div>' +
+    '<div class="ts-b" id="t-form">' + (f.resumed ? '<p class="hint" style="margin:0">Brouillon repris : ta saisie avait été gardée.</p>' : '') + tFormBody(f) + '</div>' +
+    '<div class="ts-f"><p class="hint err" id="t-err" role="alert" hidden></p>' +
+      '<button type="button" class="btn" data-act="tsave">Enregistrer</button>' +
+      (f.id ? '<button type="button" class="btn danger sm" data-act="tdel">Supprimer</button>' : '') +
+      '<button type="button" class="tlnk" id="t-clear" data-act="tcancel" hidden>Effacer ma saisie</button></div>';
+}
+function renderTSheet() {
+  const root = $('#sheet-root'), f = ui.tf && ui.block === 'suivi' ? ui.tf : null;
+  lockPage(!!f);
+  let sh = root.querySelector('.tsheet');
+  if (!f) { if (sh) root.innerHTML = ''; return; }
+  if (!sh) {
+    root.innerHTML = '<div class="scrim" data-act="tclose"></div><div class="sheet tsheet" role="dialog" aria-modal="true" tabindex="-1"><div class="sheet-in"></div></div>';
+    sh = root.querySelector('.tsheet');
+  }
+  const old = sh.querySelector('.ts-b'), keep = old ? old.scrollTop : 0;   /* switching a toggle redraws the form but not its place */
+  sh.setAttribute('aria-label', tTitle(f));
+  sh.querySelector('.sheet-in').innerHTML = tSheetInner(f);
+  const nb = sh.querySelector('.ts-b'); if (nb) nb.scrollTop = keep;
+  tSync(); tFit();
+}
+/* the on-screen keyboard shrinks the visible area: lift the sheet so "Enregistrer" stays in view */
+function tFit() {
+  const s = $('#sheet-root .tsheet'), v = window.visualViewport;
+  if (!s) return;
+  const kb = v ? Math.max(0, Math.round(window.innerHeight - v.height - v.offsetTop)) : 0;
+  s.style.bottom = kb ? kb + 'px' : '';
+  s.style.maxHeight = kb && v ? Math.max(240, Math.round(v.height - 12)) + 'px' : '';
+}
+if (window.visualViewport) { window.visualViewport.addEventListener('resize', tFit); window.visualViewport.addEventListener('scroll', tFit); }
 function tDash(st, y) {   /* y: the year, or the name of a stage */
   const hero = '<div class="dh"><span class="k">Gain net · ' + esc(String(y)) + '</span><span class="dh-v ' + netCls(st.net) + '">' + esc(fmtNet(st.net)) + '<small>R$</small></span>' +
     '<span class="sub">sur ' + esc(fmtN(st.inv)) + ' R$ investis</span></div>';
@@ -2609,6 +2713,49 @@ function tMonthsSync() {
   hs.forEach(h => { const m = +h.dataset.m, on = set.has(m); h.setAttribute('aria-expanded', on ? 'true' : 'false'); const c = $('#mo-' + m); if (c) c.hidden = !on; });
   const a = $('#t-all'); if (a) a.textContent = hs.length && hs.every(h => set.has(+h.dataset.m)) ? 'Tout replier' : 'Tout ouvrir';
 }
+/* a form left half-filled is kept: this card brings it back */
+function tDraftBox() {
+  const L = tDraftList();
+  if (!L.length) return '';
+  return '<div class="sec dr"><div class="sec-h"><span class="lbl">Brouillon</span><span class="pot">gardé sur cet appareil</span></div><ol class="lv">' +
+    L.map(d => {
+      const w = d.at ? new Date(d.at) : null;
+      return '<li class="lv-i"><div class="lv-h"><b>' + esc(d.name || 'Sans nom') + '</b><span class="tr-s">' + (d.t ? 'Modification d\'un tournoi' : 'Nouveau tournoi') +
+        (w && !isNaN(w) ? ' · ' + esc(w.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' à ' + w.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })) : '') + '</span></div>' +
+        '<div class="row"><button type="button" class="btn sm" data-act="tdresume" data-k="' + esc(d.k) + '">Reprendre</button><button type="button" class="btn ghost sm" data-act="tddrop" data-k="' + esc(d.k) + '">Effacer</button></div></li>';
+    }).join('') + '</ol></div>';
+}
+const calmMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+/* show where something went: scrolled into view only if it is not already, then it glows for a moment */
+function tPulse(el) {
+  if (!el) return;
+  const r = el.getBoundingClientRect(), vh = window.innerHeight || 700;
+  if (r.top < 150 || r.bottom > vh - 24) el.scrollIntoView({ block: 'center', behavior: calmMotion() ? 'auto' : 'smooth' });
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  setTimeout(() => el.classList.remove('flash'), 1900);
+}
+function tPulseRec(rec) {
+  if (ui.block !== 'suivi') return;
+  tPulse(rec.live ? document.querySelector('#view-suivi .sec.live') : document.querySelector('#view-suivi .tr[data-id="' + rec.id + '"]'));
+}
+/* open the form: a draft kept for this very form comes back with it */
+function tOpenForm(f) {
+  ui.tfBase = tfSnap(f);
+  const d = tdLoad()[tfKey(f)], t = f.id ? tStore.list.find(x => x.id === f.id) : null;
+  ui.tf = d && d.f && typeof d.f === 'object' && (!f.id || (t && d.base === t.updatedAt)) ? tdMerge(f, d.f) : f;
+  renderTSheet();
+  const sh = $('#sheet-root .tsheet'); if (sh && sh.focus) sh.focus({ preventScroll: true });
+}
+/* close the sheet: nothing behind it moves */
+function tShut() { clearTimeout(tdTimer); ui.tf = null; ui.tfBase = ''; renderTSheet(); }
+/* a deleted tournament comes back, in its month, with a glow */
+function tRestore(rec) {
+  if (tStore.list.some(t => t.id === rec.id)) return;
+  tStore.list.push(rec);
+  if (!tPersist()) { tStore.list.pop(); return; }
+  if (!rec.live) { ui.ty = tYear(rec); if (!ui.tmo || ui.tmo.y !== ui.ty) ui.tmo = { y: ui.ty, open: new Set() }; ui.tmo.open.add(+rec.date.slice(5, 7)); }
+  renderSuivi(); tPulseRec(rec); toast('Tournoi rétabli');
+}
 function renderSuivi() {
   const y = tSel(), inYear = tStore.list.filter(t => tYear(t) === y), done = tSorted(inYear.filter(t => !t.live)), st = tStats(done);
   const years = tYears(), last = lastBackupMs(), links = tHandLinks(), mv = ui.tv === 'm';
@@ -2618,7 +2765,7 @@ function renderSuivi() {
     '<div class="seg" id="t-years">' + years.map(v => '<button type="button" class="' + (v === y ? 'on' : '') + '" data-act="tyear" data-v="' + v + '">' + v + '</button>').join('') + '</div>' +
     '<div class="seg sw" id="t-views"><button type="button" class="' + (mv ? '' : 'on') + '" data-act="tview" data-v="r">Résultats</button><button type="button" class="' + (mv ? 'on' : '') + '" data-act="tview" data-v="m">Mental</button></div>' +
     (!mv && st.n && !stageView ? tDash(st, y) : '') +
-    (ui.tf ? '' : '<div class="row"><button type="button" class="btn" data-act="tadd">Ajouter un tournoi</button></div>') + '</div>';
+    '<div class="row"><button type="button" class="btn" data-act="tadd">Ajouter un tournoi</button></div></div>';
   let dash;
   if (mv) { tCv = null; dash = tMentalHtml(done, y); }
   else if (stageView) dash = stageView;
@@ -2631,7 +2778,7 @@ function renderSuivi() {
     '<p class="hint" style="margin:0">Tes tournois sont enregistrés sur cet appareil, dans le même fichier .json que tes mains. ' +
     (last ? 'Dernière sauvegarde : ' + esc(new Date(last).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })) + '.' : 'Pas encore de sauvegarde faite ici.') + '</p>' +
     '<div class="row"><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer une sauvegarde</button></div></div>';
-  $('#view-suivi').innerHTML = tLiveBox(links) + head + tFormHtml() + dash + bk;
+  $('#view-suivi').innerHTML = tLiveBox(links) + tDraftBox() + head + dash + bk;
   tSync();
 }
 /* live bits of the form that do not need a redraw (a redraw would drop the keyboard) */
@@ -2643,23 +2790,25 @@ function tSync() {
   const out = $('#t-bul'); if (out) out.textContent = f.bullets;
   const win = +f.place === 1, ft = $('#t-ft');
   if (ft) { const on = !!f.ft || win; ft.classList.toggle('on', on); ft.disabled = win; ft.setAttribute('aria-pressed', on ? 'true' : 'false'); }
-  document.querySelectorAll('#view-suivi [data-act=tbuy]').forEach(c => c.classList.toggle('on', b === +c.dataset.v));
+  document.querySelectorAll('#sheet-root [data-act=tbuy]').forEach(c => c.classList.toggle('on', b === +c.dataset.v));
   const bub = $('#t-bubble');
   if (bub) { const pl = +f.place, pd = +f.paid, on = pl > 0 && pd > 0 && pl === pd + 1; bub.textContent = on ? 'Pure bulle : tu finis juste avant les places payées.' : ''; bub.hidden = !on; }
   const si = $('#in-tserie'); if (si && si.value !== f.serie) si.value = f.serie;
   const ei = $('#in-tetape');
   if (ei) { if (ei.value !== f.etape) ei.value = f.etape; ei.placeholder = 'Par défaut : ' + (validDate(f.date) ? MOIS[+f.date.slice(5, 7) - 1] : ''); }
-  document.querySelectorAll('#view-suivi [data-act=tserie]').forEach(c => c.classList.toggle('on', !!f.serie && normName(c.dataset.v) === normName(f.serie)));
+  document.querySelectorAll('#sheet-root [data-act=tserie]').forEach(c => c.classList.toggle('on', !!f.serie && normName(c.dataset.v) === normName(f.serie)));
   const fn = $('#t-fin');
   if (fn) { const pl = +f.place, jo = +f.joueurs, on = pl > 0 && jo > 0 && pl <= jo; fn.textContent = on ? 'Top ' + fmtPct(pl / jo, 1) + ' du champ.' : ''; fn.hidden = !on; }
   M_KEYS.forEach(k => {
     const v = f['m' + k];
-    document.querySelectorAll('#view-suivi [data-act=tscore][data-k=' + k + ']').forEach(c => { const on = c.dataset.v !== '' && +c.dataset.v === v; c.classList.toggle('on', on); c.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    document.querySelectorAll('#sheet-root [data-act=tscore][data-k=' + k + ']').forEach(c => { const on = c.dataset.v !== '' && +c.dataset.v === v; c.classList.toggle('on', on); c.setAttribute('aria-pressed', on ? 'true' : 'false'); });
     const o = $('#sc-' + k + '-v'); if (o) o.textContent = v === null ? 'non noté' : v + '/10';
   });
-  const dh = document.querySelector('#view-suivi .dbh i');
+  const dh = document.querySelector('#sheet-root .dbh i');
   if (dh) { const n = (f.mg !== null) + (f.md !== null) + (f.mr !== null); dh.textContent = n ? n + '/3 noté' + (n > 1 ? 's' : '') : 'facultatif'; }
   const er = $('#t-err'); if (er) { er.textContent = f.err || ''; er.hidden = !f.err; }
+  const cl = $('#t-clear'); if (cl) cl.hidden = tfSnap(f) === ui.tfBase;
+  tdSoon();
 }
 function tInput(t, k) {
   const f = ui.tf;
@@ -2699,13 +2848,17 @@ const AT = {
     const t = tStore.list.find(x => x.id === el.dataset.id);
     if (!t) return;
     const nm = tHandLinks().name[t.id] || t.name;
-    closeFix(); ui.block = 'mains'; ui.tab = 'list'; ui.filter = 't:' + nm;
+    rememberPos(); closeFix(); ui.block = 'mains'; ui.tab = 'list'; ui.filter = 't:' + nm; ui.pos['mains:list'] = 0;
     ui.picker = null; ui.pending = null; ui.delGroup = null; ui.delAsk = null; ui.confirm = ''; ui.rv = null;
     renderAll(); window.scrollTo(0, 0);
   },
   tview(el) { ui.tv = el.dataset.v === 'm' ? 'm' : 'r'; ui.tstage = null; renderSuivi(); },
-  tstage(el) { ui.tstage = { k: el.dataset.k || '' }; renderSuivi(); window.scrollTo(0, 0); },
-  tback() { ui.tstage = null; renderSuivi(); scrollToEl('#t-stages'); },
+  tstage(el) { ui.tsY = Math.round(window.scrollY || 0); ui.tstage = { k: el.dataset.k || '' }; renderSuivi(); window.scrollTo(0, 0); },
+  tback() {   /* back to the stage list exactly where it was left, the row we came from glowing */
+    const k = ui.tstage ? ui.tstage.k : '';
+    ui.tstage = null; renderSuivi(); window.scrollTo(0, ui.tsY || 0);
+    tPulse(Array.from(document.querySelectorAll('#view-suivi .sr-b')).find(b => b.dataset.k === k));
+  },
   tstmains() {   /* every hand of the stage, in the list of the hands */
     const sv = ui.tstage;
     if (!sv) return;
@@ -2714,48 +2867,62 @@ const AT = {
     if (!list.length || !ids.length) return;
     const label = sv.k ? list[0].serie + ' · ' + tStageLabel(list[0]) : 'Hors série';
     ui.stageF = { label: label, ids: new Set(ids) };
-    closeFix(); ui.block = 'mains'; ui.tab = 'list'; ui.filter = 'st:' + label;
+    rememberPos(); closeFix(); ui.block = 'mains'; ui.tab = 'list'; ui.filter = 'st:' + label; ui.pos['mains:list'] = 0;
     ui.picker = null; ui.pending = null; ui.delGroup = null; ui.delAsk = null; ui.confirm = ''; ui.rv = null;
     renderAll(); window.scrollTo(0, 0);
   },
   tadd() {
-    ui.tf = { id: null, date: todayStr(), name: '', buyin: '', bullets: 1, gain: '', place: '', paid: '', joueurs: '', serie: '', sAuto: '', etape: '', eAuto: '', eTouched: false, ft: false, live: false, fin: false, mg: null, md: null, mr: null, db: '', dbo: false, err: '', delAsk: false };
-    renderSuivi(); scrollToEl('#t-form');
+    tOpenForm({ id: null, date: todayStr(), name: '', buyin: '', bullets: 1, gain: '', place: '', paid: '', joueurs: '', serie: '', sAuto: '', etape: '', eAuto: '', eTouched: false, ft: false, live: false, fin: false, mg: null, md: null, mr: null, db: '', dbo: false, err: '', delAsk: false });
   },
   tedit(el) {
     const t = tStore.list.find(x => x.id === el.dataset.id);
     if (!t) return;
-    ui.tf = tFormFrom(t); renderSuivi(); scrollToEl('#t-form');
+    tOpenForm(tFormFrom(t));
   },
   tfinish(el) {   /* leaving a tournament: the same form, no longer "en cours", ready for the result */
     const t = tStore.list.find(x => x.id === el.dataset.id);
     if (!t) return;
-    ui.tf = tFormFrom(t, { live: false, fin: true, gain: t.gain > 0 ? String(t.gain) : '' }); renderSuivi(); scrollToEl('#t-form');
+    tOpenForm(tFormFrom(t, { live: false, fin: true, gain: t.gain > 0 ? String(t.gain) : '' }));
   },
   tdebrief(el) {
     const t = tStore.list.find(x => x.id === el.dataset.id);
     if (!t) return;
-    ui.tf = tFormFrom(t, { dbo: true }); renderSuivi(); scrollToEl('#t-form');
+    tOpenForm(tFormFrom(t, { dbo: true }));
   },
-  tlive() { const f = ui.tf; if (!f) return; f.live = !f.live; f.err = ''; renderSuivi(); },
+  tdresume(el) {
+    const k = el.dataset.k;
+    if (k === 'new') { AT.tadd(); return; }
+    const t = tStore.list.find(x => x.id === k);
+    if (t) tOpenForm(tFormFrom(t));
+  },
+  tddrop(el) { tdDrop(el.dataset.k); renderSuivi(); },
+  tlive() { const f = ui.tf; if (!f) return; f.live = !f.live; f.err = ''; renderTSheet(); },
   tserie(el) { const f = ui.tf; if (!f) return; f.serie = normName(f.serie) === normName(el.dataset.v) ? '' : el.dataset.v; f.sAuto = ''; tAutoEtape(); tSync(); },
   tstages() { ui.tsAll = !ui.tsAll; tStagesSync(); },
-  tdbt() { const f = ui.tf; if (!f) return; f.dbo = !f.dbo; renderSuivi(); },
+  tdbt() { const f = ui.tf; if (!f) return; f.dbo = !f.dbo; renderTSheet(); },
   tscore(el) { const f = ui.tf, k = el.dataset.k; if (!f || M_KEYS.indexOf(k) < 0) return; f['m' + k] = el.dataset.v === '' ? null : +el.dataset.v; tSync(); },
-  tcancel() { ui.tf = null; renderSuivi(); },
+  tclose() {   /* leaving the sheet keeps what was typed; the page behind has not moved */
+    const f = ui.tf;
+    if (!f) return;
+    tdNow(); const kept = !!tdLoad()[tfKey(f)];
+    tShut(); renderSuivi();
+    if (kept) toast('Brouillon gardé');
+  },
+  tcancel() { const f = ui.tf; if (!f) return; tdDrop(tfKey(f)); tShut(); renderSuivi(); },   /* « Effacer ma saisie » */
   tbul(el) { const f = ui.tf; if (!f) return; f.bullets = Math.max(1, Math.min(T_MAX.bullets, f.bullets + (+el.dataset.v))); f.err = ''; tSync(); },
   tbuy(el) { const f = ui.tf; if (!f) return; f.buyin = String(+el.dataset.v); const i = $('#in-tbuy'); if (i) i.value = f.buyin; f.err = ''; tSync(); },
   tgain0() { const f = ui.tf; if (!f) return; f.gain = '0'; const i = $('#in-tgain'); if (i) i.value = '0'; f.err = ''; tSync(); },
   tft() { const f = ui.tf; if (!f || +f.place === 1) return; f.ft = !f.ft; tSync(); },
-  tdelask() { if (ui.tf) { ui.tf.delAsk = true; renderSuivi(); } },
-  tdelno() { if (ui.tf) { ui.tf.delAsk = false; renderSuivi(); } },
-  tdelyes() {
+  tdel() {   /* no confirmation page: the bar « Annuler » brings it back for a few seconds */
     const f = ui.tf;
     if (!f || !f.id) return;
+    const gone = tStore.list.find(t => t.id === f.id);
+    if (!gone) return;
     const keep = tStore.list;
     tStore.list = keep.filter(t => t.id !== f.id);
     if (!tPersist()) { tStore.list = keep; return; }
-    ui.tf = null; renderSuivi(); toast('Tournoi supprimé');
+    tdDrop(tfKey(f)); tShut(); renderSuivi();
+    toast('Tournoi supprimé', { undo: () => tRestore(gone) });
   },
   tsave() {
     const f = ui.tf;
@@ -2779,7 +2946,7 @@ const AT = {
     if (!err && joueurs !== null && !(joueurs >= 1 && joueurs <= T_MAX.place)) err = 'Joueurs : un nombre à partir de 1, ou laisse vide.';
     if (!err && !live && joueurs !== null && place !== null && place > joueurs) err = 'La place finale ne peut pas dépasser le nombre de joueurs.';
     if (!err && !live && joueurs !== null && paid !== null && paid > joueurs) err = 'Les places payées ne peuvent pas dépasser le nombre de joueurs.';
-    if (err) { f.err = err; tSync(); const e = $('#t-err'); if (e && e.scrollIntoView) e.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+    if (err) { f.err = err; tSync(); return; }
     const now = new Date().toISOString(), old = f.id ? tStore.list.find(t => t.id === f.id) : null;
     const rec = {
       id: old ? old.id : 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
@@ -2790,10 +2957,10 @@ const AT = {
     const before = tStore.list.slice();
     if (old) tStore.list[tStore.list.indexOf(old)] = rec; else tStore.list.push(rec);
     if (!tPersist()) { tStore.list = before; return; }
-    ui.tf = null; ui.ty = tYear(rec);
+    tdDrop(tfKey(f)); tShut(); ui.ty = tYear(rec);
     if (!ui.tmo || ui.tmo.y !== ui.ty) ui.tmo = { y: ui.ty, open: new Set() };
     ui.tmo.open.add(+rec.date.slice(5, 7));   /* the month of what was just saved stays open */
-    renderSuivi(); window.scrollTo(0, 0); toast(live ? 'Tournoi en cours enregistré' : old && old.live ? 'Tournoi terminé' : old ? 'Tournoi modifié' : 'Tournoi enregistré');
+    renderSuivi(); tPulseRec(rec); toast(live ? 'Tournoi en cours enregistré' : old && old.live ? 'Tournoi terminé' : old ? 'Tournoi modifié' : 'Tournoi enregistré');
   }
 };
 
@@ -2814,6 +2981,10 @@ function currentActor() {
   if (alive.some(a => a.id === ui.actor)) return ui.actor;
   return defaultActor(H, sim, ui.street, alive);
 }
+/* each screen remembers where it was left: coming back puts the person exactly there, not at the top */
+const viewKey = () => ui.block === 'mains' ? 'mains:' + ui.tab : ui.block;
+function rememberPos() { ui.pos[viewKey()] = Math.round(window.scrollY || 0); }
+const placeView = () => window.scrollTo(0, ui.pos[viewKey()] || 0);
 function scrollToEl(sel) {
   const el = $(sel);
   if (!el) return;
@@ -2869,6 +3040,7 @@ function openHand(id) {
   const h = store.hands.find(x => x.id === id);
   if (!h) return;
   H = normHand(clone(h)); editingId = h.id; origJson = JSON.stringify(H);
+  rememberPos();
   ui.tab = 'edit'; ui.street = 'preflop'; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = '';
   renderAll(); window.scrollTo(0, 0); saveDraftSoon();
 }
@@ -2998,7 +3170,8 @@ async function saveHand() {
   const nph = photosWaiting().length;
   celebrate('Main n°' + ((gi && gi.no) || h.handNo || '') + (was ? ' mise à jour' : ' enregistrée'), was ? '' : (nph ? nph + ' photo' + (nph > 1 ? 's' : '') + ' à traiter' : 'Prêt pour la main suivante'));
   const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  window.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' });
+  if (was) window.scrollTo(0, ui.pos['mains:list'] || 0);   /* back in the list, where the hand was opened */
+  else window.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' });
   if (!was) {
     const v = $('#view-edit');
     v.classList.remove('enter'); void v.offsetWidth; v.classList.add('enter');
@@ -3071,12 +3244,16 @@ const A = {
   block(el) {
     const v = el.dataset.v;
     if (ui.block === v) { window.scrollTo(0, 0); return; }
-    closeFix(); ui.block = v; ui.picker = null; ui.pending = null; ui.delGroup = null; ui.delAsk = null; ui.confirm = '';
+    rememberPos(); closeFix(); ui.block = v; ui.picker = null; ui.pending = null; ui.delGroup = null; ui.delAsk = null; ui.confirm = '';
     if (v === 'mains') autoLive();
-    renderAll(); window.scrollTo(0, 0);
+    renderAll(); placeView();
   },
   pickt(el) { H.tournament = el.dataset.v; ui.tManual = true; rerender(); },   /* a tournament of the Suivi chosen for this hand */
-  tab(el) { closeFix(); ui.tab = el.dataset.v; ui.picker = null; ui.delGroup = null; ui.rv = null; renderAll(); window.scrollTo(0, 0); },
+  tab(el) {
+    const same = ui.tab === el.dataset.v;
+    rememberPos(); closeFix(); ui.tab = el.dataset.v; ui.picker = null; ui.delGroup = null; ui.rv = null; renderAll();
+    if (same) window.scrollTo(0, 0); else placeView();   /* the tab already open: back to its top; another one: where it was left */
+  },
   table(el) {
     H.table = el.dataset.v;
     const ok = new Set(TABLES[H.table]);
@@ -3098,6 +3275,11 @@ const A = {
   clearcard() { const arr = cardsOf(H, ui.picker.group); if (arr) { arr[ui.picker.i] = null; rerender(); } },
   closesheet() { ui.picker = null; rerender(); },
   closemodal() { ui.modal = null; renderSheet(); },
+  undo() {   /* the « Annuler » of the bar: undoes the last deletion, if the 6 seconds have not passed */
+    const f = ui.undo;
+    ui.undo = null; clearTimeout(ui.toastTimer); $('#toast').hidden = true;
+    if (f) f();
+  },
   street(el) { ui.street = el.dataset.v; ui.pending = null; ui.actor = null; renderEdit(); },
   actor(el) { ui.actor = el.dataset.v; ui.pending = null; renderEdit(); },
   do(el) { pushAction(el.dataset.t); },
@@ -3237,10 +3419,10 @@ const A = {
     storeRemove(id).then(() => {
       ph.forEach(photoRemove);
       toast('Main supprimée');
-      resetEditor(freshCtx()); ui.tab = 'list'; renderAll(); window.scrollTo(0, 0);
+      resetEditor(freshCtx()); ui.tab = 'list'; renderAll(); window.scrollTo(0, ui.pos['mains:list'] || 0);
     }).catch(e => { toast('Suppression impossible' + (e && e.code ? ' (' + e.code + ')' : '')); });
   },
-  'do-abandon'() { resetEditor(freshCtx()); ui.tab = 'list'; renderAll(); window.scrollTo(0, 0); },
+  'do-abandon'() { resetEditor(freshCtx()); ui.tab = 'list'; renderAll(); window.scrollTo(0, ui.pos['mains:list'] || 0); },
   'do-clear'() { resetEditor(); renderAll(); window.scrollTo(0, 0); },
   copy() {
     const n = clone(H), k = editingId ? groupInfo()[editingId] : null;
@@ -3375,7 +3557,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  if (ui.pview) A.phclose(); else if (ui.askOpen) A['askopen-cancel']();
+  if (ui.pview) A.phclose(); else if (ui.askOpen) A['askopen-cancel'](); else if (ui.tf && ui.block === 'suivi') AT.tclose();
 });
 document.addEventListener('click', e => {
   const t = e.target;
@@ -3433,8 +3615,8 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('mousedown', e => { if (e.target.closest && e.target.closest('[data-keepfocus]')) e.preventDefault(); });
 document.addEventListener('focusout', e => { if (e.target && e.target.id === 'in-fix') setTimeout(commitFix, 200); });
-document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(draftTimer); writeDraft(); commitFix(); } });
-window.addEventListener('pagehide', () => { clearTimeout(draftTimer); writeDraft(); commitFix(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(draftTimer); writeDraft(); commitFix(); tdNow(); } });
+window.addEventListener('pagehide', () => { clearTimeout(draftTimer); writeDraft(); commitFix(); tdNow(); });
 
 /* ===== boot ===== */
 tLoad();
