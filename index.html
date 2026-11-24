@@ -471,11 +471,11 @@ img.wait{opacity:0}
 .tr-d{flex:none;width:40px;text-align:center;font:600 10.5px/1.1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--fg-2)}
 .tr-d b{display:block;font:700 19px/1.1 var(--f-disp);letter-spacing:-.02em;color:var(--fg)}
 .tr-m{flex:1;min-width:0}
-.tr-m b{display:block;font:600 15px/1.25 var(--f-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-m b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font:600 15px/1.25 var(--f-body);overflow-wrap:anywhere}
 .tr-s{display:block;margin-top:2px;font:500 12.5px/1.3 var(--f-body);color:var(--fg-2);font-variant-numeric:tabular-nums}
-.tr-r{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.tr-r{flex:none;display:flex;align-items:center}
 .tr-n{font:700 15px var(--f-disp);letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
-.tr-b{display:flex;gap:4px}
+.tr-b{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
 .tr-b i{font:700 9px/1 var(--f-body);font-style:normal;letter-spacing:.1em;text-transform:uppercase;padding:4px 7px;border-radius:999px;border:1px solid var(--edge-hi);color:var(--acc-ink);background:var(--acc-wash);white-space:nowrap}
 .step{display:flex;align-items:center;justify-content:space-between;height:46px;padding:0 4px;border:1px solid var(--edge);border-radius:16px;background:var(--field);box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
 .step button{width:52px;height:38px;border:0;border-radius:12px;background:transparent;color:var(--fg);font:500 24px/1 var(--f-body)}
@@ -484,6 +484,45 @@ img.wait{opacity:0}
 .hint.err{color:var(--bad)}
 .bk{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding:12px 14px;border:1px solid var(--edge);border-radius:20px;background:var(--glass);font:500 13px/1.35 var(--f-body);color:var(--fg-2)}
 .bk .btn{min-height:40px;padding:0 16px;font-size:13.5px}
+.tr-mn{display:block;width:100%;margin:-4px 0 0;padding:2px 14px 12px 66px;border:0;background:transparent;text-align:left;color:var(--acc-ink);font:600 12.5px var(--f-body)}
+.tr-mn:active{opacity:.6}
+.hud.two{grid-template-columns:1fr 1fr}
+.dh{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;padding:16px 18px;border:1px solid var(--edge);border-radius:22px;background:var(--glass-2);box-shadow:inset 0 1px 0 var(--edge-hi)}
+.dh .k{font:600 10px/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--fg-2)}
+.dh-v{font:600 40px/1.05 var(--f-disp);letter-spacing:-.045em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.dh-v small{margin-left:7px;font:500 15px var(--f-body);letter-spacing:0;color:var(--fg-2)}
+.dh .sub{font:500 12.5px/1.35 var(--f-body);font-variant-numeric:tabular-nums;color:var(--fg-3)}
+.kvs{display:grid;grid-template-columns:1fr 1fr;column-gap:18px}
+.kvs>div{display:flex;flex-direction:column;gap:4px;min-width:0;padding:12px 0;border-top:1px solid var(--edge)}
+.kvs>div:nth-child(-n+2){border-top:0;padding-top:2px}
+.kvs .k{font:600 10px/1.2 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--fg-2)}
+.kvs b{font:600 20px/1.15 var(--f-disp);letter-spacing:-.03em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.kvs b small{margin-left:4px;font:500 11px var(--f-body);letter-spacing:0;color:var(--fg-2)}
+.kvs i{font:500 11.5px/1.3 var(--f-body);font-style:normal;color:var(--fg-3);overflow-wrap:anywhere}
+.kvs .wide{grid-column:1/-1}
+.cv{position:relative;height:176px;border-radius:20px;background:var(--field);border:1px solid var(--edge);overflow:hidden;touch-action:pan-y;cursor:crosshair}
+.cv-svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.cv-z{stroke:var(--edge-hi);stroke-width:1;stroke-dasharray:3 4;vector-effect:non-scaling-stroke}
+.cv-a{fill:var(--fg);fill-opacity:.07;stroke:none}
+.cv-l{fill:none;stroke:var(--fg);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.cv-y{position:absolute;left:10px;transform:translateY(-50%);font:600 10.5px var(--f-body);color:var(--fg-3);font-variant-numeric:tabular-nums;pointer-events:none}
+.cv-g{position:absolute;top:0;bottom:0;width:1px;background:var(--edge-hi);pointer-events:none}
+.cv-g[hidden]{display:none}
+.cv-d{position:absolute;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:var(--fg);box-shadow:0 0 0 4px rgba(255,255,255,.12);pointer-events:none}
+.cv-m{position:relative;height:16px;margin-top:6px}
+.cv-m span{position:absolute;transform:translateX(-50%);font:600 10px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3);white-space:nowrap}
+.cv-r{margin:8px 0 0;min-height:34px;font-variant-numeric:tabular-nums}
+.cv-r b{color:var(--fg)}
+.mo{list-style:none;margin:0;padding:0}
+.mo li{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--edge)}
+.mo li:first-child{border-top:0;padding-top:0}
+.mo-l b{display:block;font:600 14px var(--f-body)}
+.mo-l i{font:500 11.5px var(--f-body);font-style:normal;color:var(--fg-3)}
+.mo-b{height:8px;border-radius:999px;background:var(--field);overflow:hidden}
+.mo-b u{display:block;height:100%;border-radius:999px;text-decoration:none;opacity:.9}
+.mo-b u.won{background:var(--ok)}
+.mo-b u.lost{background:var(--bad)}
+.mo-n{min-width:68px;text-align:right;font:700 14px var(--f-disp);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 </style>
 <style>body{padding-top:env(safe-area-inset-top,0px)}</style>
 </head>
@@ -708,6 +747,7 @@ async function storeRemoveMany(ids) {
    Hands of one tournament, entered one after the other, form one group. The calendar date alone never splits it:
    a tournament that runs past midnight stays whole (same name, date at most a day apart, entered within 12 h).
    Inside a group the hands are numbered 1, 2, 3... in the order they were entered. */
+const normName = s => String(s == null ? '' : s).trim().replace(/\s+/g, ' ').toLowerCase();   /* "ksop  Main Event " = "KSOP Main Event" */
 const SESSION_GAP = 12 * 3600 * 1000;
 const dayNum = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '')); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000 : NaN; };
 const stamp = h => { const t = Date.parse(h.createdAt || ''); return Number.isFinite(t) ? t : 0; };
@@ -1340,7 +1380,7 @@ function secPhotos() {
 
 function secContext() {
   const no = editingId ? ((groupInfo()[editingId] || {}).no || H.handNo || '') : nextHandNo(H);
-  const names = Array.from(new Set(sortedHands().map(h => h.tournament).filter(Boolean))).slice(0, 12);
+  const names = Array.from(new Set(sortedHands().map(h => h.tournament).concat(tSorted(tStore.list).map(t => t.name)).filter(Boolean))).slice(0, 30);
   const ante = num(H.ante);
   return '<div class="sec"><div class="sec-h"><span class="lbl">Tournoi</span><span class="sec-r"><span class="pot">' + (editingId ? 'Modification · ' : '') + 'main n°<b>' + esc(no) + '</b></span>' +
     '<button type="button" class="camb" data-act="photoadd" aria-label="Ajouter des photos du board" title="Ajouter des photos du board"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l1.1-1.6A1.5 1.5 0 0 1 10 3.8h4a1.5 1.5 0 0 1 1.2.6L16.3 6h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.3"/></svg></button></span></div>' +
@@ -1348,7 +1388,7 @@ function secContext() {
     '<div class="datebox"><span class="dt" id="date-txt">' + esc(dateLbl(H.date)) + '</span>' +
       '<svg class="dt-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>' +
       '<input type="date" id="in-date" value="' + esc(H.date) + '" data-in="date" aria-label="Date"></div></div>' +
-    '<datalist id="dl-tourn">' + names.map(n => '<option value="' + esc(n) + '"></option>').join('') + '</datalist>' +
+    '<datalist id="dl-tourn">' + names.map(n => '<option value="' + esc(n) + '"></option>').join('') + '</datalist>' + tPickRow() +
     '<div class="seg">' + Object.keys(TABLES).map(k => '<button type="button" class="' + (H.table === k ? 'on' : '') + '" data-act="table" data-v="' + k + '">' + TABLE_LABEL[k] + '</button>').join('') + '</div>' +
     fld('Ante', '<div class="stackrow">' + chip('Aucune', { on: !(ante > 0), attrs: 'data-act="ante" data-v="0"' }) + chip('BBA 1 bb', { on: ante === 1, attrs: 'data-act="ante" data-v="1"' }) +
       '<input class="inp num sm" id="in-ante" inputmode="decimal" placeholder="autre" value="' + (ante > 0 && ante !== 1 ? esc(H.ante) : '') + '" data-in="ante" aria-label="Ante totale en bb" autocomplete="off"></div>') +
@@ -1696,7 +1736,7 @@ function filteredHands() {
   if (ui.filter === 'good') return all.filter(h => h.verdict === 'good');
   if (ui.filter === 'bad') return all.filter(h => h.verdict === 'bad');
   if (ui.filter === 'todo') return all.filter(h => issues(normHand(h)).length);
-  if (ui.filter.indexOf('t:') === 0) return all.filter(h => h.tournament === ui.filter.slice(2));
+  if (ui.filter.indexOf('t:') === 0) { const k = normName(ui.filter.slice(2)); return all.filter(h => normName(h.tournament) === k); }
   return all;
 }
 
@@ -1712,6 +1752,7 @@ function renderList() {
   const names = [];
   all.forEach(h => { if (h.tournament && names.indexOf(h.tournament) < 0) names.push(h.tournament); });
   const filters = [['all', 'Toutes'], ['good', '✓ Bon'], ['bad', '✗ Mauvais'], ['todo', 'À compléter']].concat(names.slice(0, 6).map(n => ['t:' + n, n]));
+  if (ui.filter.indexOf('t:') === 0 && !filters.some(f => f[0] === ui.filter)) filters.push([ui.filter, ui.filter.slice(2)]);   /* a tournament opened from the Suivi */
   const list = filteredHands(), keep = new Set(list.map(h => h.id)), info = groupInfo();
   /* copy / delete a whole tournament only when each tournament is shown in full (not under a verdict or "À compléter" filter) */
   const whole = ui.filter === 'all' || ui.filter.indexOf('t:') === 0;
@@ -2036,8 +2077,8 @@ const tStore = { list: [] };
 const T_MAX = { money: 1e9, bullets: 999, place: 1e6 };
 const cents = x => Math.round(x * 100) / 100;
 const fmtN = n => cents(n).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
-const fmtBRL = n => 'R$ ' + fmtN(n);
-const fmtNetBRL = n => (n > 0 ? '+' : n < 0 ? '−' : '') + 'R$ ' + fmtN(Math.abs(n));
+const fmtBRL = n => 'R$\u00a0' + fmtN(n);   /* no line break between R$ and the amount */
+const fmtNetBRL = n => (n > 0 ? '+' : n < 0 ? '−' : '') + 'R$\u00a0' + fmtN(Math.abs(n));
 const fmtNet = n => (n > 0 ? '+' : n < 0 ? '−' : '') + fmtN(Math.abs(n));
 
 /* an amount typed by hand: "1000", "1 000", "1.000", "1.000,50", "250,5", "R$ 500" */
@@ -2136,18 +2177,120 @@ function bkHint() {
     '</span><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarder</button></div>';
 }
 
+/* ===== numbers of the selected year ===== */
+const tChrono = list => list.slice().sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.createdAt).localeCompare(String(b.createdAt)) || a.id.localeCompare(b.id));
+function tStats(list) {
+  const s = { n: list.length, bullets: 0, inv: 0, gain: 0, itm: 0, ft: 0, wins: 0, bubbles: 0, paidKnown: false, best: null, streak: 0, now: 0 };
+  tChrono(list).forEach(t => {
+    s.bullets += t.bullets; s.inv += t.buyin * t.bullets; s.gain += t.gain;
+    if (t.gain > 0) { s.itm++; s.now = 0; if (!s.best || t.gain > s.best.gain) s.best = t; }
+    else { s.now++; if (s.now > s.streak) s.streak = s.now; }   /* longest run of tournaments without a cash, in playing order */
+    if (t.ft) s.ft++;
+    if (t.place === 1) s.wins++;
+    if (t.place && t.paid) { s.paidKnown = true; if (t.place === t.paid + 1) s.bubbles++; }
+  });
+  s.inv = cents(s.inv); s.gain = cents(s.gain); s.net = cents(s.gain - s.inv);
+  s.roi = s.inv > 0 ? s.net / s.inv : null;
+  s.itmPct = s.n ? s.itm / s.n : null;
+  s.abi = s.bullets ? s.inv / s.bullets : null;
+  return s;
+}
+const fmtPct = (x, d) => (x * 100).toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d }) + ' %';
+const fmtSignPct = (x, d) => (cents(x * 100) > 0 ? '+' : cents(x * 100) < 0 ? '−' : '') + fmtPct(Math.abs(x), d);
+const netCls = n => (n > 0 ? 'res-won' : n < 0 ? 'res-lost' : '');
+const MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+function tMonths(list) {
+  const m = {};
+  list.forEach(t => { const k = +t.date.slice(5, 7), a = m[k] || (m[k] = { m: k, n: 0, net: 0 }); a.n++; a.net += t.gain - t.buyin * t.bullets; });
+  return Object.keys(m).map(Number).sort((a, b) => a - b).map(k => { m[k].net = cents(m[k].net); return m[k]; });
+}
+
+/* ===== link with the hands: a hand belongs to the tournament of the same name; when several tournaments share a name
+   (two "KSOP Main Event" in the year), it goes to the latest one that had started by the hand's first day ===== */
+function tHandLinks() {
+  const out = { n: {}, name: {} };
+  if (!store.ready || !store.hands.length || !tStore.list.length) return out;
+  const twins = {};
+  tStore.list.forEach(t => { const k = normName(t.name); if (k) (twins[k] = twins[k] || []).push(t); });
+  Object.keys(twins).forEach(k => twins[k].sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.createdAt).localeCompare(String(b.createdAt))));
+  tournamentGroups(store.hands).forEach(g => {
+    const c = twins[normName(g.name)];
+    if (!c) return;
+    let o = c[0];
+    for (let i = 0; i < c.length; i++) if (c[i].date <= g.start) o = c[i];
+    out.n[o.id] = (out.n[o.id] || 0) + g.hands.length;
+    if (!out.name[o.id]) out.name[o.id] = g.name;
+  });
+  return out;
+}
+/* the editor of a hand offers the tournaments of the Suivi, newest first, one chip per name */
+function tPickRow() {
+  const seen = new Set(), names = [];
+  tSorted(tStore.list).forEach(t => { const k = normName(t.name); if (k && !seen.has(k)) { seen.add(k); names.push(t.name); } });
+  if (!names.length) return '';
+  return fld('Depuis ton Suivi', '<div class="scroll-row">' + names.slice(0, 6).map(n => chip(esc(n), { on: normName(H.tournament) === normName(n), attrs: 'data-act="pickt" data-v="' + esc(n) + '"' })).join('') + '</div>');
+}
+function syncPickT() { document.querySelectorAll('[data-act=pickt]').forEach(c => c.classList.toggle('on', normName(c.dataset.v) === normName(H.tournament))); }
+
+/* ===== curve of the cumulative net, drawn with the browser alone ===== */
+let tCv = null;   /* what is on screen, for the finger / mouse readout */
+function tChart(chrono) {
+  const n = chrono.length;
+  if (!n) { tCv = null; return ''; }
+  const cum = [0];
+  chrono.forEach(t => cum.push(cents(cum[cum.length - 1] + t.gain - t.buyin * t.bullets)));
+  const lo = Math.min.apply(null, cum), hi = Math.max.apply(null, cum);   /* cum starts at 0, so 0 is always inside */
+  const pad = ((hi - lo) || 1) * 0.1, y0 = lo - pad, y1 = hi + pad;
+  const X = i => i / n * 100, Y = v => (y1 - v) / (y1 - y0) * 100;
+  tCv = { n: n, cum: cum, chrono: chrono, X: X, Y: Y };
+  const pts = cum.map((v, i) => X(i).toFixed(2) + ',' + Y(v).toFixed(2)).join(' '), yz = Y(0).toFixed(2);
+  const k = v => (v > 0 ? '+' : v < 0 ? '−' : '') + (Math.abs(v) >= 1000 ? (Math.abs(v) / 1000).toLocaleString('fr-FR', { maximumFractionDigits: Math.abs(v) >= 10000 ? 0 : 1 }) + ' k' : String(Math.round(Math.abs(v))));
+  const labels = [[0, '0']];
+  if (hi > 0 && Y(0) - Y(hi) >= 12) labels.push([hi, k(hi)]);
+  if (lo < 0 && Y(lo) - Y(0) >= 12) labels.push([lo, k(lo)]);
+  const months = []; let lastX = -99, lastKey = '';
+  chrono.forEach((t, i) => { const key = t.date.slice(0, 7); if (key !== lastKey) { lastKey = key; if (X(i) - lastX >= 11) { months.push([X(i), MOIS[+t.date.slice(5, 7) - 1]]); lastX = X(i); } } });
+  const last = cum[n];
+  return '<div class="cv" id="cv" role="img" aria-label="' + esc('Courbe du gain cumulé : ' + n + ' tournoi' + (n > 1 ? 's' : '') + ', de R$ 0 à ' + fmtNetBRL(last)) + '">' +
+    '<svg class="cv-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line class="cv-z" x1="0" x2="100" y1="' + yz + '" y2="' + yz + '"/>' +
+      '<polygon class="cv-a" points="' + pts + ' 100,' + yz + ' 0,' + yz + '"/><polyline class="cv-l" points="' + pts + '"/></svg>' +
+    labels.map(l => '<span class="cv-y" style="top:' + Y(l[0]).toFixed(2) + '%">' + esc(l[1]) + '</span>').join('') +
+    '<i class="cv-g" id="cv-g" hidden></i><i class="cv-d" id="cv-d" style="left:100%;top:' + Y(last).toFixed(2) + '%"></i></div>' +
+    '<div class="cv-m" aria-hidden="true">' + months.map(m => '<span style="left:' + m[0].toFixed(2) + '%;' + (m[0] < 8 ? 'transform:none' : m[0] > 92 ? 'transform:translateX(-100%)' : '') + '">' + esc(m[1]) + '</span>').join('') + '</div>' +
+    '<p class="hint cv-r" id="cv-r">Touche la courbe pour voir chaque tournoi.</p>';
+}
+function cvAt(i) {
+  if (!tCv) return;
+  i = Math.max(0, Math.min(tCv.n, i));
+  const g = $('#cv-g'), d = $('#cv-d'), r = $('#cv-r');
+  if (!g || !d || !r) return;
+  g.hidden = false; g.style.left = tCv.X(i) + '%'; d.style.left = tCv.X(i) + '%'; d.style.top = tCv.Y(tCv.cum[i]) + '%';
+  if (i === 0) { r.textContent = 'Départ · cumul R$ 0'; return; }
+  const t = tCv.chrono[i - 1], net = cents(t.gain - t.buyin * t.bullets);
+  r.innerHTML = '<b>#' + i + ' ' + esc(t.name || 'Sans nom') + '</b> · ' + esc(fmtNetBRL(net)) + ' · cumul ' + esc(fmtNetBRL(tCv.cum[i]));
+}
+function cvPointer(e) {
+  const el = e.target && e.target.closest ? e.target.closest('#cv') : null;
+  if (!el || !tCv) return;
+  const r = el.getBoundingClientRect();
+  if (r.width > 0) cvAt(Math.round((e.clientX - r.left) / r.width * tCv.n));
+}
+document.addEventListener('pointerdown', cvPointer);
+document.addEventListener('pointermove', cvPointer);
+
 /* ===== the Suivi block ===== */
-function tRow(t) {
-  const inv = cents(t.buyin * t.bullets), net = cents(t.gain - inv);
+function tRow(t, links) {
+  const inv = cents(t.buyin * t.bullets), net = cents(t.gain - inv), hc = links.n[t.id] || 0;
   const d = new Date(+t.date.slice(0, 4), +t.date.slice(5, 7) - 1, +t.date.slice(8, 10));
   const bubble = t.place && t.paid && t.place === t.paid + 1;
   const badges = (t.place === 1 ? '<i>Victoire</i>' : t.ft ? '<i>Table finale</i>' : '') + (bubble ? '<i>Bulle</i>' : '') + (t.gain > 0 ? '<i>ITM</i>' : '');
   return '<li><button type="button" class="tr" data-act="tedit" data-id="' + esc(t.id) + '"><span class="tr-d"><b>' + d.getDate() + '</b>' +
     esc(d.toLocaleDateString('fr-FR', { month: 'short' })) + '</span>' +
     '<span class="tr-m"><b>' + esc(t.name || 'Sans nom') + '</b><span class="tr-s">' + t.bullets + ' bullet' + (t.bullets > 1 ? 's' : '') + ' · ' + esc(fmtBRL(inv)) +
-      (t.place ? ' · ' + t.place + (t.place === 1 ? 'er' : 'e') : '') + (t.paid ? ' · ' + t.paid + ' payés' : '') + '</span></span>' +
-    '<span class="tr-r"><span class="tr-n ' + (net > 0 ? 'res-won' : net < 0 ? 'res-lost' : 'res-split') + '">' + esc(fmtNetBRL(net)) + '</span>' +
-      (badges ? '<span class="tr-b">' + badges + '</span>' : '') + '</span></button></li>';
+      (t.place ? ' · ' + t.place + (t.place === 1 ? 'er' : 'e') : '') + (t.paid ? ' · ' + t.paid + ' payés' : '') + '</span>' +
+      (badges ? '<span class="tr-b">' + badges + '</span>' : '') + '</span>' +
+    '<span class="tr-r"><span class="tr-n ' + (net > 0 ? 'res-won' : net < 0 ? 'res-lost' : 'res-split') + '">' + esc(fmtNetBRL(net)) + '</span></span></button>' +
+    (hc ? '<button type="button" class="tr-mn" data-act="tmains" data-id="' + esc(t.id) + '">Voir ' + (hc > 1 ? 'les ' + hc + ' mains' : 'la main') + ' ›</button>' : '') + '</li>';
 }
 function tFormHtml() {
   const f = ui.tf;
@@ -2179,25 +2322,51 @@ function tFormHtml() {
     '<div class="row"><button type="button" class="btn" data-act="tsave">Enregistrer</button><button type="button" class="btn ghost" data-act="tcancel">Annuler</button>' +
       (f.id && !f.delAsk ? '<button type="button" class="btn ghost sm" data-act="tdelask">Supprimer</button>' : '') + '</div></div>';
 }
+function tDash(st, y) {
+  const hero = '<div class="dh"><span class="k">Gain net · ' + y + '</span><span class="dh-v ' + netCls(st.net) + '">' + esc(fmtNet(st.net)) + '<small>R$</small></span>' +
+    '<span class="sub">sur ' + esc(fmtN(st.inv)) + ' R$ investis</span></div>';
+  const tiles = '<div class="hud two"><div><span class="k">ROI</span><span class="v ' + netCls(st.net) + '">' + (st.roi === null ? '–' : esc(fmtSignPct(st.roi, 2))) + '</span><span class="sub">' + esc(fmtN(st.gain)) + ' R$ gagnés</span></div>' +
+    '<div><span class="k">ITM</span><span class="v">' + (st.itmPct === null ? '–' : esc(fmtPct(st.itmPct, 1))) + '</span><span class="sub">' + st.itm + ' sur ' + st.n + ' tournoi' + (st.n > 1 ? 's' : '') + '</span></div></div>';
+  return hero + tiles;
+}
+function tFigures(st) {
+  const kv = (k, v, sub, cls) => '<div' + (cls ? ' class="' + cls + '"' : '') + '><span class="k">' + k + '</span><b>' + v + '</b>' + (sub ? '<i>' + sub + '</i>' : '') + '</div>';
+  const R = '<small>R$</small>';
+  return '<div class="kvs">' +
+    kv('Tournois', st.n, '') + kv('Bullets', st.bullets, '') +
+    kv('Investi', esc(fmtN(st.inv)) + R, '') + kv('Gagné', esc(fmtN(st.gain)) + R, '') +
+    kv('Buy-in moyen (ABI)', st.abi === null ? '–' : esc(fmtN(Math.round(st.abi))) + R, 'par bullet') +
+    kv('Meilleur cash', st.best ? esc(fmtN(st.best.gain)) + R : '–', st.best ? esc(st.best.name || 'Sans nom') : '') +
+    kv('Tables finales', st.ft, st.n ? esc(fmtPct(st.ft / st.n, 1)) + ' des tournois' : '') + kv('Victoires', st.wins, st.n ? esc(fmtPct(st.wins / st.n, 1)) + ' des tournois' : '') +
+    (st.paidKnown ? kv('Bulles', st.bubbles, 'finis juste avant l\'argent') : '') +
+    kv('Série sans ITM', st.streak + ' tournoi' + (st.streak > 1 ? 's' : ''), 'la plus longue de l\'année · en cours : ' + st.now, 'wide') + '</div>';
+}
+function tMonthRows(list) {
+  const rows = tMonths(list), max = Math.max.apply(null, rows.map(r => Math.abs(r.net)).concat(1));
+  return '<ol class="mo">' + rows.map(r => '<li><span class="mo-l"><b>' + MOIS[r.m - 1] + '</b><i>' + r.n + ' tournoi' + (r.n > 1 ? 's' : '') + '</i></span>' +
+    '<span class="mo-b" aria-hidden="true">' + (r.net ? '<u class="' + (r.net > 0 ? 'won' : 'lost') + '" style="width:' + Math.max(2, Math.abs(r.net) / max * 100).toFixed(1) + '%"></u>' : '') + '</span>' +
+    '<span class="mo-n ' + netCls(r.net) + '">' + esc(fmtNet(r.net)) + '</span></li>').join('') + '</ol>';
+}
 function renderSuivi() {
-  const y = tSel(), list = tSorted(tStore.list.filter(t => tYear(t) === y)), tot = tTotals(list);
-  const years = tYears();
-  const age = backupAge();
-  const last = lastBackupMs();
+  const y = tSel(), list = tSorted(tStore.list.filter(t => tYear(t) === y)), st = tStats(list);
+  const years = tYears(), last = lastBackupMs(), links = tHandLinks();
   const head = '<div class="sec"><div class="sec-h"><span class="lbl">Suivi des tournois</span></div>' +
     '<div class="seg" id="t-years">' + years.map(v => '<button type="button" class="' + (v === y ? 'on' : '') + '" data-act="tyear" data-v="' + v + '">' + v + '</button>').join('') + '</div>' +
-    '<div class="hud"><div><span class="k">Tournois</span><span class="v">' + tot.n + '</span><span class="sub">' + tot.bullets + ' bullet' + (tot.bullets > 1 ? 's' : '') + '</span></div>' +
-    '<div><span class="k">Investi</span><span class="v sm">' + esc(fmtN(tot.inv)) + '</span><span class="sub">R$</span></div>' +
-    '<div><span class="k">Gain net</span><span class="v sm ' + (tot.net > 0 ? 'res-won' : tot.net < 0 ? 'res-lost' : '') + '">' + esc(fmtNet(tot.net)) + '</span><span class="sub">R$</span></div></div>' +
+    (st.n ? tDash(st, y) : '') +
     (ui.tf ? '' : '<div class="row"><button type="button" class="btn" data-act="tadd">Ajouter un tournoi</button></div>') + '</div>';
+  const dash = st.n
+    ? '<div class="sec"><div class="sec-h"><span class="lbl">Chiffres ' + y + '</span></div>' + tFigures(st) + '</div>' +
+      '<div class="sec"><div class="sec-h"><span class="lbl">Gain cumulé</span><span class="pot">' + st.n + ' tournoi' + (st.n > 1 ? 's' : '') + '</span></div>' + tChart(tChrono(list)) + '</div>' +
+      '<div class="sec"><div class="sec-h"><span class="lbl">Résultats par mois</span></div>' + tMonthRows(list) + '</div>'
+    : (tCv = null, '');
   const body = list.length
-    ? '<ol class="tl">' + list.map(tRow).join('') + '</ol>'
+    ? '<ol class="tl">' + list.map(t => tRow(t, links)).join('') + '</ol>'
     : '<p class="hint" style="margin:0">Aucun tournoi en ' + y + '. Touche « Ajouter un tournoi » pour commencer.</p>';
   const bk = '<div class="sec"><div class="sec-h"><span class="lbl">Sauvegarde</span></div>' +
     '<p class="hint" style="margin:0">Tes tournois sont enregistrés sur cet appareil, dans le même fichier .json que tes mains. ' +
     (last ? 'Dernière sauvegarde : ' + esc(new Date(last).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })) + '.' : 'Pas encore de sauvegarde faite ici.') + '</p>' +
     '<div class="row"><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer une sauvegarde</button></div></div>';
-  $('#view-suivi').innerHTML = head + tFormHtml() + '<div class="sec"><div class="sec-h"><span class="lbl">Tournois ' + y + '</span><span class="pot">' + list.length + '</span></div>' + body + '</div>' + bk;
+  $('#view-suivi').innerHTML = head + tFormHtml() + dash + '<div class="sec"><div class="sec-h"><span class="lbl">Tournois ' + y + '</span><span class="pot">' + list.length + '</span></div>' + body + '</div>' + bk;
   tSync();
 }
 /* live bits of the form that do not need a redraw (a redraw would drop the keyboard) */
@@ -2229,6 +2398,14 @@ const typingInSuivi = () => { const a = document.activeElement; return !!(a && /
 
 const AT = {
   tyear(el) { ui.ty = +el.dataset.v; renderSuivi(); },
+  tmains(el) {
+    const t = tStore.list.find(x => x.id === el.dataset.id);
+    if (!t) return;
+    const nm = tHandLinks().name[t.id] || t.name;
+    closeFix(); ui.block = 'mains'; ui.tab = 'list'; ui.filter = 't:' + nm;
+    ui.picker = null; ui.pending = null; ui.delGroup = null; ui.delAsk = null; ui.confirm = ''; ui.rv = null;
+    renderAll(); window.scrollTo(0, 0);
+  },
   tadd() {
     ui.tf = { id: null, date: todayStr(), name: '', buyin: '', bullets: 1, gain: '', place: '', paid: '', ft: false, err: '', delAsk: false };
     renderSuivi(); scrollToEl('#t-form');
@@ -2552,6 +2729,7 @@ const A = {
     closeFix(); ui.block = v; ui.picker = null; ui.pending = null; ui.delGroup = null; ui.delAsk = null; ui.confirm = '';
     renderAll(); window.scrollTo(0, 0);
   },
+  pickt(el) { H.tournament = el.dataset.v; rerender(); },   /* a tournament of the Suivi chosen for this hand */
   tab(el) { closeFix(); ui.tab = el.dataset.v; ui.picker = null; ui.delGroup = null; ui.rv = null; renderAll(); window.scrollTo(0, 0); },
   table(el) {
     H.table = el.dataset.v;
@@ -2863,7 +3041,7 @@ document.addEventListener('input', e => {
   if (k.indexOf('t-') === 0) { tInput(t, k); return; }   /* tournament form: its own state, never part of a hand or its draft */
   if (k === 'apikey') { ui.keyDraft = t.value; return; }   /* the key: held only until saved, never part of the hand */
   if (k === 'fix') { ui.fixDraft = { id: t.dataset.id, text: t.value }; return; }   /* review field: kept until validated or left */
-  if (k === 'tourn') { H.tournament = t.value; $('#stat').textContent = t.value; }
+  if (k === 'tourn') { H.tournament = t.value; $('#stat').textContent = t.value; syncPickT(); }
   else if (k === 'date') { H.date = t.value || todayStr(); const dt = $('#date-txt'); if (dt) dt.textContent = dateLbl(H.date); }
   else if (k === 'ante') { H.ante = num(t.value) > 0 ? num(t.value) : 0; syncChips('ante', null, H.ante); }
   else if (k === 'hstack') { H.hero.stack = t.value; syncChips('hstack', '', num(t.value)); }
