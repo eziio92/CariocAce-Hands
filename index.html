@@ -463,6 +463,27 @@ img.wait{opacity:0}
 @keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
 .ai-row{padding:0 4px}
 @media (prefers-reduced-motion:reduce){.rd-busy{animation:none}}
+/* Suivi: list of tournaments, form, bullets stepper, backup nudge */
+.tl{list-style:none;margin:0;padding:0;border-radius:20px;background:var(--field);border:1px solid var(--edge);overflow:hidden}
+.tl li+li{border-top:1px solid var(--edge)}
+.tr{display:flex;align-items:center;gap:12px;width:100%;min-height:66px;padding:10px 14px;border:0;background:transparent;text-align:left;color:var(--fg)}
+.tr:active{background:var(--glass-2)}
+.tr-d{flex:none;width:40px;text-align:center;font:600 10.5px/1.1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--fg-2)}
+.tr-d b{display:block;font:700 19px/1.1 var(--f-disp);letter-spacing:-.02em;color:var(--fg)}
+.tr-m{flex:1;min-width:0}
+.tr-m b{display:block;font:600 15px/1.25 var(--f-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-s{display:block;margin-top:2px;font:500 12.5px/1.3 var(--f-body);color:var(--fg-2);font-variant-numeric:tabular-nums}
+.tr-r{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.tr-n{font:700 15px var(--f-disp);letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tr-b{display:flex;gap:4px}
+.tr-b i{font:700 9px/1 var(--f-body);font-style:normal;letter-spacing:.1em;text-transform:uppercase;padding:4px 7px;border-radius:999px;border:1px solid var(--edge-hi);color:var(--acc-ink);background:var(--acc-wash);white-space:nowrap}
+.step{display:flex;align-items:center;justify-content:space-between;height:46px;padding:0 4px;border:1px solid var(--edge);border-radius:16px;background:var(--field);box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
+.step button{width:52px;height:38px;border:0;border-radius:12px;background:transparent;color:var(--fg);font:500 24px/1 var(--f-body)}
+.step button:active{background:var(--glass-2)}
+.step output{font:700 18px var(--f-disp);font-variant-numeric:tabular-nums}
+.hint.err{color:var(--bad)}
+.bk{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding:12px 14px;border:1px solid var(--edge);border-radius:20px;background:var(--glass);font:500 13px/1.35 var(--f-body);color:var(--fg-2)}
+.bk .btn{min-height:40px;padding:0 16px;font-size:13.5px}
 </style>
 <style>body{padding-top:env(safe-area-inset-top,0px)}</style>
 </head>
@@ -495,6 +516,7 @@ img.wait{opacity:0}
 <div class="savebar" id="savebar"><div class="savebar-in" id="savebar-in"></div></div>
 <div id="sheet-root"></div>
 <input type="file" id="in-photo" accept="image/*" multiple hidden>
+<input type="file" id="in-import" accept=".json,application/json" hidden>
 <div class="done" id="done" role="status" aria-live="polite" hidden></div>
 <div class="toast" id="toast" hidden></div>
 <script>
@@ -1030,7 +1052,7 @@ function boardProposal(res, h) {
   });
 }
 
-const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, delAsk: null, block: 'home', filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
+const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, delAsk: null, block: 'home', ty: null, tf: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
 
 /* ===== betting engine: replays the logged actions to get amounts, pot and SPR ===== */
 function actorsOf(h) {
@@ -1890,14 +1912,11 @@ function renderHome() {
   const pending = store.ready ? reviewStats(store.hands).pending : 0;
   const draft = !editingId && !isPristine(H);
   const handsSub = n === null ? 'Chargement…' : (n === 0 ? 'Rien de noté pour l\'instant' : (pending ? pending + ' à revoir' : 'Tout est revu')) + (draft ? ' · saisie en cours' : '');
+  const tTile = tHomeTile();
   $('#view-home').innerHTML = '<div class="hb-grid">' +
-    hbTile('suivi', 'Suivi', HB_CHART, String(new Date().getFullYear()), 'suivi des tournois', 'Bientôt : saisie et tableau de bord', 'Suivi des tournois') +
+    hbTile('suivi', 'Suivi', HB_CHART, tTile[0], tTile[1], tTile[2], 'Suivi des tournois') +
     hbTile('mains', 'Mains', HB_SPADE, n === null ? '–' : String(n), n === 1 ? 'main notée' : 'mains notées', handsSub, 'Mains') +
-    '</div>';
-}
-function renderSuivi() {
-  $('#view-suivi').innerHTML = '<div class="sec"><div class="sec-h"><span class="lbl">Suivi des tournois</span></div>' +
-    '<p class="hint" style="margin:0">Ce bloc arrive à la prochaine étape : la saisie de chaque tournoi (buy-in, bullets, gain), puis le tableau de bord de l\'année.</p></div>';
+    '</div>' + bkHint();
 }
 function renderBlock() {
   if (ui.block === 'home') renderHome();
@@ -1933,7 +1952,7 @@ function onStoreChange() {
   const a = document.activeElement;
   const typing = a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && $('#view-edit').contains(a);
   renderTabs(); renderBanner();
-  if (ui.block !== 'mains') renderBlock();
+  if (ui.block !== 'mains') { if (!(ui.block === 'suivi' && typingInSuivi())) renderBlock(); }
   else if (ui.tab === 'list') renderList(); else if (ui.tab === 'review') renderReview(); else if (!typing) renderEdit();
   renderSave();
 }
@@ -1957,7 +1976,7 @@ function exportTexts(hands) {
     return handText(n);
   }).join('\n\n———\n\n');
 }
-const IMPORT_INPUT ='<input type="file" id="in-import" accept=".json,application/json" hidden>';
+const IMPORT_INPUT = '';   /* the file input is in the page itself (p2-body): the Mains list and the Suivi block share it */
 /* share sheet (iPhone: "Enregistrer dans Fichiers", AirDrop, Messages...) */
 async function shareFile(data, filename) {
   try {
@@ -1973,33 +1992,282 @@ async function importFile(file) {
   try { data = JSON.parse(await file.text()); } catch (e) { toast('Fichier illisible'); return; }
   const list = Array.isArray(data) ? data : (data && Array.isArray(data.hands) ? data.hands : []);
   const ok = list.filter(x => x && typeof x === 'object' && typeof x.id === 'string' && /^[\w-]{1,64}$/.test(x.id) && x.hero && typeof x.hero === 'object');
-  if (!ok.length) { toast('Aucune main dans ce fichier'); return; }
+  const tl = data && !Array.isArray(data) && Array.isArray(data.tournaments) ? data.tournaments.map(tNorm).filter(Boolean) : [];
+  if (!ok.length && !tl.length) { toast(data && !Array.isArray(data) && Array.isArray(data.tournaments) ? 'Aucun tournoi valide dans ce fichier' : 'Aucune main dans ce fichier'); return; }
   let n = 0, same = 0;
   for (const x of ok) {
     const cur = store.hands.find(y => y.id === x.id);
     if (cur && cur.updatedAt && String(x.updatedAt || '') <= String(cur.updatedAt)) { same++; continue; }
     try { const nh = normHand(clone(x)); nh.photo = cur && cur.photo ? cur.photo : ''; await storeSave(nh); n++; } catch (e) { /* skip this one */ }
   }
-  toast(!n && same ? 'Rien à importer : tout est déjà à jour' : n + ' main' + (n > 1 ? 's' : '') + ' importée' + (n > 1 ? 's' : '') + (same ? ' · ' + same + ' déjà à jour' : ''));
+  const tm = tl.length ? tMerge(tl) : null, tn = tm ? tm.added + tm.updated : 0;
+  if (tm && ui.block === 'suivi') renderSuivi(); else if (tm && ui.block === 'home') renderHome();
+  if (!tm) { toast(!n && same ? 'Rien à importer : tout est déjà à jour' : n + ' main' + (n > 1 ? 's' : '') + ' importée' + (n > 1 ? 's' : '') + (same ? ' · ' + same + ' déjà à jour' : '')); return; }
+  const parts = [];
+  if (ok.length) parts.push(n ? n + ' main' + (n > 1 ? 's' : '') + ' importée' + (n > 1 ? 's' : '') : 'mains déjà à jour');
+  parts.push(tn ? tn + ' tournoi' + (tn > 1 ? 's' : '') + ' importé' + (tn > 1 ? 's' : '') : 'tournois déjà à jour');
+  toast(!n && !tn ? 'Rien à importer : tout est déjà à jour' : parts.join(' · ') + (tn && tm.same ? ' · ' + tm.same + ' déjà à jour' : ''));
 }
 async function downloadJson() {
-  const data = JSON.stringify({ app: 'cariocace-hands', exportedAt: new Date().toISOString(), hands: sortedHands().map(stripPhoto) }, null, 2);
+  const data = JSON.stringify({ app: 'cariocace-copilot', version: 2, exportedAt: new Date().toISOString(), hands: sortedHands().map(stripPhoto), tournaments: tStore.list }, null, 2);
   let dl = null;
   try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dl = null; }
   if (!dl && isWide()) {   /* a computer: a plain download, not a share sheet */
     const u = URL.createObjectURL(new Blob([data], { type: 'application/json' })), a = document.createElement('a');
-    a.href = u; a.download = 'cariocace-hands-' + todayStr() + '.json'; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(u), 4000); toast('Fichier enregistré'); return;
+    a.href = u; a.download = 'cariocace-copilot-' + todayStr() + '.json'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 4000); toast('Fichier enregistré'); markBackup(); return;
   }
   if (!dl) {
-    const r = await shareFile(data, 'cariocace-hands-' + todayStr() + '.json');
-    if (r === 'shared') { toast('Sauvegarde partagée'); return; }
+    const r = await shareFile(data, 'cariocace-copilot-' + todayStr() + '.json');
+    if (r === 'shared') { toast('Sauvegarde partagée'); markBackup(); return; }
     if (r === 'cancelled') return;
     ui.modal = { title: 'Sauvegarde JSON', text: data, hint: 'Sélectionne tout puis copie pour garder une sauvegarde.' }; renderSheet(); return;
   }
-  try { await dl.save({ filename: 'cariocace-hands-' + todayStr() + '.json', data: data }); toast('Fichier enregistré'); }
+  try { await dl.save({ filename: 'cariocace-copilot-' + todayStr() + '.json', data: data }); toast('Fichier enregistré'); markBackup(); }
   catch (e) { if (e && e.code === 'declined') return; toast('Export impossible' + (e && e.code ? ' (' + e.code + ')' : '')); }
 }
+
+/* ===== Suivi: tracker of live tournaments, everything in R$ =====
+   One record per tournament: { id, date (first day), name, buyin (one bullet, fees included), bullets, gain (total won, bounties and deal included),
+   place (optional), ft (final table), createdAt, updatedAt }. Stored on this device only, in its own key, and part of the same .json backup as the hands.
+   Importing merges by id (the most recently changed copy wins) and never removes anything. */
+const LS_TOURN = 'carnet-tournois-local', LS_BACKUP = 'carnet-derniere-sauvegarde';
+const tStore = { list: [] };
+const T_MAX = { money: 1e9, bullets: 999, place: 1e6 };
+const cents = x => Math.round(x * 100) / 100;
+const fmtN = n => cents(n).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+const fmtBRL = n => 'R$ ' + fmtN(n);
+const fmtNetBRL = n => (n > 0 ? '+' : n < 0 ? '−' : '') + 'R$ ' + fmtN(Math.abs(n));
+const fmtNet = n => (n > 0 ? '+' : n < 0 ? '−' : '') + fmtN(Math.abs(n));
+
+/* an amount typed by hand: "1000", "1 000", "1.000", "1.000,50", "250,5", "R$ 500" */
+function tMoney(v) {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : NaN;
+  let s = String(v == null ? '' : v).replace(/[\s  ]/g, '').replace(/^R\$/i, '');
+  if (!s) return NaN;
+  if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) s = s.replace(/\./g, '').replace(',', '.');
+  else if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) s = s.replace(/,/g, '');
+  else s = s.replace(',', '.');
+  return /^(\d+\.?\d*|\.\d+)$/.test(s) ? parseFloat(s) : NaN;
+}
+function validDate(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ''));
+  if (!m) return false;
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  return d.getUTCFullYear() === +m[1] && d.getUTCMonth() === +m[2] - 1 && d.getUTCDate() === +m[3];
+}
+/* a record read from storage or from a backup file: anything that is not clean is dropped, nothing is invented */
+function tNorm(x) {
+  if (!x || typeof x !== 'object' || typeof x.id !== 'string' || !/^[\w-]{1,64}$/.test(x.id)) return null;
+  if (!validDate(x.date)) return null;
+  const buyin = tMoney(x.buyin), gain = tMoney(x.gain), bullets = Math.floor(tMoney(x.bullets));
+  if (!(buyin >= 0 && buyin <= T_MAX.money) || !(gain >= 0 && gain <= T_MAX.money) || !(bullets >= 1 && bullets <= T_MAX.bullets)) return null;
+  let place = null;
+  if (x.place !== null && x.place !== undefined && x.place !== '') {
+    const p = Math.floor(tMoney(x.place));
+    if (p >= 1 && p <= T_MAX.place) place = p;
+  }
+  const iso = v => (typeof v === 'string' && v.length <= 40 ? v : '');
+  const created = iso(x.createdAt) || new Date().toISOString();
+  return {
+    id: x.id, date: x.date, name: String(x.name == null ? '' : x.name).trim().slice(0, 120),
+    buyin: cents(buyin), bullets: bullets, gain: cents(gain), place: place, ft: x.ft === true || place === 1,
+    createdAt: created, updatedAt: iso(x.updatedAt) || created
+  };
+}
+function tLoad() {
+  try { const a = JSON.parse(localStorage.getItem(LS_TOURN) || '[]'); tStore.list = Array.isArray(a) ? a.map(tNorm).filter(Boolean) : []; }
+  catch (e) { tStore.list = []; }
+}
+function tPersist() {
+  try { localStorage.setItem(LS_TOURN, JSON.stringify(tStore.list)); return true; }
+  catch (e) { toast('Enregistrement impossible : le stockage de l\'appareil est plein ou bloqué'); return false; }
+}
+/* backup file: add or update by id, never delete. Returns how many were added / updated / already up to date. */
+function tMerge(incoming) {
+  let added = 0, updated = 0, same = 0;
+  incoming.forEach(x => {
+    const i = tStore.list.findIndex(y => y.id === x.id);
+    if (i < 0) { tStore.list.push(x); added++; }
+    else if (String(x.updatedAt) > String(tStore.list[i].updatedAt)) { tStore.list[i] = x; updated++; }
+    else same++;
+  });
+  if (added || updated) tPersist();
+  return { added: added, updated: updated, same: same };
+}
+
+const tYear = t => +t.date.slice(0, 4);
+const thisYear = () => new Date().getFullYear();
+const tSel = () => ui.ty || thisYear();
+function tYears() {
+  const s = new Set(tStore.list.map(tYear)); s.add(thisYear()); s.add(tSel());
+  return Array.from(s).sort((a, b) => b - a);
+}
+const tSorted = list => list.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.createdAt).localeCompare(String(a.createdAt)));
+function tTotals(list) {
+  let inv = 0, g = 0, b = 0;
+  list.forEach(t => { inv += t.buyin * t.bullets; g += t.gain; b += t.bullets; });
+  return { n: list.length, bullets: b, inv: cents(inv), gain: cents(g), net: cents(g - inv) };
+}
+
+/* ===== what the start screen shows ===== */
+function tHomeTile() {
+  const y = thisYear(), tot = tTotals(tStore.list.filter(t => tYear(t) === y));
+  if (!tot.n) return [String(y), 'aucun tournoi saisi', 'Touche pour commencer'];
+  return [String(y), tot.n + ' tournoi' + (tot.n > 1 ? 's' : ''), 'Gain net : ' + fmtNetBRL(tot.net)];
+}
+const lastBackupMs = () => { try { const t = Date.parse(localStorage.getItem(LS_BACKUP) || ''); return Number.isFinite(t) ? t : 0; } catch (e) { return 0; } };
+const markBackup = () => { try { localStorage.setItem(LS_BACKUP, new Date().toISOString()); } catch (e) { /* not kept: the reminder simply stays */ } if (ui.block === 'home') renderHome(); else if (ui.block === 'suivi') renderSuivi(); };
+/* a monthly nudge, only when there is something to lose */
+function backupAge() {
+  if (!(store.hands.length || tStore.list.length)) return null;
+  const last = lastBackupMs();
+  return last ? Math.floor((Date.now() - last) / 864e5) : Infinity;
+}
+function bkHint() {
+  const d = backupAge();
+  if (d === null || d < 30) return '';
+  return '<div class="bk"><span>' + (d === Infinity ? 'Aucune sauvegarde faite sur cet appareil.' : 'Dernière sauvegarde il y a ' + d + ' jours.') +
+    '</span><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarder</button></div>';
+}
+
+/* ===== the Suivi block ===== */
+function tRow(t) {
+  const inv = cents(t.buyin * t.bullets), net = cents(t.gain - inv);
+  const d = new Date(+t.date.slice(0, 4), +t.date.slice(5, 7) - 1, +t.date.slice(8, 10));
+  const badges = (t.place === 1 ? '<i>Victoire</i>' : t.ft ? '<i>Table finale</i>' : '') + (t.gain > 0 ? '<i>ITM</i>' : '');
+  return '<li><button type="button" class="tr" data-act="tedit" data-id="' + esc(t.id) + '"><span class="tr-d"><b>' + d.getDate() + '</b>' +
+    esc(d.toLocaleDateString('fr-FR', { month: 'short' })) + '</span>' +
+    '<span class="tr-m"><b>' + esc(t.name || 'Sans nom') + '</b><span class="tr-s">' + t.bullets + ' bullet' + (t.bullets > 1 ? 's' : '') + ' · ' + esc(fmtBRL(inv)) +
+      (t.place ? ' · ' + t.place + (t.place === 1 ? 'er' : 'e') : '') + '</span></span>' +
+    '<span class="tr-r"><span class="tr-n ' + (net > 0 ? 'res-won' : net < 0 ? 'res-lost' : 'res-split') + '">' + esc(fmtNetBRL(net)) + '</span>' +
+      (badges ? '<span class="tr-b">' + badges + '</span>' : '') + '</span></button></li>';
+}
+function tFormHtml() {
+  const f = ui.tf;
+  if (!f) return '';
+  const names = Array.from(new Set(tSorted(tStore.list).map(t => t.name).concat(sortedHands().map(h => h.tournament)).filter(Boolean))).slice(0, 40);
+  const recent = [];
+  tSorted(tStore.list).slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).forEach(t => { if (recent.indexOf(t.buyin) < 0 && recent.length < 5) recent.push(t.buyin); });
+  const ask = f.delAsk
+    ? '<div class="grp-ask">Supprimer définitivement ce tournoi ? Pense à faire une sauvegarde avant si besoin.</div>' +
+      '<div class="row"><button type="button" class="btn ghost sm" data-act="tdelno">Annuler</button><button type="button" class="btn danger sm" data-act="tdelyes">Confirmer la suppression</button></div>'
+    : '';
+  return '<div class="sec" id="t-form"><div class="sec-h"><span class="lbl">' + (f.id ? 'Modifier le tournoi' : 'Nouveau tournoi') + '</span></div>' +
+    '<div class="grid2"><input class="inp" id="in-tname" list="dl-tname" placeholder="Nom du tournoi" value="' + esc(f.name) + '" data-in="t-name" autocomplete="off" aria-label="Nom du tournoi">' +
+    '<div class="datebox"><span class="dt" id="tdate-txt">' + esc(dateLbl(f.date)) + '</span>' +
+      '<svg class="dt-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>' +
+      '<input type="date" id="in-tdate" value="' + esc(f.date) + '" data-in="t-date" aria-label="Date de début"></div></div>' +
+    '<datalist id="dl-tname">' + names.map(n => '<option value="' + esc(n) + '"></option>').join('') + '</datalist>' +
+    fld('Buy-in · R$ (une bullet, frais inclus)', '<input class="inp num" id="in-tbuy" inputmode="decimal" placeholder="Prix d\'entrée" value="' + esc(f.buyin) + '" data-in="t-buyin" autocomplete="off" aria-label="Buy-in en reais">' +
+      (recent.length ? '<div class="scroll-row">' + recent.map(v => chip(esc(fmtN(v)), { cls: 'mono', attrs: 'data-act="tbuy" data-v="' + v + '"' })).join('') + '</div>' : '')) +
+    fld('Bullets', '<div class="step"><button type="button" data-act="tbul" data-v="-1" aria-label="Une bullet de moins">−</button><output id="t-bul">' + f.bullets + '</output>' +
+      '<button type="button" data-act="tbul" data-v="1" aria-label="Une bullet de plus">+</button></div><p class="hint" id="t-inv" style="margin:0"></p>') +
+    fld('Gain total · R$ (bounties et deal compris)', '<div class="stackrow"><input class="inp num" id="in-tgain" inputmode="decimal" placeholder="0 si rien gagné" value="' + esc(f.gain) + '" data-in="t-gain" autocomplete="off" aria-label="Gain total en reais">' +
+      chip('0', { cls: 'mono', attrs: 'data-act="tgain0"' }) + '</div>') +
+    fld('Place finale (facultatif)', '<div class="stackrow"><input class="inp num" id="in-tplace" inputmode="numeric" placeholder="1 = victoire" value="' + esc(f.place) + '" data-in="t-place" autocomplete="off" aria-label="Place finale">' +
+      chip('Table finale', { attrs: 'id="t-ft" data-act="tft" aria-pressed="false"' }) + '</div>') +
+    '<p class="hint err" id="t-err" role="alert" hidden></p>' + ask +
+    '<div class="row"><button type="button" class="btn" data-act="tsave">Enregistrer</button><button type="button" class="btn ghost" data-act="tcancel">Annuler</button>' +
+      (f.id && !f.delAsk ? '<button type="button" class="btn ghost sm" data-act="tdelask">Supprimer</button>' : '') + '</div></div>';
+}
+function renderSuivi() {
+  const y = tSel(), list = tSorted(tStore.list.filter(t => tYear(t) === y)), tot = tTotals(list);
+  const years = tYears();
+  const age = backupAge();
+  const last = lastBackupMs();
+  const head = '<div class="sec"><div class="sec-h"><span class="lbl">Suivi des tournois</span></div>' +
+    '<div class="seg" id="t-years">' + years.map(v => '<button type="button" class="' + (v === y ? 'on' : '') + '" data-act="tyear" data-v="' + v + '">' + v + '</button>').join('') + '</div>' +
+    '<div class="hud"><div><span class="k">Tournois</span><span class="v">' + tot.n + '</span><span class="sub">' + tot.bullets + ' bullet' + (tot.bullets > 1 ? 's' : '') + '</span></div>' +
+    '<div><span class="k">Investi</span><span class="v sm">' + esc(fmtN(tot.inv)) + '</span><span class="sub">R$</span></div>' +
+    '<div><span class="k">Gain net</span><span class="v sm ' + (tot.net > 0 ? 'res-won' : tot.net < 0 ? 'res-lost' : '') + '">' + esc(fmtNet(tot.net)) + '</span><span class="sub">R$</span></div></div>' +
+    (ui.tf ? '' : '<div class="row"><button type="button" class="btn" data-act="tadd">Ajouter un tournoi</button></div>') + '</div>';
+  const body = list.length
+    ? '<ol class="tl">' + list.map(tRow).join('') + '</ol>'
+    : '<p class="hint" style="margin:0">Aucun tournoi en ' + y + '. Touche « Ajouter un tournoi » pour commencer.</p>';
+  const bk = '<div class="sec"><div class="sec-h"><span class="lbl">Sauvegarde</span></div>' +
+    '<p class="hint" style="margin:0">Tes tournois sont enregistrés sur cet appareil, dans le même fichier .json que tes mains. ' +
+    (last ? 'Dernière sauvegarde : ' + esc(new Date(last).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })) + '.' : 'Pas encore de sauvegarde faite ici.') + '</p>' +
+    '<div class="row"><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer une sauvegarde</button></div></div>';
+  $('#view-suivi').innerHTML = head + tFormHtml() + '<div class="sec"><div class="sec-h"><span class="lbl">Tournois ' + y + '</span><span class="pot">' + list.length + '</span></div>' + body + '</div>' + bk;
+  tSync();
+}
+/* live bits of the form that do not need a redraw (a redraw would drop the keyboard) */
+function tSync() {
+  const f = ui.tf;
+  if (!f) return;
+  const b = tMoney(f.buyin), inv = $('#t-inv');
+  if (inv) inv.textContent = b > 0 ? 'Investi : ' + fmtBRL(cents(b * f.bullets)) + (f.bullets > 1 ? ' (' + f.bullets + ' × ' + fmtN(b) + ')' : '') : 'Investi : –';
+  const out = $('#t-bul'); if (out) out.textContent = f.bullets;
+  const win = +f.place === 1, ft = $('#t-ft');
+  if (ft) { const on = !!f.ft || win; ft.classList.toggle('on', on); ft.disabled = win; ft.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+  document.querySelectorAll('#view-suivi [data-act=tbuy]').forEach(c => c.classList.toggle('on', b === +c.dataset.v));
+  const er = $('#t-err'); if (er) { er.textContent = f.err || ''; er.hidden = !f.err; }
+}
+function tInput(t, k) {
+  const f = ui.tf;
+  if (!f) return;
+  if (k === 't-name') f.name = t.value;
+  else if (k === 't-date') { f.date = t.value || todayStr(); const dt = $('#tdate-txt'); if (dt) dt.textContent = dateLbl(f.date); }
+  else if (k === 't-buyin') f.buyin = t.value;
+  else if (k === 't-gain') f.gain = t.value;
+  else if (k === 't-place') { f.place = t.value.replace(/\D/g, '').slice(0, 7); if (f.place !== t.value) t.value = f.place; if (+f.place === 1) f.ft = true; }
+  f.err = ''; tSync();
+}
+const typingInSuivi = () => { const a = document.activeElement; return !!(a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && $('#view-suivi').contains(a)); };
+
+const AT = {
+  tyear(el) { ui.ty = +el.dataset.v; renderSuivi(); },
+  tadd() {
+    ui.tf = { id: null, date: todayStr(), name: '', buyin: '', bullets: 1, gain: '', place: '', ft: false, err: '', delAsk: false };
+    renderSuivi(); scrollToEl('#t-form');
+  },
+  tedit(el) {
+    const t = tStore.list.find(x => x.id === el.dataset.id);
+    if (!t) return;
+    ui.tf = { id: t.id, date: t.date, name: t.name, buyin: String(t.buyin), bullets: t.bullets, gain: String(t.gain), place: t.place ? String(t.place) : '', ft: t.ft, err: '', delAsk: false };
+    renderSuivi(); scrollToEl('#t-form');
+  },
+  tcancel() { ui.tf = null; renderSuivi(); },
+  tbul(el) { const f = ui.tf; if (!f) return; f.bullets = Math.max(1, Math.min(T_MAX.bullets, f.bullets + (+el.dataset.v))); f.err = ''; tSync(); },
+  tbuy(el) { const f = ui.tf; if (!f) return; f.buyin = String(+el.dataset.v); const i = $('#in-tbuy'); if (i) i.value = f.buyin; f.err = ''; tSync(); },
+  tgain0() { const f = ui.tf; if (!f) return; f.gain = '0'; const i = $('#in-tgain'); if (i) i.value = '0'; f.err = ''; tSync(); },
+  tft() { const f = ui.tf; if (!f || +f.place === 1) return; f.ft = !f.ft; tSync(); },
+  tdelask() { if (ui.tf) { ui.tf.delAsk = true; renderSuivi(); } },
+  tdelno() { if (ui.tf) { ui.tf.delAsk = false; renderSuivi(); } },
+  tdelyes() {
+    const f = ui.tf;
+    if (!f || !f.id) return;
+    const keep = tStore.list;
+    tStore.list = keep.filter(t => t.id !== f.id);
+    if (!tPersist()) { tStore.list = keep; return; }
+    ui.tf = null; renderSuivi(); toast('Tournoi supprimé');
+  },
+  tsave() {
+    const f = ui.tf;
+    if (!f) return;
+    const name = f.name.trim(), buyin = tMoney(f.buyin), gain = String(f.gain).trim() === '' ? NaN : tMoney(f.gain);
+    const place = f.place === '' ? null : parseInt(f.place, 10);
+    let err = '';
+    if (!name) err = 'Donne un nom au tournoi.';
+    else if (!validDate(f.date)) err = 'La date n\'est pas valide.';
+    else if (!(buyin > 0 && buyin <= T_MAX.money)) err = 'Buy-in : entre le prix d\'entrée d\'une bullet (plus de 0).';
+    else if (!(gain >= 0 && gain <= T_MAX.money)) err = 'Gain : entre le total touché, 0 si tu n\'as rien gagné.';
+    else if (place !== null && !(place >= 1 && place <= T_MAX.place)) err = 'Place : un nombre à partir de 1, ou laisse vide.';
+    if (err) { f.err = err; tSync(); const e = $('#t-err'); if (e && e.scrollIntoView) e.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+    const now = new Date().toISOString(), old = f.id ? tStore.list.find(t => t.id === f.id) : null;
+    const rec = {
+      id: old ? old.id : 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      date: f.date, name: name.slice(0, 120), buyin: cents(buyin), bullets: f.bullets, gain: cents(gain), place: place, ft: !!f.ft || place === 1,
+      createdAt: old ? old.createdAt : now, updatedAt: now
+    };
+    const before = tStore.list.slice();
+    if (old) tStore.list[tStore.list.indexOf(old)] = rec; else tStore.list.push(rec);
+    if (!tPersist()) { tStore.list = before; return; }
+    ui.tf = null; ui.ty = tYear(rec);
+    renderSuivi(); window.scrollTo(0, 0); toast(old ? 'Tournoi modifié' : 'Tournoi enregistré');
+  }
+};
 
 /* ===== actions ===== */
 let origJson = '';
@@ -2565,7 +2833,7 @@ const A = {
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el || el.disabled) return;
-  const f = A[el.dataset.act];
+  const f = A[el.dataset.act] || AT[el.dataset.act];
   if (ui.delAsk && el.dataset.act !== 'delentry' && el.dataset.act !== 'delcancel') ui.delAsk = null;
   if (f) f(el, e);
 });
@@ -2580,6 +2848,7 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => {
   const t = e.target, k = t.dataset && t.dataset.in;
   if (!k) return;
+  if (k.indexOf('t-') === 0) { tInput(t, k); return; }   /* tournament form: its own state, never part of a hand or its draft */
   if (k === 'apikey') { ui.keyDraft = t.value; return; }   /* the key: held only until saved, never part of the hand */
   if (k === 'fix') { ui.fixDraft = { id: t.dataset.id, text: t.value }; return; }   /* review field: kept until validated or left */
   if (k === 'tourn') { H.tournament = t.value; $('#stat').textContent = t.value; }
@@ -2632,6 +2901,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { cle
 window.addEventListener('pagehide', () => { clearTimeout(draftTimer); writeDraft(); commitFix(); });
 
 /* ===== boot ===== */
+tLoad();
 const saved = loadDraft();
 if (saved) { H = saved.h; editingId = saved.editingId; draftLoaded = true; }
 else H = newHand({});
