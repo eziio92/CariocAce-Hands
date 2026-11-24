@@ -2067,11 +2067,16 @@ function tNorm(x) {
     const p = Math.floor(tMoney(x.place));
     if (p >= 1 && p <= T_MAX.place) place = p;
   }
+  let paid = null;   /* how many places are paid (optional): lets the app spot a bubble */
+  if (x.paid !== null && x.paid !== undefined && x.paid !== '') {
+    const q = Math.floor(tMoney(x.paid));
+    if (q >= 1 && q <= T_MAX.place) paid = q;
+  }
   const iso = v => (typeof v === 'string' && v.length <= 40 ? v : '');
   const created = iso(x.createdAt) || new Date().toISOString();
   return {
     id: x.id, date: x.date, name: String(x.name == null ? '' : x.name).trim().slice(0, 120),
-    buyin: cents(buyin), bullets: bullets, gain: cents(gain), place: place, ft: x.ft === true || place === 1,
+    buyin: cents(buyin), bullets: bullets, gain: cents(gain), place: place, paid: paid, ft: x.ft === true || place === 1,
     createdAt: created, updatedAt: iso(x.updatedAt) || created
   };
 }
@@ -2135,11 +2140,12 @@ function bkHint() {
 function tRow(t) {
   const inv = cents(t.buyin * t.bullets), net = cents(t.gain - inv);
   const d = new Date(+t.date.slice(0, 4), +t.date.slice(5, 7) - 1, +t.date.slice(8, 10));
-  const badges = (t.place === 1 ? '<i>Victoire</i>' : t.ft ? '<i>Table finale</i>' : '') + (t.gain > 0 ? '<i>ITM</i>' : '');
+  const bubble = t.place && t.paid && t.place === t.paid + 1;
+  const badges = (t.place === 1 ? '<i>Victoire</i>' : t.ft ? '<i>Table finale</i>' : '') + (bubble ? '<i>Bulle</i>' : '') + (t.gain > 0 ? '<i>ITM</i>' : '');
   return '<li><button type="button" class="tr" data-act="tedit" data-id="' + esc(t.id) + '"><span class="tr-d"><b>' + d.getDate() + '</b>' +
     esc(d.toLocaleDateString('fr-FR', { month: 'short' })) + '</span>' +
     '<span class="tr-m"><b>' + esc(t.name || 'Sans nom') + '</b><span class="tr-s">' + t.bullets + ' bullet' + (t.bullets > 1 ? 's' : '') + ' · ' + esc(fmtBRL(inv)) +
-      (t.place ? ' · ' + t.place + (t.place === 1 ? 'er' : 'e') : '') + '</span></span>' +
+      (t.place ? ' · ' + t.place + (t.place === 1 ? 'er' : 'e') : '') + (t.paid ? ' · ' + t.paid + ' payés' : '') + '</span></span>' +
     '<span class="tr-r"><span class="tr-n ' + (net > 0 ? 'res-won' : net < 0 ? 'res-lost' : 'res-split') + '">' + esc(fmtNetBRL(net)) + '</span>' +
       (badges ? '<span class="tr-b">' + badges + '</span>' : '') + '</span></button></li>';
 }
@@ -2167,6 +2173,8 @@ function tFormHtml() {
       chip('0', { cls: 'mono', attrs: 'data-act="tgain0"' }) + '</div>') +
     fld('Place finale (facultatif)', '<div class="stackrow"><input class="inp num" id="in-tplace" inputmode="numeric" placeholder="1 = victoire" value="' + esc(f.place) + '" data-in="t-place" autocomplete="off" aria-label="Place finale">' +
       chip('Table finale', { attrs: 'id="t-ft" data-act="tft" aria-pressed="false"' }) + '</div>') +
+    fld('Places payées (facultatif)', '<input class="inp num" id="in-tpaid" inputmode="numeric" placeholder="Combien de joueurs sont ITM" value="' + esc(f.paid) + '" data-in="t-paid" autocomplete="off" aria-label="Nombre de places payées">' +
+      '<p class="hint" id="t-bubble" style="margin:0" hidden></p>') +
     '<p class="hint err" id="t-err" role="alert" hidden></p>' + ask +
     '<div class="row"><button type="button" class="btn" data-act="tsave">Enregistrer</button><button type="button" class="btn ghost" data-act="tcancel">Annuler</button>' +
       (f.id && !f.delAsk ? '<button type="button" class="btn ghost sm" data-act="tdelask">Supprimer</button>' : '') + '</div></div>';
@@ -2202,6 +2210,8 @@ function tSync() {
   const win = +f.place === 1, ft = $('#t-ft');
   if (ft) { const on = !!f.ft || win; ft.classList.toggle('on', on); ft.disabled = win; ft.setAttribute('aria-pressed', on ? 'true' : 'false'); }
   document.querySelectorAll('#view-suivi [data-act=tbuy]').forEach(c => c.classList.toggle('on', b === +c.dataset.v));
+  const bub = $('#t-bubble');
+  if (bub) { const pl = +f.place, pd = +f.paid, on = pl > 0 && pd > 0 && pl === pd + 1; bub.textContent = on ? 'Bulle : tu finis juste avant les places payées.' : ''; bub.hidden = !on; }
   const er = $('#t-err'); if (er) { er.textContent = f.err || ''; er.hidden = !f.err; }
 }
 function tInput(t, k) {
@@ -2212,6 +2222,7 @@ function tInput(t, k) {
   else if (k === 't-buyin') f.buyin = t.value;
   else if (k === 't-gain') f.gain = t.value;
   else if (k === 't-place') { f.place = t.value.replace(/\D/g, '').slice(0, 7); if (f.place !== t.value) t.value = f.place; if (+f.place === 1) f.ft = true; }
+  else if (k === 't-paid') { f.paid = t.value.replace(/\D/g, '').slice(0, 7); if (f.paid !== t.value) t.value = f.paid; }
   f.err = ''; tSync();
 }
 const typingInSuivi = () => { const a = document.activeElement; return !!(a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && $('#view-suivi').contains(a)); };
@@ -2219,13 +2230,13 @@ const typingInSuivi = () => { const a = document.activeElement; return !!(a && /
 const AT = {
   tyear(el) { ui.ty = +el.dataset.v; renderSuivi(); },
   tadd() {
-    ui.tf = { id: null, date: todayStr(), name: '', buyin: '', bullets: 1, gain: '', place: '', ft: false, err: '', delAsk: false };
+    ui.tf = { id: null, date: todayStr(), name: '', buyin: '', bullets: 1, gain: '', place: '', paid: '', ft: false, err: '', delAsk: false };
     renderSuivi(); scrollToEl('#t-form');
   },
   tedit(el) {
     const t = tStore.list.find(x => x.id === el.dataset.id);
     if (!t) return;
-    ui.tf = { id: t.id, date: t.date, name: t.name, buyin: String(t.buyin), bullets: t.bullets, gain: String(t.gain), place: t.place ? String(t.place) : '', ft: t.ft, err: '', delAsk: false };
+    ui.tf = { id: t.id, date: t.date, name: t.name, buyin: String(t.buyin), bullets: t.bullets, gain: String(t.gain), place: t.place ? String(t.place) : '', paid: t.paid ? String(t.paid) : '', ft: t.ft, err: '', delAsk: false };
     renderSuivi(); scrollToEl('#t-form');
   },
   tcancel() { ui.tf = null; renderSuivi(); },
@@ -2247,18 +2258,19 @@ const AT = {
     const f = ui.tf;
     if (!f) return;
     const name = f.name.trim(), buyin = tMoney(f.buyin), gain = String(f.gain).trim() === '' ? NaN : tMoney(f.gain);
-    const place = f.place === '' ? null : parseInt(f.place, 10);
+    const place = f.place === '' ? null : parseInt(f.place, 10), paid = f.paid === '' ? null : parseInt(f.paid, 10);
     let err = '';
     if (!name) err = 'Donne un nom au tournoi.';
     else if (!validDate(f.date)) err = 'La date n\'est pas valide.';
     else if (!(buyin > 0 && buyin <= T_MAX.money)) err = 'Buy-in : entre le prix d\'entrée d\'une bullet (plus de 0).';
     else if (!(gain >= 0 && gain <= T_MAX.money)) err = 'Gain : entre le total touché, 0 si tu n\'as rien gagné.';
     else if (place !== null && !(place >= 1 && place <= T_MAX.place)) err = 'Place : un nombre à partir de 1, ou laisse vide.';
+    if (!err && paid !== null && !(paid >= 1 && paid <= T_MAX.place)) err = 'Places payées : un nombre à partir de 1, ou laisse vide.';
     if (err) { f.err = err; tSync(); const e = $('#t-err'); if (e && e.scrollIntoView) e.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
     const now = new Date().toISOString(), old = f.id ? tStore.list.find(t => t.id === f.id) : null;
     const rec = {
       id: old ? old.id : 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      date: f.date, name: name.slice(0, 120), buyin: cents(buyin), bullets: f.bullets, gain: cents(gain), place: place, ft: !!f.ft || place === 1,
+      date: f.date, name: name.slice(0, 120), buyin: cents(buyin), bullets: f.bullets, gain: cents(gain), place: place, paid: paid, ft: !!f.ft || place === 1,
       createdAt: old ? old.createdAt : now, updatedAt: now
     };
     const before = tStore.list.slice();
