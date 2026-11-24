@@ -1504,7 +1504,7 @@ function closedHint(sim, st) {
   const state = streetState(sim, st), i = STREETS.indexOf(st), nx = STREETS[i + 1];
   const why = state === 'over' ? 'Il ne reste qu\'un joueur.' : 'Tout le monde a parlé.';
   const next = state === 'over' || !nx ? '<p class="hint" style="margin:0">' + (state === 'over' ? 'La main est terminée : ' : '') + 'renseigne le résultat plus bas.</p>'
-    : '<div class="row"><button type="button" class="btn ghost sm" data-act="street" data-v="' + nx + '">Passer à la ' + STREET_LABEL[nx].toLowerCase() + '</button></div>';
+    : '<div class="row"><button type="button" class="btn ghost sm" data-act="street" data-v="' + nx + '">Passer ' + (nx === 'flop' ? 'au flop' : 'à la ' + STREET_LABEL[nx].toLowerCase()) + '</button></div>';
   return '<p class="hint" style="margin:0 0 8px"><b>Tour de mise terminé.</b> ' + why + ' Pour corriger, supprime une action avec ×.</p>' + next;
 }
 function builder(sim, st) {
