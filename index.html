@@ -564,6 +564,13 @@ img.wait{opacity:0}
 .sc-b.on{background:linear-gradient(180deg,var(--acc-1),var(--acc-2));border-color:transparent;color:var(--on-acc)}
 .sc-x{color:var(--fg-3);font:500 20px var(--f-body)}
 .sc-v{margin-left:6px;font-style:normal;font-weight:500;letter-spacing:0;text-transform:none;color:var(--fg-3)}
+.sr{list-style:none;margin:0;padding:0}
+.sr-i{padding:12px 0;border-top:1px solid var(--edge)}
+.sr-i:first-child{border-top:0;padding-top:2px}
+.sr-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.sr-h b{font:600 16px/1.25 var(--f-body);overflow-wrap:anywhere}
+.sr-v{font:600 16px var(--f-body);font-variant-numeric:tabular-nums;white-space:nowrap}
+.sr-s{margin-top:3px;font:500 12.5px/1.4 var(--f-body);color:var(--fg-3)}
 </style>
 <style>body{padding-top:env(safe-area-inset-top,0px)}</style>
 </head>
@@ -2026,7 +2033,7 @@ function onStoreChange() {
     adopted = true;
     const last = sortedHands()[0];
     if (last && !draftLoaded && isPristine(H) && !editingId) {
-      H.tournament = continuing(last) ? (last.tournament || '') : '';
+      H.tournament = liveOnlyName() || (continuing(last) ? (last.tournament || '') : '');
       H.table = TABLES[last.table] ? last.table : H.table;
       H.ante = last.ante == null ? 0 : last.ante;
     }
@@ -2111,7 +2118,7 @@ async function downloadJson() {
 
 /* ===== Suivi: tracker of live tournaments, everything in R$ =====
    One record per tournament: { id, date (first day), name, buyin (one bullet, fees included), bullets, gain (total won, bounties and deal included),
-   place (optional), ft (final table), createdAt, updatedAt }. Stored on this device only, in its own key, and part of the same .json backup as the hands.
+   place, paid (places paid), joueurs (field size), serie: all optional, ft (final table), live (still playing), mental (3 marks), debrief, createdAt, updatedAt }. Stored on this device only, in its own key, and part of the same .json backup as the hands.
    Importing merges by id (the most recently changed copy wins) and never removes anything. */
 const LS_TOURN = 'carnet-tournois-local', LS_BACKUP = 'carnet-derniere-sauvegarde';
 const tStore = { list: [] };
@@ -2159,13 +2166,19 @@ function tNorm(x) {
     const q = Math.floor(tMoney(x.paid));
     if (q >= 1 && q <= T_MAX.place) paid = q;
   }
+  let joueurs = null;   /* how many players started (optional): gives the finish as a share of the field */
+  if (x.joueurs !== null && x.joueurs !== undefined && x.joueurs !== '') {
+    const j = Math.floor(tMoney(x.joueurs));
+    if (j >= 1 && j <= T_MAX.place) joueurs = j;
+  }
   const sc = v => { if (typeof v !== 'number' && typeof v !== 'string') return null; if (v === '') return null; const n = Math.round(Number(v)); return Number.isFinite(n) && n >= 0 && n <= 10 ? n : null; };
   const mm = x.mental && typeof x.mental === 'object' ? { g: sc(x.mental.g), d: sc(x.mental.d), r: sc(x.mental.r) } : null;
   const iso = v => (typeof v === 'string' && v.length <= 40 ? v : '');
   const created = iso(x.createdAt) || new Date().toISOString();
   return {
     id: x.id, date: x.date, name: String(x.name == null ? '' : x.name).trim().slice(0, 120),
-    buyin: cents(buyin), bullets: bullets, gain: cents(gain), place: place, paid: paid, ft: x.ft === true || place === 1,
+    buyin: cents(buyin), bullets: bullets, gain: cents(gain), place: place, paid: paid, joueurs: joueurs, ft: x.ft === true || place === 1,
+    serie: String(x.serie == null ? '' : x.serie).replace(/\s+/g, ' ').trim().slice(0, 40),   /* KSOP, BSOP, River...: groups the figures */
     live: x.live === true,   /* still playing: kept out of every figure until the result is written */
     mental: mm && (mm.g !== null || mm.d !== null || mm.r !== null) ? mm : null,
     debrief: String(x.debrief == null ? '' : x.debrief).trim().slice(0, 600),
@@ -2208,6 +2221,19 @@ function tTotals(list) {
 }
 
 const tLiveList = () => tSorted(tStore.list.filter(t => t.live));
+/* the one tournament being played, when there is exactly one: a new hand goes to it by itself */
+const liveOnlyName = () => { const l = tStore.list.filter(t => t.live && normName(t.name)); return l.length === 1 ? l[0].name : ''; };
+/* the series already used, most used first; a name that contains one of them proposes it */
+function tSeriesList() {
+  const c = {};
+  tStore.list.forEach(t => { const k = normName(t.serie); if (k) { const a = c[k] || (c[k] = { name: t.serie, n: 0 }); a.n++; } });
+  return Object.keys(c).map(k => c[k]).sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+}
+function tSerieGuess(name) {
+  const known = tSeriesList(), toks = String(name || '').split(/[\s·,]+/).map(normName).filter(Boolean);
+  for (let i = 0; i < toks.length; i++) { const m = known.find(x => normName(x.name) === toks[i]); if (m) return m.name; }
+  return '';
+}
 /* ===== what the start screen shows (tournaments still being played are not counted) ===== */
 function tHomeTile() {
   const y = thisYear(), tot = tTotals(tStore.list.filter(t => tYear(t) === y && !t.live)), lv = tStore.list.filter(t => t.live).length;
@@ -2233,19 +2259,22 @@ function bkHint() {
 /* ===== numbers of the selected year ===== */
 const tChrono = list => list.slice().sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.createdAt).localeCompare(String(b.createdAt)) || a.id.localeCompare(b.id));
 function tStats(list) {
-  const s = { n: list.length, bullets: 0, inv: 0, gain: 0, itm: 0, ft: 0, wins: 0, bubbles: 0, paidKnown: false, best: null, streak: 0, now: 0 };
+  const s = { n: list.length, bullets: 0, inv: 0, gain: 0, itm: 0, ft: 0, wins: 0, bubbles: 0, paidKnown: false, best: null, streak: 0, now: 0, finN: 0, finSum: 0, fieldN: 0, fieldSum: 0 };
   tChrono(list).forEach(t => {
     s.bullets += t.bullets; s.inv += t.buyin * t.bullets; s.gain += t.gain;
     if (t.gain > 0) { s.itm++; s.now = 0; if (!s.best || t.gain > s.best.gain) s.best = t; }
     else { s.now++; if (s.now > s.streak) s.streak = s.now; }   /* longest run of tournaments without a cash, in playing order */
     if (t.ft) s.ft++;
     if (t.place === 1) s.wins++;
+    if (t.joueurs) { s.fieldN++; s.fieldSum += t.joueurs; }
+    if (t.place && t.joueurs && t.place <= t.joueurs) { s.finN++; s.finSum += t.place / t.joueurs; }   /* 1st of 100 = top 1 % */
     if (t.place && t.paid) { s.paidKnown = true; if (t.place === t.paid + 1) s.bubbles++; }
   });
   s.inv = cents(s.inv); s.gain = cents(s.gain); s.net = cents(s.gain - s.inv);
   s.roi = s.inv > 0 ? s.net / s.inv : null;
   s.itmPct = s.n ? s.itm / s.n : null;
   s.abi = s.bullets ? s.inv / s.bullets : null;
+  s.finAvg = s.finN ? s.finSum / s.finN : null; s.fieldAvg = s.fieldN ? s.fieldSum / s.fieldN : null;
   return s;
 }
 const fmtPct = (x, d) => (x * 100).toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d }) + ' %';
@@ -2340,7 +2369,7 @@ function tRow(t, links) {
   return '<li><button type="button" class="tr" data-act="tedit" data-id="' + esc(t.id) + '"><span class="tr-d"><b>' + d.getDate() + '</b>' +
     esc(d.toLocaleDateString('fr-FR', { month: 'short' })) + '</span>' +
     '<span class="tr-m"><b>' + esc(t.name || 'Sans nom') + '</b><span class="tr-s">' + t.bullets + ' bullet' + (t.bullets > 1 ? 's' : '') + ' · ' + esc(fmtBRL(inv)) +
-      (t.place ? ' · ' + t.place + (t.place === 1 ? 'er' : 'e') : '') + (t.paid ? ' · ' + t.paid + ' payés' : '') + '</span>' +
+      (t.place ? ' · ' + t.place + (t.place === 1 ? 'er' : 'e') + (t.joueurs ? ' sur ' + esc(fmtN(t.joueurs)) : '') : t.joueurs ? ' · ' + esc(fmtN(t.joueurs)) + ' joueurs' : '') + (t.paid ? ' · ' + t.paid + ' payés' : '') + '</span>' +
       (badges ? '<span class="tr-b">' + badges + '</span>' : '') + '</span>' +
     '<span class="tr-r"><span class="tr-n ' + (net > 0 ? 'res-won' : net < 0 ? 'res-lost' : 'res-split') + '">' + esc(fmtNetBRL(net)) + '</span></span></button>' +
     (hc ? '<button type="button" class="tr-mn" data-act="tmains" data-id="' + esc(t.id) + '">Voir ' + (hc > 1 ? 'les ' + hc + ' mains' : 'la main') + ' ›</button>' : '') + '</li>';
@@ -2412,7 +2441,7 @@ function tDebriefFld(f) {
 /* the form state of a saved tournament */
 function tFormFrom(t, over) {
   const m = t.mental || {};
-  return Object.assign({ id: t.id, date: t.date, name: t.name, buyin: String(t.buyin), bullets: t.bullets, gain: String(t.gain), place: t.place ? String(t.place) : '', paid: t.paid ? String(t.paid) : '', ft: t.ft,
+  return Object.assign({ id: t.id, date: t.date, name: t.name, buyin: String(t.buyin), bullets: t.bullets, gain: String(t.gain), place: t.place ? String(t.place) : '', paid: t.paid ? String(t.paid) : '', joueurs: t.joueurs ? String(t.joueurs) : '', serie: t.serie || '', sAuto: '', ft: t.ft,
     live: !!t.live, fin: false, mg: m.g === undefined ? null : m.g, md: m.d === undefined ? null : m.d, mr: m.r === undefined ? null : m.r, db: t.debrief || '', dbo: !!(t.mental || t.debrief), err: '', delAsk: false }, over || {});
 }
 function tFormHtml() {
@@ -2431,6 +2460,8 @@ function tFormHtml() {
       '<svg class="dt-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>' +
       '<input type="date" id="in-tdate" value="' + esc(f.date) + '" data-in="t-date" aria-label="Date de début"></div></div>' +
     '<datalist id="dl-tname">' + names.map(n => '<option value="' + esc(n) + '"></option>').join('') + '</datalist>' +
+    fld('Série (facultatif)', '<input class="inp" id="in-tserie" maxlength="40" placeholder="KSOP, BSOP, River..." value="' + esc(f.serie) + '" data-in="t-serie" autocomplete="off" aria-label="Série">' +
+      (tSeriesList().length ? '<div class="scroll-row">' + tSeriesList().slice(0, 12).map(x => chip(esc(x.name), { on: normName(f.serie) === normName(x.name), attrs: 'data-act="tserie" data-v="' + esc(x.name) + '"' })).join('') + '</div>' : '')) +
     fld('Statut', '<div class="stackrow">' + chip('Tournoi en cours', { on: !!f.live, attrs: 'id="t-live" data-act="tlive" aria-pressed="' + (f.live ? 'true' : 'false') + '"' }) + '</div>' +
       '<p class="hint" style="margin:0">' + (f.live ? 'Pas compté dans tes chiffres. Tu notes le résultat quand tu sors.' : 'Touche-le si tu es encore dans le tournoi.') + '</p>') +
     fld('Buy-in · R$ (une bullet, frais inclus)', '<input class="inp num" id="in-tbuy" inputmode="decimal" placeholder="Prix d\'entrée" value="' + esc(f.buyin) + '" data-in="t-buyin" autocomplete="off" aria-label="Buy-in en reais">' +
@@ -2441,6 +2472,8 @@ function tFormHtml() {
       chip('0', { cls: 'mono', attrs: 'data-act="tgain0"' }) + '</div>') +
     fld('Place finale (facultatif)', '<div class="stackrow"><input class="inp num" id="in-tplace" inputmode="numeric" placeholder="1 = victoire" value="' + esc(f.place) + '" data-in="t-place" autocomplete="off" aria-label="Place finale">' +
       chip('Table finale', { attrs: 'id="t-ft" data-act="tft" aria-pressed="false"' }) + '</div>') +
+    fld('Joueurs au départ (facultatif)', '<input class="inp num" id="in-tjoueurs" inputmode="numeric" placeholder="Combien de joueurs au total" value="' + esc(f.joueurs) + '" data-in="t-joueurs" autocomplete="off" aria-label="Nombre de joueurs au départ">' +
+      '<p class="hint" id="t-fin" style="margin:0" hidden></p>') +
     fld('Places payées (facultatif)', '<input class="inp num" id="in-tpaid" inputmode="numeric" placeholder="Combien de joueurs sont ITM" value="' + esc(f.paid) + '" data-in="t-paid" autocomplete="off" aria-label="Nombre de places payées">' +
       '<p class="hint" id="t-bubble" style="margin:0" hidden></p>') + tDebriefFld(f)) +
     '<p class="hint err" id="t-err" role="alert" hidden></p>' + ask +
@@ -2454,6 +2487,22 @@ function tDash(st, y) {
     '<div><span class="k">ITM</span><span class="v">' + (st.itmPct === null ? '–' : esc(fmtPct(st.itmPct, 1))) + '</span><span class="sub">' + st.itm + ' sur ' + st.n + ' tournoi' + (st.n > 1 ? 's' : '') + '</span></div></div>';
   return hero + tiles;
 }
+/* the figures of each series: only shown once at least one tournament has a series */
+function tSeriesHtml(list) {
+  const g = {};
+  list.forEach(t => { const k = normName(t.serie), a = g[k] || (g[k] = { k: k, name: t.serie, list: [] }); a.list.push(t); });
+  const rows = Object.keys(g).map(k => Object.assign(g[k], { st: tStats(g[k].list) }));
+  const named = rows.filter(r => r.k).length;
+  if (!named) return '';
+  rows.sort((a, b) => (a.k === '') - (b.k === '') || b.st.n - a.st.n || b.st.net - a.st.net);
+  return '<div class="sec"><div class="sec-h"><span class="lbl">Par série</span><span class="pot">' + named + ' série' + (named > 1 ? 's' : '') + '</span></div><ol class="sr">' +
+    rows.map(r => {
+      const s = r.st;
+      return '<li class="sr-i"><div class="sr-h"><b>' + esc(r.k ? r.name : 'Sans série') + '</b><span class="sr-v ' + netCls(s.net) + '">' + esc(fmtNet(s.net)) + '</span></div>' +
+        '<div class="sr-s">' + s.n + ' tournoi' + (s.n > 1 ? 's' : '') + ' · ' + s.bullets + ' bullet' + (s.bullets > 1 ? 's' : '') +
+        (s.roi === null ? '' : ' · ROI ' + esc(fmtSignPct(s.roi, 1))) + ' · ITM ' + esc(fmtPct(s.itmPct, 0)) + '</div></li>';
+    }).join('') + '</ol></div>';
+}
 function tFigures(st) {
   const kv = (k, v, sub, cls) => '<div' + (cls ? ' class="' + cls + '"' : '') + '><span class="k">' + k + '</span><b>' + v + '</b>' + (sub ? '<i>' + sub + '</i>' : '') + '</div>';
   const R = '<small>R$</small>', of = x => st.n ? esc(fmtPct(x / st.n, 1)) + ' des tournois' : '';
@@ -2464,6 +2513,8 @@ function tFigures(st) {
     kv('Meilleur cash', st.best ? esc(fmtN(st.best.gain)) + R : '–', st.best ? esc(st.best.name || 'Sans nom') : '') +
     kv('ITM', st.itm, 'tournois avec un gain') + kv('% d\'ITM', st.itmPct === null ? '–' : esc(fmtPct(st.itmPct, 1)), st.itm + ' sur ' + st.n) +
     kv('Tables finales', st.ft, of(st.ft)) + kv('Victoires', st.wins, of(st.wins)) +
+    kv('Finish moyen', st.finAvg === null ? '–' : 'top ' + esc(fmtPct(st.finAvg, 1)), st.finN ? 'sur ' + st.finN + ' des ' + st.n + ' tournois' : 'renseigne les joueurs') +
+    kv('Champ moyen', st.fieldAvg === null ? '–' : esc(fmtN(Math.round(st.fieldAvg))) + '<small>joueurs</small>', st.fieldN ? 'sur ' + st.fieldN + ' des ' + st.n + ' tournois' : '') +
     kv('Série sans ITM', st.streak + ' tournoi' + (st.streak > 1 ? 's' : ''), 'record de l\'année · série actuelle : ' + st.now, 'neg') +
     kv('Élimination à la pure bulle', st.paidKnown ? st.bubbles : '–', st.paidKnown ? 'à une place de l\'argent' : 'renseigne les places payées', 'neg') + '</div>';
 }
@@ -2505,7 +2556,7 @@ function renderSuivi() {
   else dash = st.n
     ? '<div class="sec"><div class="sec-h"><span class="lbl">Chiffres ' + y + '</span></div>' + tFigures(st) + '</div>' +
       '<div class="sec"><div class="sec-h"><span class="lbl">Gain cumulé</span><span class="pot">' + st.n + ' tournoi' + (st.n > 1 ? 's' : '') + '</span></div>' + tChart(tChrono(done)) + '</div>' +
-      tMonthList(done, links, y)
+      tSeriesHtml(done) + tMonthList(done, links, y)
     : (tCv = null, '<div class="sec"><div class="sec-h"><span class="lbl">Tournois ' + y + '</span></div><p class="hint" style="margin:0">' + (inYear.length ? 'Aucun tournoi terminé en ' + y + '. Touche « Terminer » sur le tournoi en cours quand tu sors.' : 'Aucun tournoi en ' + y + '. Touche « Ajouter un tournoi » pour commencer.') + '</p></div>');
   const bk = '<div class="sec"><div class="sec-h"><span class="lbl">Sauvegarde</span></div>' +
     '<p class="hint" style="margin:0">Tes tournois sont enregistrés sur cet appareil, dans le même fichier .json que tes mains. ' +
@@ -2526,6 +2577,10 @@ function tSync() {
   document.querySelectorAll('#view-suivi [data-act=tbuy]').forEach(c => c.classList.toggle('on', b === +c.dataset.v));
   const bub = $('#t-bubble');
   if (bub) { const pl = +f.place, pd = +f.paid, on = pl > 0 && pd > 0 && pl === pd + 1; bub.textContent = on ? 'Pure bulle : tu finis juste avant les places payées.' : ''; bub.hidden = !on; }
+  const si = $('#in-tserie'); if (si && si.value !== f.serie) si.value = f.serie;
+  document.querySelectorAll('#view-suivi [data-act=tserie]').forEach(c => c.classList.toggle('on', !!f.serie && normName(c.dataset.v) === normName(f.serie)));
+  const fn = $('#t-fin');
+  if (fn) { const pl = +f.place, jo = +f.joueurs, on = pl > 0 && jo > 0 && pl <= jo; fn.textContent = on ? 'Top ' + fmtPct(pl / jo, 1) + ' du champ.' : ''; fn.hidden = !on; }
   M_KEYS.forEach(k => {
     const v = f['m' + k];
     document.querySelectorAll('#view-suivi [data-act=tscore][data-k=' + k + ']').forEach(c => { const on = c.dataset.v !== '' && +c.dataset.v === v; c.classList.toggle('on', on); c.setAttribute('aria-pressed', on ? 'true' : 'false'); });
@@ -2538,7 +2593,14 @@ function tSync() {
 function tInput(t, k) {
   const f = ui.tf;
   if (!f) return;
-  if (k === 't-name') f.name = t.value;
+  if (k === 't-name') {
+    f.name = t.value;
+    const g = tSerieGuess(f.name);   /* a name that contains a known series proposes it, until the series is typed or chosen by hand */
+    if (g && (!f.serie || f.serie === f.sAuto)) { f.serie = g; f.sAuto = g; }
+    else if (!g && f.serie && f.serie === f.sAuto) { f.serie = ''; f.sAuto = ''; }
+  }
+  else if (k === 't-serie') { f.serie = t.value.slice(0, 40); f.sAuto = ''; }
+  else if (k === 't-joueurs') { f.joueurs = t.value.replace(/\D/g, '').slice(0, 7); if (f.joueurs !== t.value) t.value = f.joueurs; }
   else if (k === 't-date') { f.date = t.value || todayStr(); const dt = $('#tdate-txt'); if (dt) dt.textContent = dateLbl(f.date); }
   else if (k === 't-buyin') f.buyin = t.value;
   else if (k === 't-gain') f.gain = t.value;
@@ -2571,7 +2633,7 @@ const AT = {
   },
   tview(el) { ui.tv = el.dataset.v === 'm' ? 'm' : 'r'; renderSuivi(); },
   tadd() {
-    ui.tf = { id: null, date: todayStr(), name: '', buyin: '', bullets: 1, gain: '', place: '', paid: '', ft: false, live: false, fin: false, mg: null, md: null, mr: null, db: '', dbo: false, err: '', delAsk: false };
+    ui.tf = { id: null, date: todayStr(), name: '', buyin: '', bullets: 1, gain: '', place: '', paid: '', joueurs: '', serie: '', sAuto: '', ft: false, live: false, fin: false, mg: null, md: null, mr: null, db: '', dbo: false, err: '', delAsk: false };
     renderSuivi(); scrollToEl('#t-form');
   },
   tedit(el) {
@@ -2590,6 +2652,7 @@ const AT = {
     ui.tf = tFormFrom(t, { dbo: true }); renderSuivi(); scrollToEl('#t-form');
   },
   tlive() { const f = ui.tf; if (!f) return; f.live = !f.live; f.err = ''; renderSuivi(); },
+  tserie(el) { const f = ui.tf; if (!f) return; f.serie = normName(f.serie) === normName(el.dataset.v) ? '' : el.dataset.v; f.sAuto = ''; tSync(); },
   tdbt() { const f = ui.tf; if (!f) return; f.dbo = !f.dbo; renderSuivi(); },
   tscore(el) { const f = ui.tf, k = el.dataset.k; if (!f || M_KEYS.indexOf(k) < 0) return; f['m' + k] = el.dataset.v === '' ? null : +el.dataset.v; tSync(); },
   tcancel() { ui.tf = null; renderSuivi(); },
@@ -2612,11 +2675,12 @@ const AT = {
     if (!f) return;
     const live = !!f.live, name = f.name.trim(), buyin = tMoney(f.buyin);
     let gain = String(f.gain).trim() === '' ? NaN : tMoney(f.gain);
-    let place = f.place === '' ? null : parseInt(f.place, 10), paid = f.paid === '' ? null : parseInt(f.paid, 10);
+    let place = f.place === '' ? null : parseInt(f.place, 10), paid = f.paid === '' ? null : parseInt(f.paid, 10), joueurs = f.joueurs === '' ? null : parseInt(f.joueurs, 10);
     if (live) {   /* still playing: the result fields are hidden, nothing typed there can block the save */
       if (!(gain >= 0 && gain <= T_MAX.money)) gain = 0;
       if (!(place >= 1 && place <= T_MAX.place)) place = null;
       if (!(paid >= 1 && paid <= T_MAX.place)) paid = null;
+      if (!(joueurs >= 1 && joueurs <= T_MAX.place)) joueurs = null;
     }
     let err = '';
     if (!name) err = 'Donne un nom au tournoi.';
@@ -2625,12 +2689,15 @@ const AT = {
     else if (!(gain >= 0 && gain <= T_MAX.money)) err = 'Gain : entre le total touché, 0 si tu n\'as rien gagné.';
     else if (place !== null && !(place >= 1 && place <= T_MAX.place)) err = 'Place : un nombre à partir de 1, ou laisse vide.';
     if (!err && paid !== null && !(paid >= 1 && paid <= T_MAX.place)) err = 'Places payées : un nombre à partir de 1, ou laisse vide.';
+    if (!err && joueurs !== null && !(joueurs >= 1 && joueurs <= T_MAX.place)) err = 'Joueurs : un nombre à partir de 1, ou laisse vide.';
+    if (!err && !live && joueurs !== null && place !== null && place > joueurs) err = 'La place finale ne peut pas dépasser le nombre de joueurs.';
+    if (!err && !live && joueurs !== null && paid !== null && paid > joueurs) err = 'Les places payées ne peuvent pas dépasser le nombre de joueurs.';
     if (err) { f.err = err; tSync(); const e = $('#t-err'); if (e && e.scrollIntoView) e.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
     const now = new Date().toISOString(), old = f.id ? tStore.list.find(t => t.id === f.id) : null;
     const rec = {
       id: old ? old.id : 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      date: f.date, name: name.slice(0, 120), buyin: cents(buyin), bullets: f.bullets, gain: cents(gain), place: place, paid: paid, ft: !!f.ft || place === 1,
-      live: live, mental: (f.mg !== null || f.md !== null || f.mr !== null) ? { g: f.mg, d: f.md, r: f.mr } : null, debrief: String(f.db || '').trim().slice(0, 600),
+      date: f.date, name: name.slice(0, 120), buyin: cents(buyin), bullets: f.bullets, gain: cents(gain), place: place, paid: paid, joueurs: joueurs, ft: !!f.ft || place === 1,
+      serie: String(f.serie || '').replace(/\s+/g, ' ').trim().slice(0, 40), live: live, mental: (f.mg !== null || f.md !== null || f.mr !== null) ? { g: f.mg, d: f.md, r: f.mr } : null, debrief: String(f.db || '').trim().slice(0, 600),
       createdAt: old ? old.createdAt : now, updatedAt: now
     };
     const before = tStore.list.slice();
@@ -2720,13 +2787,19 @@ function openHand(id) {
 }
 function resetEditor(ctx) {
   H = newHand(ctx || { tournament: H.tournament, date: H.date, table: H.table, ante: H.ante });
-  editingId = null; origJson = '';
+  editingId = null; origJson = ''; ui.tManual = false;
   ui.street = 'preflop'; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = ''; ui.tagDraft = '';
   clearDraft();
 }
+/* an empty new hand carries the tournament in progress, unless a name was chosen or typed by hand */
+function autoLive() {
+  const n = liveOnlyName();
+  if (n && !editingId && !ui.tManual && isPristine(H) && normName(H.tournament) !== normName(n)) H.tournament = n;
+}
 function freshCtx() {
-  const last = sortedHands()[0];
-  return last ? { tournament: continuing(last) ? (last.tournament || '') : '', date: todayStr(), table: last.table, ante: last.ante } : {};
+  const last = sortedHands()[0], live = liveOnlyName();   /* one tournament in progress: the next hand is for it */
+  if (!last) return live ? { tournament: live } : {};
+  return last ? { tournament: live || (continuing(last) ? (last.tournament || '') : ''), date: todayStr(), table: last.table, ante: last.ante } : {};
 }
 /* review on a computer: previous / next hand of the same tournament */
 function pcStep(d) {
@@ -2912,9 +2985,10 @@ const A = {
     const v = el.dataset.v;
     if (ui.block === v) { window.scrollTo(0, 0); return; }
     closeFix(); ui.block = v; ui.picker = null; ui.pending = null; ui.delGroup = null; ui.delAsk = null; ui.confirm = '';
+    if (v === 'mains') autoLive();
     renderAll(); window.scrollTo(0, 0);
   },
-  pickt(el) { H.tournament = el.dataset.v; rerender(); },   /* a tournament of the Suivi chosen for this hand */
+  pickt(el) { H.tournament = el.dataset.v; ui.tManual = true; rerender(); },   /* a tournament of the Suivi chosen for this hand */
   tab(el) { closeFix(); ui.tab = el.dataset.v; ui.picker = null; ui.delGroup = null; ui.rv = null; renderAll(); window.scrollTo(0, 0); },
   table(el) {
     H.table = el.dataset.v;
@@ -3226,7 +3300,7 @@ document.addEventListener('input', e => {
   if (k.indexOf('t-') === 0) { tInput(t, k); return; }   /* tournament form: its own state, never part of a hand or its draft */
   if (k === 'apikey') { ui.keyDraft = t.value; return; }   /* the key: held only until saved, never part of the hand */
   if (k === 'fix') { ui.fixDraft = { id: t.dataset.id, text: t.value }; return; }   /* review field: kept until validated or left */
-  if (k === 'tourn') { H.tournament = t.value; $('#stat').textContent = t.value; syncPickT(); }
+  if (k === 'tourn') { H.tournament = t.value; ui.tManual = true; $('#stat').textContent = t.value; syncPickT(); }
   else if (k === 'date') { H.date = t.value || todayStr(); const dt = $('#date-txt'); if (dt) dt.textContent = dateLbl(H.date); }
   else if (k === 'ante') { H.ante = num(t.value) > 0 ? num(t.value) : 0; syncChips('ante', null, H.ante); }
   else if (k === 'hstack') { H.hero.stack = t.value; syncChips('hstack', '', num(t.value)); }
@@ -3279,7 +3353,7 @@ window.addEventListener('pagehide', () => { clearTimeout(draftTimer); writeDraft
 tLoad();
 const saved = loadDraft();
 if (saved) { H = saved.h; editingId = saved.editingId; draftLoaded = true; }
-else H = newHand({});
+else H = newHand({ tournament: liveOnlyName() });
 if (isWide()) ui.tab = 'review';   /* a computer is for reviewing */
 if (WIDE_Q) { const onWide = () => renderAll(); if (WIDE_Q.addEventListener) WIDE_Q.addEventListener('change', onWide); else if (WIDE_Q.addListener) WIDE_Q.addListener(onWide); }
 renderAll();
