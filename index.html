@@ -687,6 +687,12 @@ html.has-nav.has-sb .toast{bottom:calc(var(--navh) + 98px)}
   .brand-btn{padding:13px 0;margin:-13px 0}
   .camb{width:44px;height:44px}
 }
+
+/* the save bar comes in softly when the first thing is noted */
+@media (prefers-reduced-motion:no-preference){
+  .savebar:not([hidden]) .savebar-in{animation:sbIn .28s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes sbIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+}
 </style>
 <style>body{padding-top:env(safe-area-inset-top,0px)}</style>
 </head>
@@ -1846,7 +1852,9 @@ function renderBanner() {
 function renderSave() {
   const mains = ui.block === 'mains';
   const reviewing = mains && ui.tab === 'review' && !isWide() && ui.rv && !ui.rv.done;
-  $('#savebar').hidden = !(mains && ui.tab === 'edit' || reviewing);
+  /* nothing to save yet (a blank hand): no bar, so the screen keeps its room; it comes in with the first thing noted */
+  const blank = mains && ui.tab === 'edit' && isPristine(H) && !editingId;
+  $('#savebar').hidden = !(mains && ui.tab === 'edit' || reviewing) || blank;
   document.documentElement.classList.toggle('has-sb', !$('#savebar').hidden);
   $('#savebar-in').className = 'savebar-in' + (reviewing ? ' vd' : '');
   if (reviewing && ui.rv.edit) {   /* writing the correction: switch to Bon, or move on */
@@ -1916,19 +1924,56 @@ function handRow(h, no) {
     '<svg class="hand-ch" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button></div>';
 }
 
-/* search: no accents, no capitals, every word must be found somewhere in the hand (tournament, cards, positions, actions, note, tags, comment) */
-const fold = s => String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+/* search: no accents, no capitals, every word must be found somewhere in the hand (tournament, cards, positions, actions, note, tags, comment).
+   Cards are understood the way players write them: "88" = a pair of eights, "AK" = ace-king (either order), "AKs" suited, "AKo" offsuit,
+   "Ah" = the ace of hearts anywhere in the hand. Hero's cards and the villains' shown cards both count. */
+const fold = s => String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/[\u2660\u2664]\uFE0F?/g, 's').replace(/[\u2665\u2661]\uFE0F?/g, 'h').replace(/[\u2666\u2662]\uFE0F?/g, 'd').replace(/[\u2663\u2667]\uFE0F?/g, 'c').toLowerCase();
 const searchTerms = q => fold(q).split(/\s+/).filter(Boolean);
+const RANK_STR = 'AKQJT98765432';
+/* "ka", "AKs", "88", "109" → the canonical form of a two-card holding ("AK", "AKs", "88", "T9"), or null when the word is not one */
+function holdQuery(tok) {
+  const m = /^([2-9tjqka])([2-9tjqka])([so])?$/.exec(tok.replace(/10/g, 't'));
+  if (!m) return null;
+  let a = m[1].toUpperCase(), b = m[2].toUpperCase();
+  if (RANK_STR.indexOf(a) > RANK_STR.indexOf(b)) { const x = a; a = b; b = x; }
+  return a + b + (m[3] ? (a === b ? '#' : m[3]) : '');   /* "88s" cannot exist: it matches nothing */
+}
+const cardQuery = tok => /^[2-9tjqka][shdc]$/.test(tok.replace(/^10/, 't')) ? tok.replace(/^10/, 't') : null;
+function holdForms(cards) {
+  const c = (cards || []).filter(x => x && x[0] !== '?' && x[1] !== '?');
+  if (c.length < 2) return [];
+  let a = c[0][0], b = c[1][0];
+  const suited = c[0][1] === c[1][1];
+  if (RANK_STR.indexOf(a) > RANK_STR.indexOf(b)) { const x = a; a = b; b = x; }
+  return a === b ? [a + b] : [a + b, a + b + (suited ? 's' : 'o')];
+}
 const hayCache = new Map();
 function handHay(h) {
   const k = h.id + '|' + (h.updatedAt || '');
   let v = hayCache.get(k);
   if (v === undefined) {
-    try { v = fold(handText(normHand(clone(h))) + ' ' + (h.tags || []).join(' ') + ' ' + (h.comment || '')); } catch (e) { v = fold(h.tournament); }
+    v = { s: '', forms: new Set(), cards: new Set() };
+    try {
+      const n = normHand(clone(h));
+      v.s = fold(handText(n) + ' ' + (h.tags || []).join(' ') + ' ' + (h.comment || ''));
+      holdForms(n.hero.cards).forEach(f => v.forms.add(f));
+      n.villains.forEach(x => holdForms(x.cards).forEach(f => v.forms.add(f)));
+      const all = [n.hero.cards].concat(n.villains.map(x => x.cards), STREETS.map(g => n.board[g]));
+      all.forEach(l => (l || []).forEach(c => { if (c && c[0] !== '?' && c[1] !== '?') v.cards.add((c[0] + c[1]).toLowerCase()); }));
+    } catch (e) { v.s = fold(h.tournament); }
     if (hayCache.size > 3000) hayCache.clear();
     hayCache.set(k, v);
   }
   return v;
+}
+/* one word of the search against one hand */
+function hayHas(v, t) {
+  const hq = holdQuery(t);
+  if (hq) return v.forms.has(hq);
+  const cq = cardQuery(t);
+  if (cq) return v.cards.has(cq);
+  return v.s.indexOf(t) >= 0;
 }
 function filteredHands() {
   const all = sortedHands();
@@ -1939,7 +1984,7 @@ function filteredHands() {
   else if (ui.filter.indexOf('t:') === 0) { const k = normName(ui.filter.slice(2)); out = all.filter(h => normName(h.tournament) === k); }
   else if (ui.filter.indexOf('st:') === 0) out = ui.stageF ? all.filter(h => ui.stageF.ids.has(h.id)) : all;   /* the hands of one stage, opened from the Suivi */
   const T = searchTerms(ui.q);
-  return T.length ? out.filter(h => { const s = handHay(h); return T.every(t => s.indexOf(t) >= 0); }) : out;
+  return T.length ? out.filter(h => { const v = handHay(h); return T.every(t => hayHas(v, t)); }) : out;
 }
 /* the search field: a magnifier, a clear button that shows once something is typed */
 const srchField = (id, key, ph, val, clearAct) => '<div class="srch"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input class="inp" id="' + id + '" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="' + ph + '" aria-label="' + ph + '" value="' + esc(val) + '" data-in="' + key + '">' +
@@ -1989,7 +2034,7 @@ function renderList() {
   const filters = [['all', 'Toutes'], ['good', '✓ Bon'], ['bad', '✗ Mauvais'], ['todo', 'À compléter']].concat(names.slice(0, 6).map(n => ['t:' + n, n]));
   if (ui.filter.indexOf('t:') === 0 && !filters.some(f => f[0] === ui.filter)) filters.push([ui.filter, ui.filter.slice(2)]);   /* a tournament opened from the Suivi */
   if (ui.filter.indexOf('st:') === 0 && ui.stageF) filters.push([ui.filter, ui.stageF.label]);
-  el.innerHTML = '<div class="sec plain" id="hl-top">' + bkHint() + srchField('in-hq', 'hq', 'Chercher une main', ui.q, 'hqclear') + '<p class="hint srch-n" id="hq-n"' + (ui.q.trim() ? '' : ' hidden') + '>' + hqNote() + '</p>' +
+  el.innerHTML = '<div class="sec plain" id="hl-top">' + bkHint() + srchField('in-hq', 'hq', 'Chercher : 88, AKs, tournoi, tag…', ui.q, 'hqclear') + '<p class="hint srch-n" id="hq-n"' + (ui.q.trim() ? '' : ' hidden') + '>' + hqNote() + '</p>' +
     '<div class="scroll-row">' + filters.map(f => chip(esc(f[1]), { on: ui.filter === f[0], attrs: 'data-act="filter" data-v="' + esc(f[0]) + '"' })).join('') + '</div>' +
     '<div class="row"><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer</button></div>' + IMPORT_INPUT + '<p class="hint" style="margin:0">Glisse une main vers la gauche pour la supprimer.</p>' + aiRow() + '</div>' +
     '<div id="hl-body">' + listBody() + '</div>';
@@ -2627,10 +2672,14 @@ function tRow(t, links) {
   const d = new Date(+t.date.slice(0, 4), +t.date.slice(5, 7) - 1, +t.date.slice(8, 10));
   const bubble = t.place && t.paid && t.place === t.paid + 1;
   const badges = (t.place === 1 ? '<i>Victoire</i>' : t.ft ? '<i>Table finale</i>' : '') + (bubble ? '<i>Pure bulle</i>' : '') + (t.gain > 0 ? '<i>ITM</i>' : '');
+  /* the result, on its own line under the money: place, field, places paid */
+  const res = [];
+  if (t.place) res.push(t.place + (t.place === 1 ? 'er' : 'e') + (t.joueurs ? ' sur ' + esc(fmtN(t.joueurs)) : '')); else if (t.joueurs) res.push(esc(fmtN(t.joueurs)) + ' joueurs');
+  if (t.paid) res.push(t.paid + ' payés');
   return '<li><button type="button" class="tr" data-act="tcard" data-id="' + esc(t.id) + '"><span class="tr-d"><b>' + d.getDate() + '</b>' +
     esc(d.toLocaleDateString('fr-FR', { month: 'short' })) + '</span>' +
-    '<span class="tr-m"><b>' + esc(t.name || 'Sans nom') + '</b><span class="tr-s">' + t.bullets + ' bullet' + (t.bullets > 1 ? 's' : '') + ' · ' + esc(fmtBRL(inv)) +
-      (t.place ? ' · ' + t.place + (t.place === 1 ? 'er' : 'e') + (t.joueurs ? ' sur ' + esc(fmtN(t.joueurs)) : '') : t.joueurs ? ' · ' + esc(fmtN(t.joueurs)) + ' joueurs' : '') + (t.paid ? ' · ' + t.paid + ' payés' : '') + '</span>' +
+    '<span class="tr-m"><b>' + esc(t.name || 'Sans nom') + '</b><span class="tr-s">' + (t.buyin > 0 ? 'Buy-in ' + esc(fmtBRL(t.buyin)) : t.bullets + ' bullet' + (t.bullets > 1 ? 's' : '') + ' · ' + esc(fmtBRL(inv))) +
+      '</span>' + (t.buyin > 0 && t.bullets > 1 ? '<span class="tr-s">' + t.bullets + ' bullets · ' + esc(fmtBRL(inv)) + '</span>' : '') + (res.length ? '<span class="tr-s">' + res.join(' · ') + '</span>' : '') +
       (badges ? '<span class="tr-b">' + badges + '</span>' : '') + '</span>' +
     '<span class="tr-r"><span class="tr-n ' + (net > 0 ? 'res-won' : net < 0 ? 'res-lost' : 'res-split') + '">' + esc(fmtNetBRL(net)) + '</span></span>' + '<svg class="tr-c" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>' + '</button>' +
     (hc ? '<button type="button" class="tr-mn" data-act="tmains" data-id="' + esc(t.id) + '">Voir ' + (hc > 1 ? 'les ' + hc + ' mains' : 'la main') + ' ›</button>' : '') + '</li>';
