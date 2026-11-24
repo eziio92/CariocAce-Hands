@@ -565,14 +565,19 @@ img.wait{opacity:0}
 .sc-x{color:var(--fg-3);font:500 20px var(--f-body)}
 .sc-v{margin-left:6px;font-style:normal;font-weight:500;letter-spacing:0;text-transform:none;color:var(--fg-3)}
 .sr{list-style:none;margin:0;padding:0}
-.sr-i{padding:12px 0;border-top:1px solid var(--edge)}
-.sr-i:first-child{border-top:0;padding-top:2px}
-.sr-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.sr-i{border-top:1px solid var(--edge)}
+.sr-i:first-child{border-top:0}
+.sr-b{display:block;width:100%;padding:12px 0;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.sr-b:active{background:var(--glass-3)}
+.sr-h{display:flex;align-items:center;gap:10px}
+.sr-h b{flex:1;min-width:0}
+.sr-ch{flex:none;width:16px;height:16px;color:var(--fg-3)}
+.bk{display:block;margin:0 0 8px;padding-left:0;text-align:left}
 .sr-h b{font:600 16px/1.25 var(--f-body);overflow-wrap:anywhere}
 .sr-h b em{margin-left:4px;font-style:normal;font-weight:500;color:var(--fg-3)}
 .sr-v{font:600 16px var(--f-body);font-variant-numeric:tabular-nums;white-space:nowrap}
 .sr + .row .tlnk{padding-left:0}
-.sr-s{margin-top:3px;font:500 12.5px/1.4 var(--f-body);color:var(--fg-3)}
+.sr-s{display:block;margin-top:3px;font:500 12.5px/1.4 var(--f-body);color:var(--fg-3)}
 </style>
 <style>body{padding-top:env(safe-area-inset-top,0px)}</style>
 </head>
@@ -1787,6 +1792,7 @@ function filteredHands() {
   if (ui.filter === 'bad') return all.filter(h => h.verdict === 'bad');
   if (ui.filter === 'todo') return all.filter(h => issues(normHand(h)).length);
   if (ui.filter.indexOf('t:') === 0) { const k = normName(ui.filter.slice(2)); return all.filter(h => normName(h.tournament) === k); }
+  if (ui.filter.indexOf('st:') === 0) return ui.stageF ? all.filter(h => ui.stageF.ids.has(h.id)) : all;   /* the hands of one stage, opened from the Suivi */
   return all;
 }
 
@@ -1803,9 +1809,10 @@ function renderList() {
   all.forEach(h => { if (h.tournament && names.indexOf(h.tournament) < 0) names.push(h.tournament); });
   const filters = [['all', 'Toutes'], ['good', '✓ Bon'], ['bad', '✗ Mauvais'], ['todo', 'À compléter']].concat(names.slice(0, 6).map(n => ['t:' + n, n]));
   if (ui.filter.indexOf('t:') === 0 && !filters.some(f => f[0] === ui.filter)) filters.push([ui.filter, ui.filter.slice(2)]);   /* a tournament opened from the Suivi */
+  if (ui.filter.indexOf('st:') === 0 && ui.stageF) filters.push([ui.filter, ui.stageF.label]);
   const list = filteredHands(), keep = new Set(list.map(h => h.id)), info = groupInfo();
   /* copy / delete a whole tournament only when each tournament is shown in full (not under a verdict or "À compléter" filter) */
-  const whole = ui.filter === 'all' || ui.filter.indexOf('t:') === 0;
+  const whole = ui.filter === 'all' || ui.filter.indexOf('t:') === 0 || ui.filter.indexOf('st:') === 0;
   const groups = tournamentGroups(store.hands).map(g => ({ g: g, hands: g.hands.filter(h => keep.has(h.id)) })).filter(x => x.hands.length)
     .sort((a, b) => b.g.last - a.g.last || String(b.g.start).localeCompare(String(a.g.start)));
   const body = groups.length ? groups.map(x => {
@@ -1821,6 +1828,9 @@ function renderList() {
     : '<div class="empty-state">Aucune main dans ce filtre.</div>';
   el.innerHTML = '<div class="sec plain"><div class="scroll-row">' + filters.map(f => chip(esc(f[1]), { on: ui.filter === f[0], attrs: 'data-act="filter" data-v="' + esc(f[0]) + '"' })).join('') + '</div>' +
     '<div class="row"><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer</button></div>' + IMPORT_INPUT + '<p class="hint" style="margin:0">Glisse une main vers la gauche pour la supprimer.</p>' + aiRow() + '</div>' + body;
+  /* the lit filter (a tournament or a stage opened from the Suivi) can sit at the end of the row: bring it into view */
+  const fr = el.querySelector('.scroll-row'), fon = fr && fr.querySelector('.chip.on');
+  if (fr && fon) fr.scrollLeft += fon.getBoundingClientRect().left - fr.getBoundingClientRect().left - 16;
 }
 
 /* ===== review: the summary, then the hands one by one ===== */
@@ -2234,6 +2244,7 @@ function tSeriesList() {
 }
 /* a series has several stages: the one written by hand, or the month by default (the dates only tell the month) */
 const tStageLabel = t => t.etape || MOIS[+t.date.slice(5, 7) - 1];
+const tStageKey = t => normName(t.serie) ? normName(t.serie) + '|' + normName(tStageLabel(t)) : '';   /* '' = no series */
 const dayN = d => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)) / 864e5;
 /* the stage of a tournament of the same series played within 10 days, when it was given a name */
 function tEtapeGuess(serie, date, selfId) {
@@ -2315,7 +2326,7 @@ function tMonths(list) {
 /* ===== link with the hands: a hand belongs to the tournament of the same name; when several tournaments share a name
    (two "KSOP Main Event" in the year), it goes to the latest one that had started by the hand's first day ===== */
 function tHandLinks() {
-  const out = { n: {}, name: {} };
+  const out = { n: {}, name: {}, ids: {} };
   if (!store.ready || !store.hands.length || !tStore.list.length) return out;
   const twins = {};
   tStore.list.forEach(t => { const k = normName(t.name); if (k) (twins[k] = twins[k] || []).push(t); });
@@ -2326,6 +2337,7 @@ function tHandLinks() {
     let o = c[0];
     for (let i = 0; i < c.length; i++) if (c[i].date <= g.start) o = c[i];
     out.n[o.id] = (out.n[o.id] || 0) + g.hands.length;
+    out.ids[o.id] = (out.ids[o.id] || []).concat(g.hands.map(h => h.id));
     if (!out.name[o.id]) out.name[o.id] = g.name;
   });
   return out;
@@ -2507,8 +2519,8 @@ function tFormHtml() {
     '<div class="row"><button type="button" class="btn" data-act="tsave">Enregistrer</button><button type="button" class="btn ghost" data-act="tcancel">Annuler</button>' +
       (f.id && !f.delAsk ? '<button type="button" class="btn ghost sm" data-act="tdelask">Supprimer</button>' : '') + '</div></div>';
 }
-function tDash(st, y) {
-  const hero = '<div class="dh"><span class="k">Gain net · ' + y + '</span><span class="dh-v ' + netCls(st.net) + '">' + esc(fmtNet(st.net)) + '<small>R$</small></span>' +
+function tDash(st, y) {   /* y: the year, or the name of a stage */
+  const hero = '<div class="dh"><span class="k">Gain net · ' + esc(String(y)) + '</span><span class="dh-v ' + netCls(st.net) + '">' + esc(fmtNet(st.net)) + '<small>R$</small></span>' +
     '<span class="sub">sur ' + esc(fmtN(st.inv)) + ' R$ investis</span></div>';
   const tiles = '<div class="hud two"><div><span class="k">ROI</span><span class="v ' + netCls(st.net) + '">' + (st.roi === null ? '–' : esc(fmtSignPct(st.roi, 2))) + '</span><span class="sub">' + esc(fmtN(st.gain)) + ' R$ gagnés</span></div>' +
     '<div><span class="k">ITM</span><span class="v">' + (st.itmPct === null ? '–' : esc(fmtPct(st.itmPct, 1))) + '</span><span class="sub">' + st.itm + ' sur ' + st.n + ' tournoi' + (st.n > 1 ? 's' : '') + '</span></div></div>';
@@ -2518,7 +2530,7 @@ function tDash(st, y) {
 function tStagesHtml(list) {
   const g = {};
   list.forEach(t => {
-    const named = !!normName(t.serie), lab = named ? tStageLabel(t) : '', k = named ? normName(t.serie) + '|' + normName(lab) : '';
+    const named = !!normName(t.serie), lab = named ? tStageLabel(t) : '', k = tStageKey(t);
     const a = g[k] || (g[k] = { k: k, serie: named ? t.serie : '', lab: lab, last: '', list: [] });
     a.list.push(t); if (String(t.date) > a.last) a.last = t.date;
   });
@@ -2527,14 +2539,30 @@ function tStagesHtml(list) {
   if (!named) return '';
   rows.sort((a, b) => (a.k === '') - (b.k === '') || String(b.last).localeCompare(String(a.last)) || b.st.n - a.st.n || a.serie.localeCompare(b.serie));
   const LIM = 8, more = rows.length - LIM;
-  return '<div class="sec"><div class="sec-h"><span class="lbl">Par étape</span><span class="pot">' + named + ' étape' + (named > 1 ? 's' : '') + '</span></div><ol class="sr">' +
+  return '<div class="sec" id="t-stages"><div class="sec-h"><span class="lbl">Par étape</span><span class="pot">' + named + ' étape' + (named > 1 ? 's' : '') + '</span></div><ol class="sr">' +
     rows.map((r, i) => {
       const s = r.st;
-      return '<li class="sr-i" data-x="' + i + '"' + (i >= LIM && !ui.tsAll ? ' hidden' : '') + '><div class="sr-h"><b>' + (r.k ? esc(r.serie) + ' <em>' + esc(r.lab) + '</em>' : 'Hors série') + '</b><span class="sr-v ' + netCls(s.net) + '">' + esc(fmtNet(s.net)) + '</span></div>' +
-        '<div class="sr-s">' + s.n + ' tournoi' + (s.n > 1 ? 's' : '') + ' · ' + s.bullets + ' bullet' + (s.bullets > 1 ? 's' : '') +
-        (s.roi === null ? '' : ' · ROI ' + esc(fmtSignPct(s.roi, 1))) + ' · ITM ' + esc(fmtPct(s.itmPct, 0)) + '</div></li>';
+      return '<li class="sr-i" data-x="' + i + '"' + (i >= LIM && !ui.tsAll ? ' hidden' : '') + '><button type="button" class="sr-b" data-act="tstage" data-k="' + esc(r.k) + '">' +
+        '<span class="sr-h"><b>' + (r.k ? esc(r.serie) + ' <em>' + esc(r.lab) + '</em>' : 'Hors série') + '</b><span class="sr-v ' + netCls(s.net) + '">' + esc(fmtNet(s.net)) + '</span>' +
+        '<svg class="sr-ch" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>' +
+        '<span class="sr-s">' + s.n + ' tournoi' + (s.n > 1 ? 's' : '') + ' · ' + s.bullets + ' bullet' + (s.bullets > 1 ? 's' : '') +
+        (s.roi === null ? '' : ' · ROI ' + esc(fmtSignPct(s.roi, 1))) + ' · ITM ' + esc(fmtPct(s.itmPct, 0)) + '</span></button></li>';
     }).join('') + '</ol>' +
     (more > 0 ? '<div class="row"><button type="button" class="tlnk" id="t-stg" data-act="tstages" data-more="' + more + '">' + (ui.tsAll ? 'Réduire' : 'Voir les ' + more + ' autres ›') + '</button></div>' : '') + '</div>';
+}
+/* the detail of one stage: its figures, its curve, its tournaments (each one opens its hands) and all its hands */
+function tStageHtml(done, links, y) {
+  const k = ui.tstage.k, list = done.filter(t => tStageKey(t) === k);
+  if (!list.length) return null;
+  const st = tStats(list), title = k ? list[0].serie + ' · ' + tStageLabel(list[0]) : 'Hors série';
+  const hc = list.reduce((n, t) => n + (links.n[t.id] || 0), 0);
+  if (list.length < 2) tCv = null;
+  return '<div class="sec" id="t-stage"><button type="button" class="tlnk bk" data-act="tback">‹ Par étape</button>' +
+    '<div class="sec-h"><span class="lbl">' + esc(title) + '</span><span class="pot">' + st.n + ' tournoi' + (st.n > 1 ? 's' : '') + ' · ' + y + '</span></div>' + tDash(st, title) +
+    (hc ? '<div class="row"><button type="button" class="btn ghost sm" data-act="tstmains">Voir ' + (hc > 1 ? 'les ' + hc + ' mains' : 'la main') + ' de l\'étape ›</button></div>' : '') + '</div>' +
+    '<div class="sec"><div class="sec-h"><span class="lbl">Chiffres de l\'étape</span></div>' + tFigures(st) + '</div>' +
+    (list.length > 1 ? '<div class="sec"><div class="sec-h"><span class="lbl">Gain cumulé</span><span class="pot">' + st.n + ' tournois</span></div>' + tChart(tChrono(list)) + '</div>' : '') +
+    '<div class="sec"><div class="sec-h"><span class="lbl">Tournois</span></div><ol class="tl">' + list.map(t => tRow(t, links)).join('') + '</ol></div>';
 }
 function tStagesSync() {
   const all = !!ui.tsAll, b = $('#t-stg');
@@ -2584,13 +2612,16 @@ function tMonthsSync() {
 function renderSuivi() {
   const y = tSel(), inYear = tStore.list.filter(t => tYear(t) === y), done = tSorted(inYear.filter(t => !t.live)), st = tStats(done);
   const years = tYears(), last = lastBackupMs(), links = tHandLinks(), mv = ui.tv === 'm';
+  const stageView = !mv && ui.tstage ? tStageHtml(done, links, y) : null;
+  if (ui.tstage && !stageView) ui.tstage = null;   /* the stage no longer has a tournament */
   const head = '<div class="sec"><div class="sec-h"><span class="lbl">Suivi des tournois</span></div>' +
     '<div class="seg" id="t-years">' + years.map(v => '<button type="button" class="' + (v === y ? 'on' : '') + '" data-act="tyear" data-v="' + v + '">' + v + '</button>').join('') + '</div>' +
     '<div class="seg sw" id="t-views"><button type="button" class="' + (mv ? '' : 'on') + '" data-act="tview" data-v="r">Résultats</button><button type="button" class="' + (mv ? 'on' : '') + '" data-act="tview" data-v="m">Mental</button></div>' +
-    (!mv && st.n ? tDash(st, y) : '') +
+    (!mv && st.n && !stageView ? tDash(st, y) : '') +
     (ui.tf ? '' : '<div class="row"><button type="button" class="btn" data-act="tadd">Ajouter un tournoi</button></div>') + '</div>';
   let dash;
   if (mv) { tCv = null; dash = tMentalHtml(done, y); }
+  else if (stageView) dash = stageView;
   else dash = st.n
     ? '<div class="sec"><div class="sec-h"><span class="lbl">Chiffres ' + y + '</span></div>' + tFigures(st) + '</div>' +
       '<div class="sec"><div class="sec-h"><span class="lbl">Gain cumulé</span><span class="pot">' + st.n + ' tournoi' + (st.n > 1 ? 's' : '') + '</span></div>' + tChart(tChrono(done)) + '</div>' +
@@ -2653,7 +2684,7 @@ function tInput(t, k) {
 const typingInSuivi = () => { const a = document.activeElement; return !!(a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && $('#view-suivi').contains(a)); };
 
 const AT = {
-  tyear(el) { ui.ty = +el.dataset.v; renderSuivi(); },
+  tyear(el) { ui.ty = +el.dataset.v; ui.tstage = null; renderSuivi(); },
   tmonth(el) {
     const m = +el.dataset.m, set = tOpenSet(tSel(), []);
     if (set.has(m)) set.delete(m); else set.add(m);
@@ -2672,7 +2703,21 @@ const AT = {
     ui.picker = null; ui.pending = null; ui.delGroup = null; ui.delAsk = null; ui.confirm = ''; ui.rv = null;
     renderAll(); window.scrollTo(0, 0);
   },
-  tview(el) { ui.tv = el.dataset.v === 'm' ? 'm' : 'r'; renderSuivi(); },
+  tview(el) { ui.tv = el.dataset.v === 'm' ? 'm' : 'r'; ui.tstage = null; renderSuivi(); },
+  tstage(el) { ui.tstage = { k: el.dataset.k || '' }; renderSuivi(); window.scrollTo(0, 0); },
+  tback() { ui.tstage = null; renderSuivi(); scrollToEl('#t-stages'); },
+  tstmains() {   /* every hand of the stage, in the list of the hands */
+    const sv = ui.tstage;
+    if (!sv) return;
+    const y = tSel(), list = tStore.list.filter(t => !t.live && tYear(t) === y && tStageKey(t) === sv.k), links = tHandLinks();
+    const ids = []; list.forEach(t => (links.ids[t.id] || []).forEach(id => ids.push(id)));
+    if (!list.length || !ids.length) return;
+    const label = sv.k ? list[0].serie + ' · ' + tStageLabel(list[0]) : 'Hors série';
+    ui.stageF = { label: label, ids: new Set(ids) };
+    closeFix(); ui.block = 'mains'; ui.tab = 'list'; ui.filter = 'st:' + label;
+    ui.picker = null; ui.pending = null; ui.delGroup = null; ui.delAsk = null; ui.confirm = ''; ui.rv = null;
+    renderAll(); window.scrollTo(0, 0);
+  },
   tadd() {
     ui.tf = { id: null, date: todayStr(), name: '', buyin: '', bullets: 1, gain: '', place: '', paid: '', joueurs: '', serie: '', sAuto: '', etape: '', eAuto: '', eTouched: false, ft: false, live: false, fin: false, mg: null, md: null, mr: null, db: '', dbo: false, err: '', delAsk: false };
     renderSuivi(); scrollToEl('#t-form');
