@@ -693,6 +693,20 @@ html.has-nav.has-sb .toast{bottom:calc(var(--navh) + 98px)}
   .savebar:not([hidden]) .savebar-in{animation:sbIn .28s cubic-bezier(.2,.8,.2,1) both}
   @keyframes sbIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 }
+
+/* small magnifier next to a section title: opens its search field */
+.sec-h.sh-s{align-items:center;flex-wrap:nowrap}
+.sh-ic{flex:none;position:relative;width:36px;height:36px;margin:-8px -8px -8px 0;padding:0;border:0;border-radius:50%;background:transparent;color:var(--fg-2);display:grid;place-items:center}
+.sh-ic svg{width:20px;height:20px}
+.sh-ic::before{content:"";position:absolute;inset:-4px}
+.sh-ic.on{background:var(--glass-3);color:var(--fg);box-shadow:inset 0 1px 0 var(--edge-hi)}
+#tq-box[hidden]{display:none}
+
+/* a stored hand is open: the ✕ of the save bar */
+.savebar-in.hx{padding-left:8px}
+.sb-x{flex:none;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:var(--glass-2);color:var(--fg);display:grid;place-items:center;box-shadow:inset 0 1px 0 var(--edge-hi)}
+.sb-x:active{background:var(--glass-3)}
+.sb-x svg{width:18px;height:18px}
 </style>
 <style>body{padding-top:env(safe-area-inset-top,0px)}</style>
 </head>
@@ -1264,7 +1278,7 @@ function boardProposal(res, h) {
   });
 }
 
-const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, delAsk: null, block: 'home', ty: null, tf: null, tfBase: '', tcard: null, q: '', tq: '', tsY: 0, hDet: false, hFrom: 'list', pos: {}, undo: null, tmo: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
+const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, delAsk: null, block: 'home', ty: null, tf: null, tfBase: '', tcard: null, q: '', tq: '', tqOpen: false, tsY: 0, hDet: false, hFrom: 'list', pos: {}, undo: null, tmo: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
 
 /* ===== betting engine: replays the logged actions to get amounts, pot and SPR ===== */
 function actorsOf(h) {
@@ -1767,12 +1781,12 @@ function renderSheet() {
   if (ui.askOpen) {
     /* another hand was tapped while an entry is unsaved: say what is pending and let the person decide */
     const ed = !!editingId, iss = issues(H), no = ed ? ((groupInfo()[editingId] || {}).no || H.handNo || '') : nextHandNo(H);
-    const nw = ui.askOpen.id == null, thenTxt = nw ? 'puis nouvelle main' : 'puis ouvrir';
+    const lv = !!ui.askOpen.leave, nw = ui.askOpen.id == null && !lv, thenTxt = lv ? 'puis fermer' : nw ? 'puis nouvelle main' : 'puis ouvrir';
     const cards = H.hero.cards.some(c => c) ? '<span class="hand-cards">' + H.hero.cards.map(c => c ? cardFace(c, 'mini') : '<span class="card mini empty"><span class="r">?</span></span>').join('') + '</span>' : '';
     const bits = [H.hero.pos ? posLabel(H.table, H.hero.pos) : '', num(H.hero.stack) > 0 ? fmt(num(H.hero.stack)) + ' bb' : ''].filter(Boolean);
     root.innerHTML = '<div class="scrim" data-act="askopen-cancel"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="Saisie en cours"><div class="sheet-in">' +
       '<div class="sheet-h"><span class="lbl">' + (ed ? 'Modifications non enregistrées' : 'Une saisie est en cours') + '</span></div>' +
-      '<p class="hint" style="margin:0;font-size:14px">' + (ed ? 'Tu as modifié la main n°' + esc(no) + ' sans l\'enregistrer.' : 'Cette main n\'est pas encore enregistrée.') + ' Qu\'en fait-on avant ' + (nw ? 'de commencer une nouvelle main' : 'd\'ouvrir l\'autre') + ' ?</p>' +
+      '<p class="hint" style="margin:0;font-size:14px">' + (ed ? 'Tu as modifié la main n°' + esc(no) + ' sans l\'enregistrer.' : 'Cette main n\'est pas encore enregistrée.') + ' Qu\'en fait-on avant ' + (lv ? 'de fermer la main' : nw ? 'de commencer une nouvelle main' : 'd\'ouvrir l\'autre') + ' ?</p>' +
       '<div class="ask-sum">' + cards + '<span><b>' + esc(H.tournament || 'Tournoi') + '</b> · main n°' + esc(no) + (bits.length ? '<br><span class="hint">' + esc(bits.join(' · ')) + '</span>' : '') + '</span></div>' +
       '<div class="ask-b"><button type="button" class="btn" data-act="askopen-save">' + (ed ? 'Enregistrer les modifications, ' + thenTxt : 'Enregistrer cette main, ' + thenTxt) + '</button>' +
       (iss.length ? '<p class="hint" style="margin:0">Elle sera enregistrée comme « À compléter » : il manque ' + esc(iss.join(', ')) + '.</p>' : '') +
@@ -1872,7 +1886,10 @@ function renderSave() {
   }
   const iss = issues(H), empty = isPristine(H) && !editingId;
   const note = empty ? 'Rien à enregistrer pour l\'instant.' : iss.length ? 'À compléter : ' + iss.join(' · ') : 'Main complète.';
-  $('#savebar-in').innerHTML = '<div class="save-note' + (iss.length && !empty ? ' warn' : '') + '">' + esc(note) + '</div>' +
+  /* a stored hand is open: a way out that is always under the thumb, no need to go down to the end of the page */
+  $('#savebar-in').className = 'savebar-in' + (editingId ? ' hx' : '');
+  $('#savebar-in').innerHTML = (editingId ? '<button type="button" class="sb-x" data-act="edclose" aria-label="Fermer la main sans enregistrer"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' : '') +
+    '<div class="save-note' + (iss.length && !empty ? ' warn' : '') + '">' + esc(note) + '</div>' +
     '<button type="button" class="btn" data-act="save"' + (empty ? ' disabled' : '') + '>' + (editingId ? 'Mettre à jour' : 'Enregistrer') + '</button>';
 }
 
@@ -1987,7 +2004,8 @@ function filteredHands() {
   return T.length ? out.filter(h => { const v = handHay(h); return T.every(t => hayHas(v, t)); }) : out;
 }
 /* the search field: a magnifier, a clear button that shows once something is typed */
-const srchField = (id, key, ph, val, clearAct) => '<div class="srch"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input class="inp" id="' + id + '" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="' + ph + '" aria-label="' + ph + '" value="' + esc(val) + '" data-in="' + key + '">' +
+const SRCH_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>';
+const srchField = (id, key, ph, val, clearAct) => '<div class="srch">' + SRCH_ICON + '<input class="inp" id="' + id + '" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="' + ph + '" aria-label="' + ph + '" value="' + esc(val) + '" data-in="' + key + '">' +
   '<button type="button" class="srch-x" id="' + id + '-x" data-act="' + clearAct + '" aria-label="Effacer la recherche"' + (val ? '' : ' hidden') + '>×</button></div>';
 /* the hands, grouped by tournament, under the current filter and search: redrawn alone while typing in the search field */
 function listBody() {
@@ -2906,6 +2924,7 @@ function tHay(t) {
   const m = MOIS[+t.date.slice(5, 7) - 1] || '';
   return fold([t.name, t.serie, t.etape, m, t.date.slice(0, 4), t.date, t.debrief, t.live ? 'en cours' : '', t.ft ? 'table finale' : '', t.place === 1 ? 'victoire' : ''].join(' '));
 }
+const tqIsOpen = () => !!(ui.tqOpen || ui.tq.trim());
 function tqMatches() {
   const T = searchTerms(ui.tq);
   return T.length ? tSorted(tStore.list).filter(t => { const s = tHay(t); return T.every(w => s.indexOf(w) >= 0); }) : [];
@@ -2920,7 +2939,9 @@ function tqHtml(links) {
 }
 /* typing in the search: only the results and the clear button change, so the keyboard stays */
 function tqSync() {
-  const r = $('#tq-res'), d = $('#t-dash'), hd = $('#t-hd'), x = $('#in-tq-x'), on = !!ui.tq.trim();
+  const r = $('#tq-res'), d = $('#t-dash'), hd = $('#t-hd'), x = $('#in-tq-x'), on = !!ui.tq.trim(), box = $('#tq-box'), ic = $('#t-srch'), open = tqIsOpen();
+  if (box) box.hidden = !open;
+  if (ic) { ic.classList.toggle('on', open); ic.setAttribute('aria-expanded', open ? 'true' : 'false'); }
   if (r) { r.hidden = !on; r.innerHTML = on ? tqHtml(tHandLinks()) : ''; }
   if (d) d.hidden = on;
   if (hd) hd.hidden = on;
@@ -3033,8 +3054,10 @@ function renderSuivi() {
   const years = tYears(), last = lastBackupMs(), links = tHandLinks(), mv = ui.tv === 'm';
   const stageView = !mv && ui.tstage ? tStageHtml(done, links, y) : null;
   if (ui.tstage && !stageView) ui.tstage = null;   /* the stage no longer has a tournament */
-  const head = '<div class="sec"><div class="sec-h"><span class="lbl">Suivi des tournois</span></div>' +
-    (tStore.list.length > 4 ? srchField('in-tq', 'tq', 'Chercher un tournoi', ui.tq, 'tqclear') : '') +
+  const canSrch = tStore.list.length > 4, sOpen = canSrch && tqIsOpen();
+  const head = '<div class="sec"><div class="sec-h sh-s"><span class="lbl">Suivi des tournois</span>' +
+    (canSrch ? '<button type="button" class="sh-ic' + (sOpen ? ' on' : '') + '" id="t-srch" data-act="tqtoggle" aria-label="Chercher un tournoi" aria-expanded="' + (sOpen ? 'true' : 'false') + '">' + SRCH_ICON + '</button>' : '') + '</div>' +
+    (canSrch ? '<div id="tq-box"' + (sOpen ? '' : ' hidden') + '>' + srchField('in-tq', 'tq', 'Chercher un tournoi', ui.tq, 'tqclear') + '</div>' : '') +
     '<div id="t-hd"' + (ui.tq.trim() ? ' hidden' : '') + '>' +
     '<div class="seg" id="t-years">' + years.map(v => '<button type="button" class="' + (v === y ? 'on' : '') + '" data-act="tyear" data-v="' + v + '">' + v + '</button>').join('') + '</div>' +
     '<div class="seg sw" id="t-views"><button type="button" class="' + (mv ? '' : 'on') + '" data-act="tview" data-v="r">Résultats</button><button type="button" class="' + (mv ? 'on' : '') + '" data-act="tview" data-v="m">Mental</button></div>' +
@@ -3107,8 +3130,15 @@ function tInput(t, k) {
 const typingInSuivi = () => { const a = document.activeElement; return !!(a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && $('#view-suivi').contains(a)); };
 
 const AT = {
-  tyear(el) { ui.ty = +el.dataset.v; ui.tstage = null; ui.tq = ''; renderSuivi(); },
+  tyear(el) { ui.ty = +el.dataset.v; ui.tstage = null; ui.tq = ''; ui.tqOpen = false; renderSuivi(); },
   tqclear() { ui.tq = ''; tqSync(); const i = $('#in-tq'); if (i) { i.value = ''; i.focus(); } },
+  tqtoggle() {   /* the small magnifier: opens the field (and the keyboard); again, it closes and forgets the search */
+    const open = !tqIsOpen();
+    ui.tqOpen = open;
+    if (!open) { ui.tq = ''; const i = $('#in-tq'); if (i) i.value = ''; }
+    tqSync();
+    if (open) { const i = $('#in-tq'); if (i) i.focus(); }
+  },
   tmonth(el) {
     const m = +el.dataset.m, set = tOpenSet(tSel(), []);
     if (set.has(m)) set.delete(m); else set.add(m);
@@ -3127,7 +3157,7 @@ const AT = {
     ui.picker = null; ui.pending = null; ui.delGroup = null; ui.delAsk = null; ui.confirm = ''; ui.rv = null;
     renderAll(); window.scrollTo(0, 0);
   },
-  tview(el) { ui.tv = el.dataset.v === 'm' ? 'm' : 'r'; ui.tstage = null; ui.tq = ''; renderSuivi(); },
+  tview(el) { ui.tv = el.dataset.v === 'm' ? 'm' : 'r'; ui.tstage = null; ui.tq = ''; ui.tqOpen = false; renderSuivi(); },
   tstage(el) { ui.tsY = Math.round(window.scrollY || 0); ui.tstage = { k: el.dataset.k || '' }; renderSuivi(); window.scrollTo(0, 0); enterView(); },
   tback() {   /* back to the stage list exactly where it was left, the row we came from glowing */
     const k = ui.tstage ? ui.tstage.k : '';
@@ -3331,6 +3361,12 @@ function setCardPart(kind, v) {
   if (!wasFull && !ui.picker && BOARD_LEN[g] && g === ui.street && !H.streets[g].length) flowNext(g);
 }
 const hasUnsaved = () => editingId ? JSON.stringify(H) !== origJson : !isPristine(H);
+/* leave the hand that is open (already saved or dropped): back to the screen it was opened from, the editor emptied */
+function leaveHand() {
+  const from = ui.hFrom && ui.hFrom !== 'edit' ? ui.hFrom : 'list';
+  resetEditor(freshCtx());
+  A.tab({ dataset: { v: from } });
+}
 function openHand(id) {
   const h = store.hands.find(x => x.id === id);
   if (!h) return;
@@ -3553,6 +3589,7 @@ const A = {
   },
   pickt(el) { H.tournament = el.dataset.v; ui.tManual = true; rerender(); },   /* a tournament of the Suivi chosen for this hand */
   tab(el) {
+    if (ui.tab === 'edit' && el.dataset.v === 'list' && editingId && !hasUnsaved()) resetEditor(freshCtx());   /* a stored hand looked at and left untouched, back to the list: nothing to keep, so « Saisir » does not bring it back (towards the Revue it stays open: the review keeps it in step) */
     const same = ui.tab === el.dataset.v;
     rememberPos(); closeFix(); ui.tab = el.dataset.v; if (!same) ui.hDet = false; ui.picker = null; ui.delGroup = null; ui.rv = null; renderAll();
     if (same) window.scrollTo(0, 0); else { placeView(); enterView(); }   /* the tab already open: back to its top; another one: where it was left */
@@ -3820,9 +3857,16 @@ const A = {
   'askopen-save'() {
     const a = ui.askOpen; if (!a) return;
     ui.askOpen = null;
-    saveHand().then(() => { if (hasUnsaved()) { ui.askOpen = a; renderSheet(); return; } if (a.id == null) startNew(); else openHand(a.id); });   /* a failed save keeps the question open */
+    saveHand().then(() => { if (hasUnsaved()) { ui.askOpen = a; renderSheet(); return; } if (a.leave) leaveHand(); else if (a.id == null) startNew(); else openHand(a.id); });   /* a failed save keeps the question open */
   },
-  'askopen-drop'() { const a = ui.askOpen; if (!a) return; ui.askOpen = null; resetEditor(freshCtx()); if (a.id == null) startNew(); else openHand(a.id); },
+  'askopen-drop'() { const a = ui.askOpen; if (!a) return; ui.askOpen = null; if (a.leave) { leaveHand(); return; } resetEditor(freshCtx()); if (a.id == null) startNew(); else openHand(a.id); },
+  /* the ✕ of the save bar: close the stored hand that is open. Untouched → straight out. Changed → the question (save / drop / stay). */
+  edclose() {
+    if (!editingId) return;
+    closeFix();
+    if (hasUnsaved()) { ui.askOpen = { id: null, leave: true }; renderSheet(); return; }
+    leaveHand();
+  },
   /* the « + » of the bottom bar: a new tournament in Suivi, a new hand in Mains */
   nplus() {
     if (ui.block === 'suivi') { AT.tadd(); return; }
@@ -3872,6 +3916,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
+  if (e.target && e.target.id === 'in-tq' && ui.block === 'suivi') { AT.tqtoggle(); return; }   /* Escape in the tournament search: close it */
   if (ui.pview) A.phclose(); else if (ui.askOpen) A['askopen-cancel'](); else if (ui.tf && ui.block === 'suivi') AT.tclose(); else if (ui.tcard && ui.block === 'suivi') AT.tcardx();
 });
 document.addEventListener('click', e => {
