@@ -601,6 +601,55 @@ html.sheet-open,html.sheet-open body{overflow:hidden}
 .flash{animation:flash 1.8s ease-out}
 @keyframes flash{0%,35%{background-color:rgba(255,255,255,.12)}100%{background-color:rgba(255,255,255,0)}}
 @media (prefers-reduced-motion:reduce){.flash{animation:none;background-color:rgba(255,255,255,.12)}}
+
+/* bottom bar : Suivi · + · Mains (compact : 58 px, bouton + 46 px légèrement surélevé) */
+:root{--nav-h:58px;--nav-plus:46px;--nav-lift:14px}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:19;pointer-events:none;
+  padding:0 max(16px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.nav[hidden]{display:none}
+.nav-in{pointer-events:auto;max-width:400px;margin:0 auto;height:var(--nav-h);display:grid;grid-template-columns:1fr calc(var(--nav-plus) + 22px) 1fr;align-items:center;padding:0 8px;border-radius:30px;
+  border:1px solid var(--edge-hi);background:var(--sheet);box-shadow:var(--shadow),inset 0 1px 0 var(--edge-hi);-webkit-backdrop-filter:blur(26px) saturate(140%);backdrop-filter:blur(26px) saturate(140%)}
+.nv{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:46px;min-width:0;margin:0 4px;border:0;background:transparent;border-radius:22px;color:var(--fg-2);font:600 10.5px/1 var(--f-body);letter-spacing:.01em;transition:color .15s,background-color .15s}
+.nv svg{width:21px;height:21px;display:block}
+.nv.on{color:var(--fg);background:var(--glass-2)}
+.nv:active{background:var(--glass-2)}
+.nv-plus{justify-self:center;align-self:center;width:var(--nav-plus);height:var(--nav-plus);transform:translateY(calc(var(--nav-lift) * -1));border-radius:50%;display:grid;place-items:center;color:var(--on-acc);
+  border:1px solid rgba(255,255,255,.6);background:linear-gradient(180deg,var(--acc-1),var(--acc-2));
+  box-shadow:0 0 0 4px rgba(5,5,6,.78),0 8px 22px rgba(0,0,0,.55),0 0 20px var(--acc-glow),inset 0 1px 0 #fff;transition:transform .12s}
+.nv-plus svg{width:22px;height:22px;display:block}
+.nv-plus:active{transform:translateY(calc(var(--nav-lift) * -1)) scale(.93)}
+.endsp{height:160px}
+/* the bars stack: Enregistrer / Mauvais-Bon sit just above the bottom bar */
+html.has-nav{--navh:calc(var(--nav-h) + 8px + env(safe-area-inset-bottom,0px))}
+html.has-nav .endsp{height:calc(160px + var(--navh))}
+html.has-nav .savebar{bottom:calc(var(--navh) + 10px);padding-bottom:6px}
+html.has-nav .toast{bottom:calc(var(--navh) + 18px)}
+html.has-nav.has-sb .toast{bottom:calc(var(--navh) + 98px)}
+
+/* chevrons: what can be opened says so */
+.tr-c,.hand-ch{flex:none;width:16px;height:16px;color:var(--fg-3)}
+.tr-c{margin-left:-4px}
+.hand-ch{align-self:center;margin-left:-4px}
+/* the card of a tournament */
+.sheet.tcsheet{display:flex;flex-direction:column;overflow:hidden;max-height:92%;padding-bottom:0;overscroll-behavior:contain}
+.tcsheet:focus{outline:none}
+.tcsheet .sheet-in{flex:1;min-height:0;width:100%;gap:12px}
+.tcsheet .sheet-h .lbl{font:600 17px/1.15 var(--f-disp);letter-spacing:-.015em;text-transform:none;color:var(--fg);overflow-wrap:anywhere}
+.tc-b{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:10px;padding:2px 2px 16px}
+.tc-b .dh{margin-bottom:0}
+.tc-d{margin:0;font:500 13px/1.35 var(--f-body);color:var(--fg-2)}
+.tc-d::first-letter{text-transform:uppercase}
+.tc-b .tr-b{margin-top:0}
+.tc-m{display:flex;flex-direction:column;gap:8px}
+.tc-m .mc-bar{margin-bottom:0}
+.tc-db{padding:14px 16px;border:1px solid var(--edge);border-radius:20px;background:var(--glass-2);box-shadow:inset 0 1px 0 var(--edge-hi)}
+.tc-db .k{font:600 10px/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--fg-2)}
+.tc-db p{margin:8px 0 0;font:400 14.5px/1.45 var(--f-body);white-space:pre-wrap;overflow-wrap:anywhere}
+/* a screen that opens fades in, a touch */
+@media (prefers-reduced-motion:no-preference){
+  .vin{animation:vin .2s ease-out}
+  @keyframes vin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
 </style>
 <style>body{padding-top:env(safe-area-inset-top,0px)}</style>
 </head>
@@ -609,10 +658,6 @@ html.sheet-open,html.sheet-open body{overflow:hidden}
 <div class="top">
   <div class="top-row">
     <div class="brand"><h1><button type="button" class="brand-btn" data-act="block" data-v="home" aria-label="Accueil CariocAce Copilot">CariocAce <span>Copilot</span></button></h1><i class="led" id="led" aria-hidden="true"></i></div>
-    <div class="seg mini" id="blocks" hidden>
-      <button type="button" data-act="block" data-v="suivi">Suivi</button>
-      <button type="button" data-act="block" data-v="mains">Mains</button>
-    </div>
     <span class="stat" id="stat"></span>
   </div>
   <div class="seg" id="tabs" hidden>
@@ -628,8 +673,13 @@ html.sheet-open,html.sheet-open body{overflow:hidden}
   <section id="view-edit"></section>
   <section id="view-list" hidden></section>
   <section id="view-review" hidden></section>
-  <div style="height:160px" aria-hidden="true"></div>
+  <div class="endsp" aria-hidden="true"></div>
 </main>
+<nav class="nav" id="nav" aria-label="Navigation principale" hidden><div class="nav-in">
+  <button type="button" class="nv" id="nv-suivi" data-act="block" data-v="suivi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 19.5h17"/><path d="M4.5 15.5l4.6-5 3.4 3.2 6.8-7.7"/><path d="M15.6 5.9h3.7v3.7"/></svg><span>Suivi</span></button>
+  <button type="button" class="nv-plus" id="nv-plus" data-act="nplus" aria-label="Ajouter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button type="button" class="nv" id="nv-mains" data-act="block" data-v="mains"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.2C12 2.2 4.2 8.4 4.2 13.4c0 2.7 2.1 4.6 4.5 4.6 1.2 0 2.2-.5 2.9-1.3-.3 2-1.2 3.6-2.9 5.1h6.6c-1.7-1.5-2.6-3.1-2.9-5.1.7.8 1.7 1.3 2.9 1.3 2.4 0 4.5-1.9 4.5-4.6C19.8 8.4 12 2.2 12 2.2Z"/></svg><span>Mains</span></button>
+</div></nav>
 <div class="savebar" id="savebar"><div class="savebar-in" id="savebar-in"></div></div>
 <div id="sheet-root"></div>
 <input type="file" id="in-photo" accept="image/*" multiple hidden>
@@ -1170,7 +1220,7 @@ function boardProposal(res, h) {
   });
 }
 
-const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, delAsk: null, block: 'home', ty: null, tf: null, tfBase: '', tsY: 0, pos: {}, undo: null, tmo: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
+const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, delAsk: null, block: 'home', ty: null, tf: null, tfBase: '', tcard: null, tsY: 0, hDet: false, hFrom: 'list', pos: {}, undo: null, tmo: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
 
 /* ===== betting engine: replays the logged actions to get amounts, pot and SPR ===== */
 function actorsOf(h) {
@@ -1653,13 +1703,15 @@ function aiRow() {
 /* while a sheet covers the page: it does not scroll, and the keyboard / screen reader cannot wander behind it */
 function lockPage(on) {
   document.documentElement.classList.toggle('sheet-open', !!on);
-  ['.top', 'main.wrap', '#savebar'].forEach(s => { const e = document.querySelector(s); if (e) e.inert = !!on; });
+  ['.top', 'main.wrap', '#savebar', '#nav'].forEach(s => { const e = document.querySelector(s); if (e) e.inert = !!on; });
 }
 function renderSheet() {
   const root = $('#sheet-root');
   const tOn = !!(ui.tf && ui.block === 'suivi' && !ui.modal);
-  lockPage(tOn);
+  const cOn = !tOn && !!(ui.tcard && ui.block === 'suivi' && !ui.modal);
+  lockPage(tOn || cOn);
   if (tOn) { renderTSheet(); return; }   /* the tournament form: its own sheet, redrawn in place */
+  if (cOn) { renderTCard(); return; }   /* the card of a tournament */
   if (ui.modal) {
     root.innerHTML = '<div class="scrim" data-act="closemodal"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="' + esc(ui.modal.title) + '"><div class="sheet-in">' +
       '<div class="sheet-h"><span class="lbl">' + esc(ui.modal.title) + '</span><button type="button" class="btn ghost sm" data-act="closemodal">Fermer</button></div>' +
@@ -1671,15 +1723,16 @@ function renderSheet() {
   if (ui.askOpen) {
     /* another hand was tapped while an entry is unsaved: say what is pending and let the person decide */
     const ed = !!editingId, iss = issues(H), no = ed ? ((groupInfo()[editingId] || {}).no || H.handNo || '') : nextHandNo(H);
+    const nw = ui.askOpen.id == null, thenTxt = nw ? 'puis nouvelle main' : 'puis ouvrir';
     const cards = H.hero.cards.some(c => c) ? '<span class="hand-cards">' + H.hero.cards.map(c => c ? cardFace(c, 'mini') : '<span class="card mini empty"><span class="r">?</span></span>').join('') + '</span>' : '';
     const bits = [H.hero.pos ? posLabel(H.table, H.hero.pos) : '', num(H.hero.stack) > 0 ? fmt(num(H.hero.stack)) + ' bb' : ''].filter(Boolean);
     root.innerHTML = '<div class="scrim" data-act="askopen-cancel"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="Saisie en cours"><div class="sheet-in">' +
       '<div class="sheet-h"><span class="lbl">' + (ed ? 'Modifications non enregistrées' : 'Une saisie est en cours') + '</span></div>' +
-      '<p class="hint" style="margin:0;font-size:14px">' + (ed ? 'Tu as modifié la main n°' + esc(no) + ' sans l\'enregistrer.' : 'Cette main n\'est pas encore enregistrée.') + ' Qu\'en fait-on avant d\'ouvrir l\'autre ?</p>' +
+      '<p class="hint" style="margin:0;font-size:14px">' + (ed ? 'Tu as modifié la main n°' + esc(no) + ' sans l\'enregistrer.' : 'Cette main n\'est pas encore enregistrée.') + ' Qu\'en fait-on avant ' + (nw ? 'de commencer une nouvelle main' : 'd\'ouvrir l\'autre') + ' ?</p>' +
       '<div class="ask-sum">' + cards + '<span><b>' + esc(H.tournament || 'Tournoi') + '</b> · main n°' + esc(no) + (bits.length ? '<br><span class="hint">' + esc(bits.join(' · ')) + '</span>' : '') + '</span></div>' +
-      '<div class="ask-b"><button type="button" class="btn" data-act="askopen-save">' + (ed ? 'Enregistrer les modifications, puis ouvrir' : 'Enregistrer cette main, puis ouvrir') + '</button>' +
+      '<div class="ask-b"><button type="button" class="btn" data-act="askopen-save">' + (ed ? 'Enregistrer les modifications, ' + thenTxt : 'Enregistrer cette main, ' + thenTxt) + '</button>' +
       (iss.length ? '<p class="hint" style="margin:0">Elle sera enregistrée comme « À compléter » : il manque ' + esc(iss.join(', ')) + '.</p>' : '') +
-      '<button type="button" class="btn danger" data-act="askopen-drop">' + (ed ? 'Abandonner les modifications, puis ouvrir' : 'Vider la saisie, puis ouvrir') + '</button>' +
+      '<button type="button" class="btn danger" data-act="askopen-drop">' + (ed ? 'Abandonner les modifications, ' + thenTxt : 'Vider la saisie, ' + thenTxt) + '</button>' +
       '<p class="hint" style="margin:0">' + (ed ? 'Les modifications seront perdues.' : 'Cette saisie sera perdue.') + '</p>' +
       '<button type="button" class="btn ghost" data-act="askopen-cancel">Annuler, rester ici</button></div></div></div>';
     return;
@@ -1719,8 +1772,13 @@ function renderTabs() {
   document.body.classList.toggle('wide-rv', mains && ui.tab === 'review' && isWide());
   $('#tabs').hidden = !mains;
   document.body.classList.toggle('home', ui.block === 'home');
-  $('#blocks').hidden = ui.block === 'home';
-  document.querySelectorAll('#blocks button').forEach(b => b.classList.toggle('on', b.dataset.v === ui.block));
+  /* bottom bar: in Suivi and Mains only; out of the way while a hand is being reviewed on a phone */
+  const reviewing = mains && ui.tab === 'review' && !isWide() && ui.rv && !ui.rv.done;
+  const showNav = ui.block !== 'home' && !reviewing;
+  $('#nav').hidden = !showNav;
+  document.documentElement.classList.toggle('has-nav', showNav);
+  document.querySelectorAll('#nav .nv').forEach(b => { const on = b.dataset.v === ui.block; b.classList.toggle('on', on); if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  $('#nv-plus').setAttribute('aria-label', ui.block === 'suivi' ? 'Ajouter un tournoi' : 'Nouvelle main');
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === ui.tab));
   $('#view-home').hidden = ui.block !== 'home';
   $('#view-suivi').hidden = ui.block !== 'suivi';
@@ -1750,6 +1808,7 @@ function renderSave() {
   const mains = ui.block === 'mains';
   const reviewing = mains && ui.tab === 'review' && !isWide() && ui.rv && !ui.rv.done;
   $('#savebar').hidden = !(mains && ui.tab === 'edit' || reviewing);
+  document.documentElement.classList.toggle('has-sb', !$('#savebar').hidden);
   $('#savebar-in').className = 'savebar-in' + (reviewing ? ' vd' : '');
   if (reviewing && ui.rv.edit) {   /* writing the correction: switch to Bon, or move on */
     $('#savebar-in').innerHTML =
@@ -1814,7 +1873,8 @@ function handRow(h, no) {
     '<span class="hand-sum"><span class="no">n°' + esc(no || n.handNo || '–') + '</span>' + esc(sum) + '</span>' +
     (reached.length ? '<span class="pot">' + esc(reached.join(' › ')) + '</span>' : '') +
     (board ? '<span class="hand-board">' + board + '</span>' : '') + (tags ? '<span class="tags">' + tags + '</span>' : '') +
-    (n.comment ? '<span class="fixline ' + cmtCls(n.verdict) + '">' + esc(n.comment) + '</span>' : '') + '</span></button></div>';
+    (n.comment ? '<span class="fixline ' + cmtCls(n.verdict) + '">' + esc(n.comment) + '</span>' : '') + '</span>' +
+    '<svg class="hand-ch" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button></div>';
 }
 
 function filteredHands() {
@@ -2061,6 +2121,7 @@ function renderAll() {
   renderTabs(); renderBanner();
   renderBlock();
   renderSave(); renderSheet();
+  navSync();
 }
 let adopted = false, draftLoaded = false;
 /* photos finished loading or changed: redraw what shows them, unless a field is being typed in */
@@ -2483,12 +2544,12 @@ function tRow(t, links) {
   const d = new Date(+t.date.slice(0, 4), +t.date.slice(5, 7) - 1, +t.date.slice(8, 10));
   const bubble = t.place && t.paid && t.place === t.paid + 1;
   const badges = (t.place === 1 ? '<i>Victoire</i>' : t.ft ? '<i>Table finale</i>' : '') + (bubble ? '<i>Pure bulle</i>' : '') + (t.gain > 0 ? '<i>ITM</i>' : '');
-  return '<li><button type="button" class="tr" data-act="tedit" data-id="' + esc(t.id) + '"><span class="tr-d"><b>' + d.getDate() + '</b>' +
+  return '<li><button type="button" class="tr" data-act="tcard" data-id="' + esc(t.id) + '"><span class="tr-d"><b>' + d.getDate() + '</b>' +
     esc(d.toLocaleDateString('fr-FR', { month: 'short' })) + '</span>' +
     '<span class="tr-m"><b>' + esc(t.name || 'Sans nom') + '</b><span class="tr-s">' + t.bullets + ' bullet' + (t.bullets > 1 ? 's' : '') + ' · ' + esc(fmtBRL(inv)) +
       (t.place ? ' · ' + t.place + (t.place === 1 ? 'er' : 'e') + (t.joueurs ? ' sur ' + esc(fmtN(t.joueurs)) : '') : t.joueurs ? ' · ' + esc(fmtN(t.joueurs)) + ' joueurs' : '') + (t.paid ? ' · ' + t.paid + ' payés' : '') + '</span>' +
       (badges ? '<span class="tr-b">' + badges + '</span>' : '') + '</span>' +
-    '<span class="tr-r"><span class="tr-n ' + (net > 0 ? 'res-won' : net < 0 ? 'res-lost' : 'res-split') + '">' + esc(fmtNetBRL(net)) + '</span></span></button>' +
+    '<span class="tr-r"><span class="tr-n ' + (net > 0 ? 'res-won' : net < 0 ? 'res-lost' : 'res-split') + '">' + esc(fmtNetBRL(net)) + '</span></span>' + '<svg class="tr-c" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>' + '</button>' +
     (hc ? '<button type="button" class="tr-mn" data-act="tmains" data-id="' + esc(t.id) + '">Voir ' + (hc > 1 ? 'les ' + hc + ' mains' : 'la main') + ' ›</button>' : '') + '</li>';
 }
 
@@ -2523,9 +2584,9 @@ function mSpark(pts) {
 function mRow(t, todo) {
   const d = new Date(+t.date.slice(0, 4), +t.date.slice(5, 7) - 1, +t.date.slice(8, 10)), m = t.mental;
   const sub = todo ? esc(t.bullets + ' bullet' + (t.bullets > 1 ? 's' : '') + ' · ' + fmtBRL(cents(t.buyin * t.bullets))) : M_KEYS.filter(k => m[k] !== null).map(k => M_SHORT[k] + ' <em>' + m[k] + '</em>').join(' · ');
-  return '<li><button type="button" class="tr" data-act="' + (todo ? 'tdebrief' : 'tedit') + '" data-id="' + esc(t.id) + '"><span class="tr-d"><b>' + d.getDate() + '</b>' + esc(d.toLocaleDateString('fr-FR', { month: 'short' })) + '</span>' +
+  return '<li><button type="button" class="tr" data-act="' + (todo ? 'tdebrief' : 'tcard') + '" data-id="' + esc(t.id) + '"><span class="tr-d"><b>' + d.getDate() + '</b>' + esc(d.toLocaleDateString('fr-FR', { month: 'short' })) + '</span>' +
     '<span class="tr-m"><b>' + esc(t.name || 'Sans nom') + '</b><span class="tr-s">' + sub + '</span>' + (!todo && t.debrief ? '<span class="tr-note">' + esc(t.debrief) + '</span>' : '') + '</span>' +
-    (todo ? '<span class="tr-r"><span class="tlnk" style="padding:0">Débriefer ›</span></span>' : '') + '</button></li>';
+    (todo ? '<span class="tr-r"><span class="tlnk" style="padding:0">Débriefer ›</span></span>' : '<svg class="tr-c" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>') + '</button></li>';
 }
 function tMentalHtml(list, y) {
   const ms = mStats(list), without = list.filter(t => !t.mental), rows = list.filter(t => t.mental), todo = without.slice(0, 5);
@@ -2740,15 +2801,45 @@ function tPulseRec(rec) {
   tPulse(rec.live ? document.querySelector('#view-suivi .sec.live') : document.querySelector('#view-suivi .tr[data-id="' + rec.id + '"]'));
 }
 /* open the form: a draft kept for this very form comes back with it */
+/* ===== the card of a tournament: figures, mental marks, debrief, hands. Changing it is one tap further. ===== */
+function tCardHtml(t) {
+  const links = tHandLinks(), hc = links.n[t.id] || 0, st = tStats([t]);
+  const inv = cents(t.buyin * t.bullets), net = cents(t.gain - inv);
+  const d = new Date(+t.date.slice(0, 4), +t.date.slice(5, 7) - 1, +t.date.slice(8, 10));
+  const bubble = t.place && t.paid && t.place === t.paid + 1;
+  const badges = (t.place === 1 ? '<i>Victoire</i>' : t.ft ? '<i>Table finale</i>' : '') + (bubble ? '<i>Pure bulle</i>' : '') + (t.gain > 0 ? '<i>ITM</i>' : '');
+  const where = normName(t.serie) ? esc(t.serie) + ' · ' + esc(tStageLabel(t)) : '';
+  const m = t.mental, marks = m ? M_KEYS.filter(k => m[k] !== null && m[k] !== undefined) : [];
+  const place = t.place ? t.place + (t.place === 1 ? 'er' : 'e') : '–';
+  return '<div class="sheet-h"><span class="lbl">' + esc(t.name || 'Sans nom') + '</span><button type="button" class="btn ghost sm" data-act="tcardx">Fermer</button></div>' +
+    '<div class="tc-b"><p class="tc-d">' + esc(d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })) + (where ? ' · ' + where : '') + '</p>' +
+    (badges ? '<span class="tr-b">' + badges + '</span>' : '') +
+    '<div class="dh"><span class="k">Gain net</span><span class="dh-v ' + netCls(net) + '">' + esc(fmtNet(net)) + '<small>R$</small></span><span class="sub">sur ' + esc(fmtN(inv)) + ' R$ investis</span></div>' +
+    '<div class="hud two"><div><span class="k">Place</span><span class="v">' + place + '</span><span class="sub">' + (t.joueurs ? 'sur ' + esc(fmtN(t.joueurs)) + ' joueurs' : 'champ non noté') + '</span></div>' +
+    '<div><span class="k">ROI</span><span class="v ' + netCls(net) + '">' + (st.roi === null ? '–' : esc(fmtSignPct(st.roi, 2))) + '</span><span class="sub">' + esc(fmtN(t.gain)) + ' R$ gagnés</span></div>' +
+    '<div><span class="k">Engagé</span><span class="v">' + esc(fmtN(inv)) + '<small> R$</small></span><span class="sub">' + t.bullets + ' bullet' + (t.bullets > 1 ? 's' : '') + ' de ' + esc(fmtN(t.buyin)) + ' R$</span></div>' +
+    '<div><span class="k">Places payées</span><span class="v">' + (t.paid ? esc(fmtN(t.paid)) : '–') + '</span><span class="sub">' + (bubble ? 'pure bulle' : t.paid && t.place ? (t.place <= t.paid ? 'dans l\'argent' : 'hors de l\'argent') : 'non noté') + '</span></div></div>' +
+    (marks.length ? '<div class="tc-m">' + marks.map(k => '<div class="mc"><div class="mc-t"><span class="k">' + M_LABEL[k] + '</span><span class="mc-v">' + m[k] + '<small>/10</small></span></div><div class="mc-bar" aria-hidden="true"><u style="width:' + (m[k] * 10) + '%"></u></div></div>').join('') + '</div>' : '') +
+    (t.debrief ? '<div class="tc-db"><span class="k">Débrief</span><p>' + esc(t.debrief) + '</p></div>' : '') + '</div>' +
+    '<div class="ts-f tc-f"><button type="button" class="btn" data-act="tcardedit" data-id="' + esc(t.id) + '">Modifier</button>' +
+    (!t.debrief && !marks.length ? '<button type="button" class="btn ghost sm" data-act="tdebrief" data-id="' + esc(t.id) + '">Ajouter le débrief</button>' : '') +
+    (hc ? '<button type="button" class="btn ghost sm" data-act="tmains" data-id="' + esc(t.id) + '">Voir ' + (hc > 1 ? 'les ' + hc + ' mains' : 'la main') + ' ›</button>' : '') + '</div>';
+}
+function renderTCard() {
+  const root = $('#sheet-root'), t = ui.tcard ? tStore.list.find(x => x.id === ui.tcard) : null;
+  if (!t) { ui.tcard = null; root.innerHTML = ''; return; }
+  root.innerHTML = '<div class="scrim" data-act="tcardx"></div><div class="sheet tcsheet" role="dialog" aria-modal="true" tabindex="-1" aria-label="' + esc(t.name || 'Tournoi') + '"><div class="sheet-in">' + tCardHtml(t) + '</div></div>';
+  const sh = root.querySelector('.tcsheet'); if (sh && sh.focus) sh.focus({ preventScroll: true });
+}
 function tOpenForm(f) {
-  ui.tfBase = tfSnap(f);
+  ui.tcard = null; ui.tfBase = tfSnap(f);
   const d = tdLoad()[tfKey(f)], t = f.id ? tStore.list.find(x => x.id === f.id) : null;
   ui.tf = d && d.f && typeof d.f === 'object' && (!f.id || (t && d.base === t.updatedAt)) ? tdMerge(f, d.f) : f;
-  renderTSheet();
+  renderTSheet(); navSync();
   const sh = $('#sheet-root .tsheet'); if (sh && sh.focus) sh.focus({ preventScroll: true });
 }
 /* close the sheet: nothing behind it moves */
-function tShut() { clearTimeout(tdTimer); ui.tf = null; ui.tfBase = ''; renderTSheet(); }
+function tShut() { clearTimeout(tdTimer); ui.tf = null; ui.tfBase = ''; renderTSheet(); navSync(); }
 /* a deleted tournament comes back, in its month, with a glow */
 function tRestore(rec) {
   if (tStore.list.some(t => t.id === rec.id)) return;
@@ -2849,12 +2940,12 @@ const AT = {
     const t = tStore.list.find(x => x.id === el.dataset.id);
     if (!t) return;
     const nm = tHandLinks().name[t.id] || t.name;
-    rememberPos(); closeFix(); ui.block = 'mains'; ui.tab = 'list'; ui.filter = 't:' + nm; ui.pos['mains:list'] = 0;
+    ui.tcard = null; rememberPos(); closeFix(); ui.block = 'mains'; ui.tab = 'list'; ui.filter = 't:' + nm; ui.pos['mains:list'] = 0;
     ui.picker = null; ui.pending = null; ui.delGroup = null; ui.delAsk = null; ui.confirm = ''; ui.rv = null;
     renderAll(); window.scrollTo(0, 0);
   },
   tview(el) { ui.tv = el.dataset.v === 'm' ? 'm' : 'r'; ui.tstage = null; renderSuivi(); },
-  tstage(el) { ui.tsY = Math.round(window.scrollY || 0); ui.tstage = { k: el.dataset.k || '' }; renderSuivi(); window.scrollTo(0, 0); },
+  tstage(el) { ui.tsY = Math.round(window.scrollY || 0); ui.tstage = { k: el.dataset.k || '' }; renderSuivi(); window.scrollTo(0, 0); enterView(); },
   tback() {   /* back to the stage list exactly where it was left, the row we came from glowing */
     const k = ui.tstage ? ui.tstage.k : '';
     ui.tstage = null; renderSuivi(); window.scrollTo(0, ui.tsY || 0);
@@ -2871,6 +2962,13 @@ const AT = {
     rememberPos(); closeFix(); ui.block = 'mains'; ui.tab = 'list'; ui.filter = 'st:' + label; ui.pos['mains:list'] = 0;
     ui.picker = null; ui.pending = null; ui.delGroup = null; ui.delAsk = null; ui.confirm = ''; ui.rv = null;
     renderAll(); window.scrollTo(0, 0);
+  },
+  tcard(el) { ui.tcard = el.dataset.id; renderSheet(); },   /* a tap on a tournament: its card, over the page that does not move */
+  tcardx() { if (!ui.tcard) return; ui.tcard = null; renderSheet(); },
+  tcardedit(el) {
+    const t = tStore.list.find(x => x.id === el.dataset.id);
+    if (!t) { AT.tcardx(); return; }
+    tOpenForm(tFormFrom(t));
   },
   tadd() {
     tOpenForm({ id: null, date: todayStr(), name: '', buyin: '', bullets: 1, gain: '', place: '', paid: '', joueurs: '', serie: '', sAuto: '', etape: '', eAuto: '', eTouched: false, ft: false, live: false, fin: false, mg: null, md: null, mr: null, db: '', dbo: false, err: '', delAsk: false });
@@ -2986,6 +3084,13 @@ function currentActor() {
 const viewKey = () => ui.block === 'mains' ? 'mains:' + ui.tab : ui.block;
 function rememberPos() { ui.pos[viewKey()] = Math.round(window.scrollY || 0); }
 const placeView = () => window.scrollTo(0, ui.pos[viewKey()] || 0);
+/* the screen that just opened fades in (not when motion is reduced; the CSS is inside the same media query) */
+function enterView() {
+  const v = $('#view-' + (ui.block === 'mains' ? ui.tab : ui.block));
+  if (!v || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+  v.classList.remove('vin'); void v.offsetWidth; v.classList.add('vin');
+  setTimeout(() => v.classList.remove('vin'), 260);
+}
 function scrollToEl(sel) {
   const el = $(sel);
   if (!el) return;
@@ -3042,12 +3147,19 @@ function openHand(id) {
   if (!h) return;
   H = normHand(clone(h)); editingId = h.id; origJson = JSON.stringify(H);
   rememberPos();
-  ui.tab = 'edit'; ui.street = 'preflop'; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = '';
+  ui.hFrom = ui.tab === 'edit' ? 'list' : ui.tab;   /* « retour » goes back to the screen the hand was opened from */
+  ui.tab = 'edit'; ui.hDet = true; ui.street = 'preflop'; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = '';
+  renderAll(); window.scrollTo(0, 0); saveDraftSoon();
+}
+/* the entry screen for a fresh hand (an entry already in progress is simply taken back up) */
+function startNew() {
+  rememberPos(); autoLive();
+  ui.tab = 'edit'; ui.hDet = false; ui.rv = null; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = ''; ui.delGroup = null;
   renderAll(); window.scrollTo(0, 0); saveDraftSoon();
 }
 function resetEditor(ctx) {
   H = newHand(ctx || { tournament: H.tournament, date: H.date, table: H.table, ante: H.ante });
-  editingId = null; origJson = ''; ui.tManual = false;
+  editingId = null; origJson = ''; ui.tManual = false; ui.hDet = false;
   ui.street = 'preflop'; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = ''; ui.tagDraft = '';
   clearDraft();
 }
@@ -3247,13 +3359,14 @@ const A = {
     if (ui.block === v) { window.scrollTo(0, 0); return; }
     rememberPos(); closeFix(); ui.block = v; ui.picker = null; ui.pending = null; ui.delGroup = null; ui.delAsk = null; ui.confirm = '';
     if (v === 'mains') autoLive();
-    renderAll(); placeView();
+    ui.tcard = null;
+    renderAll(); placeView(); enterView();
   },
   pickt(el) { H.tournament = el.dataset.v; ui.tManual = true; rerender(); },   /* a tournament of the Suivi chosen for this hand */
   tab(el) {
     const same = ui.tab === el.dataset.v;
-    rememberPos(); closeFix(); ui.tab = el.dataset.v; ui.picker = null; ui.delGroup = null; ui.rv = null; renderAll();
-    if (same) window.scrollTo(0, 0); else placeView();   /* the tab already open: back to its top; another one: where it was left */
+    rememberPos(); closeFix(); ui.tab = el.dataset.v; if (!same) ui.hDet = false; ui.picker = null; ui.delGroup = null; ui.rv = null; renderAll();
+    if (same) window.scrollTo(0, 0); else { placeView(); enterView(); }   /* the tab already open: back to its top; another one: where it was left */
   },
   table(el) {
     H.table = el.dataset.v;
@@ -3518,9 +3631,20 @@ const A = {
   'askopen-save'() {
     const a = ui.askOpen; if (!a) return;
     ui.askOpen = null;
-    saveHand().then(() => { if (hasUnsaved()) { ui.askOpen = a; renderSheet(); return; } openHand(a.id); });   /* a failed save keeps the question open */
+    saveHand().then(() => { if (hasUnsaved()) { ui.askOpen = a; renderSheet(); return; } if (a.id == null) startNew(); else openHand(a.id); });   /* a failed save keeps the question open */
   },
-  'askopen-drop'() { const a = ui.askOpen; if (!a) return; ui.askOpen = null; resetEditor(freshCtx()); openHand(a.id); },
+  'askopen-drop'() { const a = ui.askOpen; if (!a) return; ui.askOpen = null; resetEditor(freshCtx()); if (a.id == null) startNew(); else openHand(a.id); },
+  /* the « + » of the bottom bar: a new tournament in Suivi, a new hand in Mains */
+  nplus() {
+    if (ui.block === 'suivi') { AT.tadd(); return; }
+    if (ui.block !== 'mains') return;
+    closeFix();
+    if (editingId) {   /* an existing hand is open: a new one replaces it, after asking if it was changed */
+      if (hasUnsaved()) { ui.askOpen = { id: null }; renderSheet(); return; }
+      resetEditor(freshCtx());
+    }
+    startNew();
+  },
   filter(el) { ui.filter = el.dataset.v; ui.delGroup = null; renderList(); },
   copygrp(el) { const g = findGroup(el.dataset.id); if (g) copyText(exportTexts(g.hands), 'Texte du tournoi'); },
   askdelgrp(el) { ui.delGroup = el.dataset.id; renderList(); },
@@ -3558,7 +3682,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  if (ui.pview) A.phclose(); else if (ui.askOpen) A['askopen-cancel'](); else if (ui.tf && ui.block === 'suivi') AT.tclose();
+  if (ui.pview) A.phclose(); else if (ui.askOpen) A['askopen-cancel'](); else if (ui.tf && ui.block === 'suivi') AT.tclose(); else if (ui.tcard && ui.block === 'suivi') AT.tcardx();
 });
 document.addEventListener('click', e => {
   const t = e.target;
@@ -3618,6 +3742,60 @@ document.addEventListener('mousedown', e => { if (e.target.closest && e.target.c
 document.addEventListener('focusout', e => { if (e.target && e.target.id === 'in-fix') setTimeout(commitFix, 200); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(draftTimer); writeDraft(); commitFix(); tdNow(); } });
 window.addEventListener('pagehide', () => { clearTimeout(draftTimer); writeDraft(); commitFix(); tdNow(); });
+
+/* ===== back gesture =====
+   Every screen that sits on top of another one (a section, a stage, a hand opened from the list, a sheet) gets one history entry.
+   « Retour » (iPhone edge swipe, browser button) then closes the top screen instead of leaving the app. The depth always comes from what is on screen. */
+let navBusy = false, navDirty = false, navTimer = 0;
+const navHave = () => { const st = history.state; return st && typeof st.d === 'number' ? st.d : 0; };
+const navOver = () => !!(ui.pview || ui.askOpen || ui.modal || ui.picker || ((ui.tf || ui.tcard) && ui.block === 'suivi'));
+function navDepth() {
+  if (ui.block === 'home') return 0;
+  let d = 1;
+  if (ui.block === 'suivi' ? !!ui.tstage : (ui.tab === 'edit' && ui.hDet) || (ui.tab === 'review' && !!ui.rv)) d++;
+  if (navOver()) d++;
+  return d;
+}
+function navSettle() {
+  clearTimeout(navTimer); navBusy = false;
+  if (navDirty) { navDirty = false; navSync(); }
+}
+function navSync() {
+  if (!window.history || !history.pushState) return;
+  if (navBusy) { navDirty = true; return; }
+  const want = navDepth(), have = navHave();
+  if (want === have) return;
+  try {
+    if (want > have) { for (let i = have + 1; i <= want; i++) history.pushState({ d: i }, ''); return; }
+    navBusy = true; navDirty = false;
+    clearTimeout(navTimer);
+    navTimer = setTimeout(() => { try { if (navHave() !== navDepth()) history.replaceState({ d: navDepth() }, ''); } catch (e) { /* no history */ } navSettle(); }, 1200);
+    history.go(want - have);
+  } catch (e) { navBusy = false; /* history refused: the screens still work, only the gesture is lost */ }
+}
+/* close the screen on top of the others */
+function navClose() {
+  if (ui.pview) A.phclose();
+  else if (ui.askOpen) A['askopen-cancel']();
+  else if (ui.modal) A.closemodal();
+  else if (ui.picker) A.closesheet();
+  else if (ui.tf && ui.block === 'suivi') AT.tclose();
+  else if (ui.tcard && ui.block === 'suivi') AT.tcardx();
+  else if (ui.block === 'suivi' && ui.tstage) AT.tback();
+  else if (ui.block === 'mains' && ui.tab === 'review' && ui.rv) A.rvquit();
+  else if (ui.block === 'mains' && ui.tab === 'edit' && ui.hDet) A.tab({ dataset: { v: ui.hFrom || 'list' } });
+  else if (ui.block !== 'home') A.block({ dataset: { v: 'home' } });
+}
+window.addEventListener('popstate', e => {
+  if (navBusy) { navSettle(); return; }   /* the echo of our own history.go: the screens are already right */
+  const target = e.state && typeof e.state.d === 'number' ? e.state.d : 0;
+  navBusy = true;
+  for (let guard = 8; guard > 0 && navDepth() > target; guard--) navClose();
+  navBusy = false; navDirty = false;
+  navSync();   /* history went somewhere the screens are not (forward, old entry): bring it back in line */
+});
+{ const rs = renderSheet, rsu = renderSuivi; renderSheet = function () { rs(); navSync(); }; renderSuivi = function () { rsu(); navSync(); }; }
+try { if (window.history && history.replaceState) history.replaceState({ d: 0 }, ''); } catch (e) { /* no history */ }
 
 /* ===== boot ===== */
 tLoad();
