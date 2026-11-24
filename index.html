@@ -572,7 +572,6 @@ img.wait{opacity:0}
 .sr-h{display:flex;align-items:center;gap:10px}
 .sr-h b{flex:1;min-width:0}
 .sr-ch{flex:none;width:16px;height:16px;color:var(--fg-3)}
-.bk{display:block;margin:0 0 8px;padding-left:0;text-align:left}
 .sr-h b{font:600 16px/1.25 var(--f-body);overflow-wrap:anywhere}
 .sr-h b em{margin-left:4px;font-style:normal;font-weight:500;color:var(--fg-3)}
 .sr-v{font:600 16px var(--f-body);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -650,6 +649,44 @@ html.has-nav.has-sb .toast{bottom:calc(var(--navh) + 98px)}
   .vin{animation:vin .2s ease-out}
   @keyframes vin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 }
+
+/* backup nudge: at the top of a list it sits close to the page edge */
+#hl-top>.bk,#view-suivi>.bk{margin:0 0 4px}
+#view-suivi>.bk{margin-top:14px}
+
+/* ===== search fields (hands, tournaments) ===== */
+.srch{position:relative;display:flex;align-items:center}
+.srch>svg{position:absolute;left:14px;width:18px;height:18px;color:var(--fg-3);pointer-events:none}
+.srch .inp{padding-left:42px;padding-right:46px}
+.srch-x{position:absolute;right:0;top:0;width:46px;height:46px;border:0;background:transparent;color:var(--fg-3);font:400 24px/1 var(--f-disp);display:grid;place-items:center;border-radius:16px}
+.srch-x[hidden]{display:none}
+.srch-n{margin:0}
+.srch-n[hidden]{display:none}
+.tl-y{margin:14px 4px 6px;font:600 12px/1 var(--f-disp);letter-spacing:.08em;color:var(--fg-3)}
+.tl-y:first-child{margin-top:4px}
+#tq-res[hidden],#t-dash[hidden],#t-hd[hidden]{display:none}
+#t-hd{display:flex;flex-direction:column;gap:inherit}
+
+/* ===== live tournament pill in the header ===== */
+.livepill{order:1;display:inline-flex;align-items:center;gap:8px;min-width:0;max-width:max(96px,calc(100% - 196px));height:34px;margin:-2px 0;padding:0 14px;border:1px solid var(--edge-hi);border-radius:999px;background:var(--glass-3);color:var(--fg);font:600 13px/1 var(--f-body);position:relative}
+.livepill[hidden]{display:none}
+.livepill::before{content:"";position:absolute;inset:-6px -4px}
+.livepill .ld{margin:0;flex:none}
+.livepill span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ===== touch targets: 44 px at least on a phone / touch screen ===== */
+@media (pointer:coarse),(max-width:760px){
+  .chip{min-height:44px}
+  .btn.sm,.bk .btn,.fx-add{min-height:44px}
+  .link,.pc-links{min-height:44px}
+  .tlnk{display:inline-flex;align-items:center;min-height:44px;padding:0 0 0 12px}
+  .tlnk[hidden]{display:none}
+  .seg button{min-height:44px}
+  .step{height:54px}
+  .step button{height:44px}
+  .brand-btn{padding:13px 0;margin:-13px 0}
+  .camb{width:44px;height:44px}
+}
 </style>
 <style>body{padding-top:env(safe-area-inset-top,0px)}</style>
 </head>
@@ -658,6 +695,7 @@ html.has-nav.has-sb .toast{bottom:calc(var(--navh) + 98px)}
 <div class="top">
   <div class="top-row">
     <div class="brand"><h1><button type="button" class="brand-btn" data-act="block" data-v="home" aria-label="Accueil CariocAce Copilot">CariocAce <span>Copilot</span></button></h1><i class="led" id="led" aria-hidden="true"></i></div>
+    <button type="button" class="livepill" id="livepill" data-act="livego" hidden><i class="ld" aria-hidden="true"></i><span id="livepill-t"></span></button>
     <span class="stat" id="stat"></span>
   </div>
   <div class="seg" id="tabs" hidden>
@@ -1220,7 +1258,7 @@ function boardProposal(res, h) {
   });
 }
 
-const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, delAsk: null, block: 'home', ty: null, tf: null, tfBase: '', tcard: null, tsY: 0, hDet: false, hFrom: 'list', pos: {}, undo: null, tmo: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
+const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, delAsk: null, block: 'home', ty: null, tf: null, tfBase: '', tcard: null, q: '', tq: '', tsY: 0, hDet: false, hFrom: 'list', pos: {}, undo: null, tmo: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
 
 /* ===== betting engine: replays the logged actions to get amounts, pot and SPR ===== */
 function actorsOf(h) {
@@ -1789,6 +1827,7 @@ function renderTabs() {
   const waiting = store.ready ? reviewStats(store.hands).pending : 0;
   $('#rcount').textContent = waiting ? '(' + waiting + ')' : '';
   $('#stat').textContent = mains && ui.tab === 'edit' ? (H.tournament || '') : '';
+  livePillSync();
 }
 function renderBanner() {
   let msg = '';
@@ -1877,16 +1916,65 @@ function handRow(h, no) {
     '<svg class="hand-ch" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button></div>';
 }
 
+/* search: no accents, no capitals, every word must be found somewhere in the hand (tournament, cards, positions, actions, note, tags, comment) */
+const fold = s => String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const searchTerms = q => fold(q).split(/\s+/).filter(Boolean);
+const hayCache = new Map();
+function handHay(h) {
+  const k = h.id + '|' + (h.updatedAt || '');
+  let v = hayCache.get(k);
+  if (v === undefined) {
+    try { v = fold(handText(normHand(clone(h))) + ' ' + (h.tags || []).join(' ') + ' ' + (h.comment || '')); } catch (e) { v = fold(h.tournament); }
+    if (hayCache.size > 3000) hayCache.clear();
+    hayCache.set(k, v);
+  }
+  return v;
+}
 function filteredHands() {
   const all = sortedHands();
-  if (ui.filter === 'good') return all.filter(h => h.verdict === 'good');
-  if (ui.filter === 'bad') return all.filter(h => h.verdict === 'bad');
-  if (ui.filter === 'todo') return all.filter(h => issues(normHand(h)).length);
-  if (ui.filter.indexOf('t:') === 0) { const k = normName(ui.filter.slice(2)); return all.filter(h => normName(h.tournament) === k); }
-  if (ui.filter.indexOf('st:') === 0) return ui.stageF ? all.filter(h => ui.stageF.ids.has(h.id)) : all;   /* the hands of one stage, opened from the Suivi */
-  return all;
+  let out = all;
+  if (ui.filter === 'good') out = all.filter(h => h.verdict === 'good');
+  else if (ui.filter === 'bad') out = all.filter(h => h.verdict === 'bad');
+  else if (ui.filter === 'todo') out = all.filter(h => issues(normHand(h)).length);
+  else if (ui.filter.indexOf('t:') === 0) { const k = normName(ui.filter.slice(2)); out = all.filter(h => normName(h.tournament) === k); }
+  else if (ui.filter.indexOf('st:') === 0) out = ui.stageF ? all.filter(h => ui.stageF.ids.has(h.id)) : all;   /* the hands of one stage, opened from the Suivi */
+  const T = searchTerms(ui.q);
+  return T.length ? out.filter(h => { const s = handHay(h); return T.every(t => s.indexOf(t) >= 0); }) : out;
 }
-
+/* the search field: a magnifier, a clear button that shows once something is typed */
+const srchField = (id, key, ph, val, clearAct) => '<div class="srch"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input class="inp" id="' + id + '" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="' + ph + '" aria-label="' + ph + '" value="' + esc(val) + '" data-in="' + key + '">' +
+  '<button type="button" class="srch-x" id="' + id + '-x" data-act="' + clearAct + '" aria-label="Effacer la recherche"' + (val ? '' : ' hidden') + '>×</button></div>';
+/* the hands, grouped by tournament, under the current filter and search: redrawn alone while typing in the search field */
+function listBody() {
+  const list = filteredHands(), keep = new Set(list.map(h => h.id)), info = groupInfo();
+  /* copy / delete a whole tournament only when each tournament is shown in full (not under a verdict or "À compléter" filter) */
+  const whole = !ui.q.trim() && (ui.filter === 'all' || ui.filter.indexOf('t:') === 0 || ui.filter.indexOf('st:') === 0);
+  const groups = tournamentGroups(store.hands).map(g => ({ g: g, hands: g.hands.filter(h => keep.has(h.id)) })).filter(x => x.hands.length)
+    .sort((a, b) => b.g.last - a.g.last || String(b.g.start).localeCompare(String(a.g.start)));
+  const body = groups.length ? groups.map(x => {
+    const g = x.g, n = x.hands.length, first = g.hands[0].id, nm = g.name || 'Sans nom';
+    const asking = whole && ui.delGroup === first;
+    const acts = !whole ? '' : asking
+      ? '<div class="grp-ask">Supprimer définitivement ' + (n > 1 ? 'les ' + n + ' mains' : 'la main') + ' de « ' + esc(nm) + ' » ? Copie-les ou sauvegarde-les d\'abord si besoin.</div>' +
+        '<div class="grp-a"><button type="button" class="btn ghost sm" data-act="cancelgrp">Annuler</button><button type="button" class="btn danger sm" data-act="delgrp" data-id="' + esc(first) + '">Supprimer ' + n + ' main' + (n > 1 ? 's' : '') + '</button></div>'
+      : '<div class="grp-a"><button type="button" class="btn ghost sm" data-act="copygrp" data-id="' + esc(first) + '">Copier le tournoi</button><button type="button" class="btn ghost sm" data-act="askdelgrp" data-id="' + esc(first) + '">Supprimer le tournoi</button></div>';
+    return '<div class="grp-h"><h3>' + esc(nm) + '</h3><span class="meta">' + esc(fmtDate(g.start)) + ' · ' + n + ' main' + (n > 1 ? 's' : '') + '</span>' + acts + '</div>' +
+      x.hands.map(h => handRow(h, info[h.id] && info[h.id].no)).join('');
+  }).join('')
+    : '<div class="empty-state">' + (ui.q.trim() ? 'Aucune main ne correspond à « ' + esc(ui.q.trim()) + ' ».' : 'Aucune main dans ce filtre.') + '</div>';
+  return body;
+}
+function hqNote() {
+  const q = ui.q.trim(), n = q ? filteredHands().length : 0;
+  return q ? n + ' main' + (n > 1 ? 's' : '') + ' trouvée' + (n > 1 ? 's' : '') : '';
+}
+/* typing in the search: only the list and the count change, so the keyboard stays */
+function hqSync() {
+  const b = $('#hl-body'), n = $('#hq-n'), x = $('#in-hq-x');
+  if (b) b.innerHTML = listBody();
+  if (n) { const t = hqNote(); n.textContent = t; n.hidden = !t; }
+  if (x) x.hidden = !ui.q;
+}
 function renderList() {
   const el = $('#view-list');
   if (!store.ready) { el.innerHTML = '<div class="empty-state">Chargement des mains...</div>'; return; }
@@ -1901,24 +1989,10 @@ function renderList() {
   const filters = [['all', 'Toutes'], ['good', '✓ Bon'], ['bad', '✗ Mauvais'], ['todo', 'À compléter']].concat(names.slice(0, 6).map(n => ['t:' + n, n]));
   if (ui.filter.indexOf('t:') === 0 && !filters.some(f => f[0] === ui.filter)) filters.push([ui.filter, ui.filter.slice(2)]);   /* a tournament opened from the Suivi */
   if (ui.filter.indexOf('st:') === 0 && ui.stageF) filters.push([ui.filter, ui.stageF.label]);
-  const list = filteredHands(), keep = new Set(list.map(h => h.id)), info = groupInfo();
-  /* copy / delete a whole tournament only when each tournament is shown in full (not under a verdict or "À compléter" filter) */
-  const whole = ui.filter === 'all' || ui.filter.indexOf('t:') === 0 || ui.filter.indexOf('st:') === 0;
-  const groups = tournamentGroups(store.hands).map(g => ({ g: g, hands: g.hands.filter(h => keep.has(h.id)) })).filter(x => x.hands.length)
-    .sort((a, b) => b.g.last - a.g.last || String(b.g.start).localeCompare(String(a.g.start)));
-  const body = groups.length ? groups.map(x => {
-    const g = x.g, n = x.hands.length, first = g.hands[0].id, nm = g.name || 'Sans nom';
-    const asking = whole && ui.delGroup === first;
-    const acts = !whole ? '' : asking
-      ? '<div class="grp-ask">Supprimer définitivement ' + (n > 1 ? 'les ' + n + ' mains' : 'la main') + ' de « ' + esc(nm) + ' » ? Copie-les ou sauvegarde-les d\'abord si besoin.</div>' +
-        '<div class="grp-a"><button type="button" class="btn ghost sm" data-act="cancelgrp">Annuler</button><button type="button" class="btn danger sm" data-act="delgrp" data-id="' + esc(first) + '">Supprimer ' + n + ' main' + (n > 1 ? 's' : '') + '</button></div>'
-      : '<div class="grp-a"><button type="button" class="btn ghost sm" data-act="copygrp" data-id="' + esc(first) + '">Copier le tournoi</button><button type="button" class="btn ghost sm" data-act="askdelgrp" data-id="' + esc(first) + '">Supprimer le tournoi</button></div>';
-    return '<div class="grp-h"><h3>' + esc(nm) + '</h3><span class="meta">' + esc(fmtDate(g.start)) + ' · ' + n + ' main' + (n > 1 ? 's' : '') + '</span>' + acts + '</div>' +
-      x.hands.map(h => handRow(h, info[h.id] && info[h.id].no)).join('');
-  }).join('')
-    : '<div class="empty-state">Aucune main dans ce filtre.</div>';
-  el.innerHTML = '<div class="sec plain"><div class="scroll-row">' + filters.map(f => chip(esc(f[1]), { on: ui.filter === f[0], attrs: 'data-act="filter" data-v="' + esc(f[0]) + '"' })).join('') + '</div>' +
-    '<div class="row"><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer</button></div>' + IMPORT_INPUT + '<p class="hint" style="margin:0">Glisse une main vers la gauche pour la supprimer.</p>' + aiRow() + '</div>' + body;
+  el.innerHTML = '<div class="sec plain" id="hl-top">' + bkHint() + srchField('in-hq', 'hq', 'Chercher une main', ui.q, 'hqclear') + '<p class="hint srch-n" id="hq-n"' + (ui.q.trim() ? '' : ' hidden') + '>' + hqNote() + '</p>' +
+    '<div class="scroll-row">' + filters.map(f => chip(esc(f[1]), { on: ui.filter === f[0], attrs: 'data-act="filter" data-v="' + esc(f[0]) + '"' })).join('') + '</div>' +
+    '<div class="row"><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer</button></div>' + IMPORT_INPUT + '<p class="hint" style="margin:0">Glisse une main vers la gauche pour la supprimer.</p>' + aiRow() + '</div>' +
+    '<div id="hl-body">' + listBody() + '</div>';
   /* the lit filter (a tournament or a stage opened from the Suivi) can sit at the end of the row: bring it into view */
   const fr = el.querySelector('.scroll-row'), fon = fr && fr.querySelector('.chip.on');
   if (fr && fon) fr.scrollLeft += fon.getBoundingClientRect().left - fr.getBoundingClientRect().left - 16;
@@ -2229,7 +2303,7 @@ async function downloadJson() {
    One record per tournament: { id, date (first day), name, buyin (one bullet, fees included), bullets, gain (total won, bounties and deal included),
    place, paid (places paid), joueurs (field size), serie (KSOP...), etape (a stage of that series; by default the month): all optional, ft (final table), live (still playing), mental (3 marks), debrief, createdAt, updatedAt }. Stored on this device only, in its own key, and part of the same .json backup as the hands.
    Importing merges by id (the most recently changed copy wins) and never removes anything. */
-const LS_TOURN = 'carnet-tournois-local', LS_BACKUP = 'carnet-derniere-sauvegarde';
+const LS_TOURN = 'carnet-tournois-local', LS_BACKUP = 'carnet-derniere-sauvegarde', LS_BACKUP_N = 'carnet-sauvegarde-n';
 const tStore = { list: [] };
 const T_MAX = { money: 1e9, bullets: 999, place: 1e6 };
 /* mental notes (a separate space): three marks from 0 to 10, never mixed with the money figures */
@@ -2419,18 +2493,27 @@ function tHomeTile() {
   return [String(y), tot.n + ' tournoi' + (tot.n > 1 ? 's' : '') + (lv ? ' · ' + lv + ' en cours' : ''), 'Gain net : ' + fmtNetBRL(tot.net) + dr];
 }
 const lastBackupMs = () => { try { const t = Date.parse(localStorage.getItem(LS_BACKUP) || ''); return Number.isFinite(t) ? t : 0; } catch (e) { return 0; } };
-const markBackup = () => { try { localStorage.setItem(LS_BACKUP, new Date().toISOString()); } catch (e) { /* not kept: the reminder simply stays */ } if (ui.block === 'home') renderHome(); else if (ui.block === 'suivi') renderSuivi(); };
-/* a monthly nudge, only when there is something to lose */
+const itemCount = () => store.hands.length + tStore.list.length;
+const markBackup = () => { try { localStorage.setItem(LS_BACKUP, new Date().toISOString()); localStorage.setItem(LS_BACKUP_N, String(itemCount())); } catch (e) { /* not kept: the reminder simply stays */ } if (ui.block === 'home') renderHome(); else if (ui.block === 'suivi') renderSuivi(); };
+/* a nudge, only when there is something to lose: a month without a backup, or a week with a lot written since the last one */
 function backupAge() {
   if (!(store.hands.length || tStore.list.length)) return null;
   const last = lastBackupMs();
   return last ? Math.floor((Date.now() - last) / 864e5) : Infinity;
 }
+function newSinceBackup() {
+  try { const n = parseInt(localStorage.getItem(LS_BACKUP_N), 10); return Number.isFinite(n) ? Math.max(0, itemCount() - n) : 0; } catch (e) { return 0; }
+}
+const BK_MANY = 15;
 function bkHint() {
   const d = backupAge();
-  if (d === null || d < 30) return '';
-  return '<div class="bk"><span>' + (d === Infinity ? 'Aucune sauvegarde faite sur cet appareil.' : 'Dernière sauvegarde il y a ' + d + ' jours.') +
-    '</span><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarder</button></div>';
+  if (d === null) return '';
+  const fresh = d === Infinity ? 0 : newSinceBackup();
+  let msg = '';
+  if (d === Infinity || d >= 30) msg = d === Infinity ? 'Aucune sauvegarde faite sur cet appareil.' : 'Dernière sauvegarde il y a ' + d + ' jours.';
+  else if (d >= 7 && fresh >= BK_MANY) msg = fresh + ' mains ou tournois ajoutés depuis la dernière sauvegarde (il y a ' + d + ' jours).';
+  if (!msg) return '';
+  return '<div class="bk"><span>' + msg + '</span><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarder</button></div>';
 }
 
 /* ===== numbers of the selected year ===== */
@@ -2769,6 +2852,31 @@ function tMonthList(list, links, y) {
         '<div class="mo-c" id="mo-' + r.m + '"' + (on ? '' : ' hidden') + '><ol class="tl">' + items.map(t => tRow(t, links)).join('') + '</ol></div></li>';
     }).join('') + '</ol></div>';
 }
+/* search across every year: name, series, stage, month, year, debrief. Results replace the dashboard while a word is typed. */
+function tHay(t) {
+  const m = MOIS[+t.date.slice(5, 7) - 1] || '';
+  return fold([t.name, t.serie, t.etape, m, t.date.slice(0, 4), t.date, t.debrief, t.live ? 'en cours' : '', t.ft ? 'table finale' : '', t.place === 1 ? 'victoire' : ''].join(' '));
+}
+function tqMatches() {
+  const T = searchTerms(ui.tq);
+  return T.length ? tSorted(tStore.list).filter(t => { const s = tHay(t); return T.every(w => s.indexOf(w) >= 0); }) : [];
+}
+function tqHtml(links) {
+  const L = tqMatches(), q = ui.tq.trim();
+  if (!L.length) return '<div class="sec"><p class="hint" style="margin:0">Aucun tournoi ne correspond à « ' + esc(q) + ' ».</p></div>';
+  const done = L.filter(t => !t.live), net = done.reduce((a, t) => a + cents(t.gain - cents(t.buyin * t.bullets)), 0), by = [];
+  L.forEach(t => { const y = tYear(t); let g = by.find(x => x.y === y); if (!g) by.push(g = { y: y, l: [] }); g.l.push(t); });
+  return '<div class="sec"><div class="sec-h"><span class="lbl">Résultats</span><span class="pot">' + L.length + ' tournoi' + (L.length > 1 ? 's' : '') + (done.length ? ' · <b class="' + netCls(net) + '">' + esc(fmtNetBRL(net)) + '</b>' : '') + '</span></div>' +
+    by.map(g => '<p class="tl-y">' + g.y + '</p><ol class="tl">' + g.l.map(t => tRow(t, links)).join('') + '</ol>').join('') + '</div>';
+}
+/* typing in the search: only the results and the clear button change, so the keyboard stays */
+function tqSync() {
+  const r = $('#tq-res'), d = $('#t-dash'), hd = $('#t-hd'), x = $('#in-tq-x'), on = !!ui.tq.trim();
+  if (r) { r.hidden = !on; r.innerHTML = on ? tqHtml(tHandLinks()) : ''; }
+  if (d) d.hidden = on;
+  if (hd) hd.hidden = on;
+  if (x) x.hidden = !ui.tq;
+}
 /* open / close months without redrawing the page */
 function tMonthsSync() {
   const set = ui.tmo ? ui.tmo.open : new Set(), hs = Array.from(document.querySelectorAll('#view-suivi .mo-h'));
@@ -2811,6 +2919,18 @@ function tCardHtml(t) {
   const where = normName(t.serie) ? esc(t.serie) + ' · ' + esc(tStageLabel(t)) : '';
   const m = t.mental, marks = m ? M_KEYS.filter(k => m[k] !== null && m[k] !== undefined) : [];
   const place = t.place ? t.place + (t.place === 1 ? 'er' : 'e') : '–';
+  if (t.live) {   /* a tournament being played: what is engaged so far, and the way to finish it */
+    const now = new Date(), days = Math.max(0, Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - d) / 864e5));
+    return '<div class="sheet-h"><span class="lbl"><i class="ld" aria-hidden="true"></i>' + esc(t.name || 'Sans nom') + '</span><button type="button" class="btn ghost sm" data-act="tcardx">Fermer</button></div>' +
+      '<div class="tc-b"><p class="tc-d">En cours depuis le ' + esc(d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })) + (where ? ' · ' + where : '') + '</p>' +
+      '<div class="dh"><span class="k">Investi</span><span class="dh-v">' + esc(fmtN(inv)) + '<small>R$</small></span><span class="sub">' + t.bullets + ' bullet' + (t.bullets > 1 ? 's' : '') + (t.buyin ? ' de ' + esc(fmtN(t.buyin)) + ' R$' : '') + '</span></div>' +
+      '<div class="hud two"><div><span class="k">Mains notées</span><span class="v">' + hc + '</span><span class="sub">' + (hc ? 'dans ce tournoi' : 'pas encore') + '</span></div>' +
+      '<div><span class="k">Jour</span><span class="v">' + (days + 1) + '</span><span class="sub">du tournoi</span></div></div>' +
+      '<p class="hint" style="margin:0">Pas compté dans tes chiffres tant que le résultat n\'est pas noté.</p></div>' +
+      '<div class="ts-f tc-f"><button type="button" class="btn" data-act="tfinish" data-id="' + esc(t.id) + '">Terminer</button>' +
+      '<button type="button" class="btn ghost sm" data-act="tedit" data-id="' + esc(t.id) + '">Modifier</button>' +
+      (hc ? '<button type="button" class="btn ghost sm" data-act="tmains" data-id="' + esc(t.id) + '">Voir ' + (hc > 1 ? 'les ' + hc + ' mains' : 'la main') + ' ›</button>' : '') + '</div>';
+  }
   return '<div class="sheet-h"><span class="lbl">' + esc(t.name || 'Sans nom') + '</span><button type="button" class="btn ghost sm" data-act="tcardx">Fermer</button></div>' +
     '<div class="tc-b"><p class="tc-d">' + esc(d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })) + (where ? ' · ' + where : '') + '</p>' +
     (badges ? '<span class="tr-b">' + badges + '</span>' : '') +
@@ -2824,6 +2944,17 @@ function tCardHtml(t) {
     '<div class="ts-f tc-f"><button type="button" class="btn" data-act="tcardedit" data-id="' + esc(t.id) + '">Modifier</button>' +
     (!t.debrief && !marks.length ? '<button type="button" class="btn ghost sm" data-act="tdebrief" data-id="' + esc(t.id) + '">Ajouter le débrief</button>' : '') +
     (hc ? '<button type="button" class="btn ghost sm" data-act="tmains" data-id="' + esc(t.id) + '">Voir ' + (hc > 1 ? 'les ' + hc + ' mains' : 'la main') + ' ›</button>' : '') + '</div>';
+}
+/* the header pill: the tournament being played, one tap away from any screen but the home and the hand editor */
+function livePillSync() {
+  const b = $('#livepill'); if (!b) return;
+  const L = tLiveList(), mains = ui.block === 'mains', reviewing = mains && ui.tab === 'review' && !isWide() && ui.rv && !ui.rv.done;
+  const on = L.length > 0 && ui.block !== 'home' && !(mains && ui.tab === 'edit') && !reviewing;
+  b.hidden = !on;
+  if (!on) return;
+  const txt = L.length > 1 ? L.length + ' en cours' : (L[0].name || 'En cours');
+  $('#livepill-t').textContent = txt;
+  b.setAttribute('aria-label', L.length > 1 ? L.length + ' tournois en cours : voir la liste' : 'Tournoi en cours : ' + (L[0].name || 'sans nom'));
 }
 function renderTCard() {
   const root = $('#sheet-root'), t = ui.tcard ? tStore.list.find(x => x.id === ui.tcard) : null;
@@ -2854,10 +2985,12 @@ function renderSuivi() {
   const stageView = !mv && ui.tstage ? tStageHtml(done, links, y) : null;
   if (ui.tstage && !stageView) ui.tstage = null;   /* the stage no longer has a tournament */
   const head = '<div class="sec"><div class="sec-h"><span class="lbl">Suivi des tournois</span></div>' +
+    (tStore.list.length > 4 ? srchField('in-tq', 'tq', 'Chercher un tournoi', ui.tq, 'tqclear') : '') +
+    '<div id="t-hd"' + (ui.tq.trim() ? ' hidden' : '') + '>' +
     '<div class="seg" id="t-years">' + years.map(v => '<button type="button" class="' + (v === y ? 'on' : '') + '" data-act="tyear" data-v="' + v + '">' + v + '</button>').join('') + '</div>' +
     '<div class="seg sw" id="t-views"><button type="button" class="' + (mv ? '' : 'on') + '" data-act="tview" data-v="r">Résultats</button><button type="button" class="' + (mv ? 'on' : '') + '" data-act="tview" data-v="m">Mental</button></div>' +
     (!mv && st.n && !stageView ? tDash(st, y) : '') +
-    '<div class="row"><button type="button" class="btn" data-act="tadd">Ajouter un tournoi</button></div></div>';
+    '<div class="row"><button type="button" class="btn" data-act="tadd">Ajouter un tournoi</button></div></div></div>';
   let dash;
   if (mv) { tCv = null; dash = tMentalHtml(done, y); }
   else if (stageView) dash = stageView;
@@ -2870,8 +3003,8 @@ function renderSuivi() {
     '<p class="hint" style="margin:0">Tes tournois sont enregistrés sur cet appareil, dans le même fichier .json que tes mains. ' +
     (last ? 'Dernière sauvegarde : ' + esc(new Date(last).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })) + '.' : 'Pas encore de sauvegarde faite ici.') + '</p>' +
     '<div class="row"><button type="button" class="btn ghost sm" data-act="exportjson">Sauvegarde .json</button><button type="button" class="btn ghost sm" data-act="importjson">Importer une sauvegarde</button></div></div>';
-  $('#view-suivi').innerHTML = tLiveBox(links) + tDraftBox() + head + dash + bk;
-  tSync();
+  $('#view-suivi').innerHTML = tLiveBox(links) + tDraftBox() + bkHint() + head + '<div id="tq-res"' + (ui.tq.trim() ? '' : ' hidden') + '>' + (ui.tq.trim() ? tqHtml(links) : '') + '</div><div id="t-dash"' + (ui.tq.trim() ? ' hidden' : '') + '>' + dash + '</div>' + bk;
+  tSync(); livePillSync();
 }
 /* live bits of the form that do not need a redraw (a redraw would drop the keyboard) */
 function tSync() {
@@ -2925,7 +3058,8 @@ function tInput(t, k) {
 const typingInSuivi = () => { const a = document.activeElement; return !!(a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && $('#view-suivi').contains(a)); };
 
 const AT = {
-  tyear(el) { ui.ty = +el.dataset.v; ui.tstage = null; renderSuivi(); },
+  tyear(el) { ui.ty = +el.dataset.v; ui.tstage = null; ui.tq = ''; renderSuivi(); },
+  tqclear() { ui.tq = ''; tqSync(); const i = $('#in-tq'); if (i) { i.value = ''; i.focus(); } },
   tmonth(el) {
     const m = +el.dataset.m, set = tOpenSet(tSel(), []);
     if (set.has(m)) set.delete(m); else set.add(m);
@@ -2940,11 +3074,11 @@ const AT = {
     const t = tStore.list.find(x => x.id === el.dataset.id);
     if (!t) return;
     const nm = tHandLinks().name[t.id] || t.name;
-    ui.tcard = null; rememberPos(); closeFix(); ui.block = 'mains'; ui.tab = 'list'; ui.filter = 't:' + nm; ui.pos['mains:list'] = 0;
+    ui.tcard = null; rememberPos(); closeFix(); ui.block = 'mains'; ui.tab = 'list'; ui.q = ''; ui.filter = 't:' + nm; ui.pos['mains:list'] = 0;
     ui.picker = null; ui.pending = null; ui.delGroup = null; ui.delAsk = null; ui.confirm = ''; ui.rv = null;
     renderAll(); window.scrollTo(0, 0);
   },
-  tview(el) { ui.tv = el.dataset.v === 'm' ? 'm' : 'r'; ui.tstage = null; renderSuivi(); },
+  tview(el) { ui.tv = el.dataset.v === 'm' ? 'm' : 'r'; ui.tstage = null; ui.tq = ''; renderSuivi(); },
   tstage(el) { ui.tsY = Math.round(window.scrollY || 0); ui.tstage = { k: el.dataset.k || '' }; renderSuivi(); window.scrollTo(0, 0); enterView(); },
   tback() {   /* back to the stage list exactly where it was left, the row we came from glowing */
     const k = ui.tstage ? ui.tstage.k : '';
@@ -2959,12 +3093,18 @@ const AT = {
     if (!list.length || !ids.length) return;
     const label = sv.k ? list[0].serie + ' · ' + tStageLabel(list[0]) : 'Hors série';
     ui.stageF = { label: label, ids: new Set(ids) };
-    rememberPos(); closeFix(); ui.block = 'mains'; ui.tab = 'list'; ui.filter = 'st:' + label; ui.pos['mains:list'] = 0;
+    rememberPos(); closeFix(); ui.block = 'mains'; ui.tab = 'list'; ui.q = ''; ui.filter = 'st:' + label; ui.pos['mains:list'] = 0;
     ui.picker = null; ui.pending = null; ui.delGroup = null; ui.delAsk = null; ui.confirm = ''; ui.rv = null;
     renderAll(); window.scrollTo(0, 0);
   },
   tcard(el) { ui.tcard = el.dataset.id; renderSheet(); },   /* a tap on a tournament: its card, over the page that does not move */
   tcardx() { if (!ui.tcard) return; ui.tcard = null; renderSheet(); },
+  livego() {   /* the header pill: one tournament → its card, several → the list at the top of the Suivi */
+    const L = tLiveList();
+    if (!L.length) return;
+    if (ui.block !== 'suivi') A.block({ dataset: { v: 'suivi' } });
+    if (L.length === 1) { ui.tcard = L[0].id; renderSheet(); } else window.scrollTo(0, 0);
+  },
   tcardedit(el) {
     const t = tStore.list.find(x => x.id === el.dataset.id);
     if (!t) { AT.tcardx(); return; }
@@ -3646,6 +3786,7 @@ const A = {
     startNew();
   },
   filter(el) { ui.filter = el.dataset.v; ui.delGroup = null; renderList(); },
+  hqclear() { ui.q = ''; ui.delGroup = null; renderList(); const i = $('#in-hq'); if (i) i.focus(); },
   copygrp(el) { const g = findGroup(el.dataset.id); if (g) copyText(exportTexts(g.hands), 'Texte du tournoi'); },
   askdelgrp(el) { ui.delGroup = el.dataset.id; renderList(); },
   cancelgrp() { ui.delGroup = null; renderList(); },
@@ -3692,6 +3833,8 @@ document.addEventListener('input', e => {
   const t = e.target, k = t.dataset && t.dataset.in;
   if (!k) return;
   if (k.indexOf('t-') === 0) { tInput(t, k); return; }   /* tournament form: its own state, never part of a hand or its draft */
+  if (k === 'hq') { ui.q = t.value; hqSync(); return; }   /* hands search: the list alone is redrawn, the keyboard stays */
+  if (k === 'tq') { ui.tq = t.value; tqSync(); return; }   /* tournaments search (Suivi) */
   if (k === 'apikey') { ui.keyDraft = t.value; return; }   /* the key: held only until saved, never part of the hand */
   if (k === 'fix') { ui.fixDraft = { id: t.dataset.id, text: t.value }; return; }   /* review field: kept until validated or left */
   if (k === 'tourn') { H.tournament = t.value; ui.tManual = true; $('#stat').textContent = t.value; syncPickT(); }
