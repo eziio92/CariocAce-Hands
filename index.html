@@ -157,6 +157,8 @@ ol.log li:first-child{border-top:0}
 .what{flex:1;min-width:0;font:500 14px var(--f-body);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .after{font:500 11.5px var(--f-body);font-variant-numeric:tabular-nums;color:var(--fg-2);white-space:nowrap}
 .x{width:40px;height:40px;border:0;background:transparent;color:var(--fg-3);font-size:22px;line-height:1;flex:none}
+.sheet.det .x{width:44px;height:44px}
+.sheet.det .x.armed{width:auto;min-width:44px;height:44px}
 .x.armed{width:auto;padding:0 12px;border-radius:999px;font:700 12px var(--f-body);color:var(--bad);border:1px solid var(--bad);background:rgba(242,139,130,.12)}
 ol.log li.gone .who,ol.log li.gone .what,ol.log li.gone .after{opacity:.38;text-decoration:line-through}
 .delwarn{margin:0}
@@ -191,6 +193,7 @@ body.home .wrap>div[aria-hidden]{height:0!important}
 .hb-u{display:block;font:500 13.5px var(--f-body);color:var(--fg-2);margin-top:6px}
 .hb-s{display:block;font:500 12.5px var(--f-body);color:var(--fg-3);margin-top:3px}
 .builder{display:flex;flex-direction:column;gap:12px;padding-top:2px}
+.dock .builder{gap:5px;padding-top:0}
 .vill{display:flex;flex-direction:column;gap:14px;padding:16px 14px;border:1px solid var(--edge);border-radius:22px;background:var(--glass-2);box-shadow:inset 0 1px 0 var(--edge-hi)}
 
 /* hands list */
@@ -736,21 +739,21 @@ html.has-nav.has-sb .toast{bottom:calc(var(--navh) + 98px)}
 .sc .card.mini+.card.mini{margin-left:-5px}
 .tcn{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);width:62%;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;pointer-events:none}
 .tcn .k{font:600 10px/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3)}
-.tcn .v{font:600 30px/1 var(--f-disp);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.tcn .v{font:600 calc(30px*var(--k,1))/1 var(--f-disp);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
 .tcn.ask .q{font:600 20px/1.15 var(--f-disp);letter-spacing:-.02em}
 .tcn.ask .s{font:500 12.5px/1.4 var(--f-body);color:var(--fg-2)}
-.tcn.pt{top:26%;width:max-content;max-width:62%}
-.bd{position:absolute;left:50%;top:38%;transform:translateX(-50%);z-index:1;display:flex;gap:7px;align-items:center}
+.tcn.pt{top:27%;width:max-content;max-width:62%}
+.bd{position:absolute;left:50%;top:39%;transform:translateX(-50%);z-index:1;display:flex;gap:7px;align-items:center}
 .bd .bg{display:flex;gap:3px}
-.bd .card{width:29px;height:41px;border-radius:6px}
-.bd .card .r{font-size:15px}
-.bd .card .s{font-size:12px;margin-top:2px}
-.bd .card.empty .r{font-size:17px}
-.hc{position:absolute;left:50%;top:58%;transform:translateX(-50%);z-index:1;display:flex;gap:8px}
-.hc .card{width:47px;height:66px;border-radius:10px}
-.hc .card .r{font-size:24px}
-.hc .card .s{font-size:19px;margin-top:3px}
-.hc .card.empty .r{font-size:25px}
+.bd .card{width:calc(29px*var(--k,1));height:calc(41px*var(--k,1));border-radius:6px}
+.bd .card .r{font-size:calc(15px*var(--k,1))}
+.bd .card .s{font-size:calc(12px*var(--k,1));margin-top:2px}
+.bd .card.empty .r{font-size:calc(17px*var(--k,1))}
+.hc{position:absolute;left:50%;top:58.5%;transform:translateX(-50%);z-index:1;display:flex;gap:8px}
+.hc .card{width:47px;height:calc(66px*var(--k,1));border-radius:10px}
+.hc .card .r{font-size:calc(24px*var(--k,1))}
+.hc .card .s{font-size:calc(19px*var(--k,1));margin-top:3px}
+.hc .card.empty .r{font-size:calc(25px*var(--k,1))}
 .hc .card:first-child{transform:rotate(-4deg)}
 .hc .card:last-child{transform:rotate(4deg)}
 @media (prefers-reduced-motion:no-preference){
@@ -779,11 +782,77 @@ html.hs-room .brand{min-height:34px}
   .hsave:not([hidden]){animation:hsIn .3s cubic-bezier(.2,.8,.2,1) both}
   @keyframes hsIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 }
+
+/* ===== one screen for the hand: the line, the table, the panel under it (nothing to scroll) ===== */
+.stage{display:flex;flex-direction:column;gap:6px;margin-top:8px;min-height:500px}
+.srow{display:flex;align-items:center;gap:8px}
+.srow .seg{padding:3px;flex:1;min-width:0}
+.srow .camb{width:46px;height:46px}
+.srow .seg button{min-height:44px;font-size:13px;padding:0 3px;white-space:nowrap}
+.srow .seg .dot{margin-left:4px}
+.stage .tbl{flex:1 1 0;min-height:0;width:100%;max-width:420px;max-height:440px;margin:0 auto;aspect-ratio:auto}
+html.stage-fit .tbl.rot{touch-action:none}
+html.stage-fit .endsp{display:none}
+html.stage-fit{overflow:hidden;overscroll-behavior:none}
+html.stage-fit body{overflow:clip;overscroll-behavior:none}   /* clip, not hidden: a hidden body becomes a scroller and its padding pushes the sticky header down */
+#safe-probe{position:fixed;left:0;bottom:0;width:1px;height:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none}
+.dock{flex:0 0 auto;height:214px;display:flex;flex-direction:column;gap:6px;padding:8px 10px 8px;border:1px solid var(--edge);border-radius:24px;overflow:hidden;
+  background:linear-gradient(180deg,var(--glass-2),var(--glass) 40%);box-shadow:var(--shadow),inset 0 1px 0 var(--edge-hi)}
+.dock.off{justify-content:center;align-items:center;text-align:center;padding:8px 18px;gap:12px}
+.dk-sw{flex:none;padding:3px}
+.dk-sw button{min-height:44px;font-size:13px;padding:0 4px;white-space:nowrap}
+.dk-sw button.go{color:var(--fg);box-shadow:inset 0 0 0 1px var(--tbl-rim),0 0 14px var(--tbl-glow)}
+.dk-b{flex:1;min-height:0;display:flex;flex-direction:column;gap:5px}   /* the dock itself clips; a link's touch area may reach above its line */
+.dock .btn.sm{min-height:44px;padding:0 14px}
+.dk-h{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:35px}
+.dk-t{font:500 13.5px/1.2 var(--f-body);color:var(--fg-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dk-t b{font-weight:700;color:var(--fg)}
+.dk-h .link{min-height:35px;font-size:12.5px;flex:none;position:relative}
+.dk-h .link::before,.dk-sub .link::before,.dk-hint .link::before{content:"";position:absolute;inset:-9px -8px}
+.dk-h .link::before{inset:-9px -8px 0}   /* the touch area grows upwards, never over the chips below */
+.dk-sub{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font:500 11.5px/1.2 var(--f-body);font-variant-numeric:tabular-nums;color:var(--fg-3);margin-top:-2px}
+.dk-sub .link{min-height:24px;padding:0 2px;font-size:11.5px;position:relative}
+.dk-hint{margin:0;font:400 12px/1.35 var(--f-body);color:var(--fg-2)}
+.dk-r{display:flex;align-items:center;gap:8px;min-height:40px}
+.dk-r .stackrow{flex:1;min-width:0}
+.dk-l{flex:none;width:38px;font:600 10px/1 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--fg-3)}
+.dock .chip{min-height:44px;padding:0 13px}
+.dock .chip.stack{min-height:44px;padding:0 12px}
+.dock .scroll-row{padding:0 2px}
+.dock .inp{min-height:44px;height:44px}
+.dock .inp.num.sm{width:64px;flex:none}
+.dock .stackrow .inp.num.sm{width:62px}
+.dock .cards{flex-wrap:nowrap;gap:6px;flex:none}
+.dock .cards .card,.dock .dk-v .card{width:44px;height:46px;border-radius:8px}
+.dock .cards .card .r,.dock .dk-v .card .r{font-size:17px}
+.dock .cards .card .s,.dock .dk-v .card .s{font-size:13px;margin-top:2px}
+.dk-sz{display:flex;gap:5px}
+.dk-sz .chip{flex:1 1 0;min-width:0;padding:0 2px;min-height:44px;font-size:13px}
+.dk-sz .chip .sub{font-size:10.5px}
+.dk-z3{display:flex;gap:8px;align-items:center}
+.dk-z3 .btn{flex:1;min-width:0;padding:0 10px}
+.dock .row{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.dock .row::-webkit-scrollbar{display:none}
+.dk-v{flex:none;display:inline-flex;align-items:center;gap:4px;margin-right:10px}
+.dk-vn{font:600 11px/1 var(--f-body);color:var(--fg-2)}
+.seat .sa{font:600 9.5px/1 var(--f-body);letter-spacing:.02em;color:var(--fg-2)}
+.seat.hero .sa{color:#0b0c0e;opacity:.72}
+.seat.fold{opacity:.42}
+.seat.act{border-color:var(--tbl-rim);box-shadow:0 0 0 2px rgba(228,235,245,.5),0 0 18px var(--tbl-glow)}
+@media (prefers-reduced-motion:no-preference){
+  .seat.act{animation:seatAct 1.6s ease-in-out infinite}
+  @keyframes seatAct{50%{box-shadow:0 0 0 4px rgba(228,235,245,.16),0 0 28px var(--tbl-glow)}}
+}
+.det .sec{margin-top:0;padding:14px 2px;border:0;border-top:1px solid var(--edge);border-radius:0;background:none;box-shadow:none}
+.det .sec-h+*{margin-top:10px}
+.hist-s{display:flex;align-items:baseline;justify-content:space-between;margin-top:12px}
+.hist-s .sub{font:500 11.5px var(--f-body);color:var(--fg-3);font-variant-numeric:tabular-nums}
 </style>
 <style>body{padding-top:env(safe-area-inset-top,0px)}</style>
 </head>
 <body>
 <div class="ambient" aria-hidden="true"></div>
+<div id="safe-probe" aria-hidden="true"></div>
 <div class="top">
   <div class="top-row">
     <div class="brand"><h1><button type="button" class="brand-btn" data-act="block" data-v="home" aria-label="Accueil CariocAce Copilot">CariocAce <span>Copilot</span></button></h1><i class="led" id="led" aria-hidden="true"></i></div>
@@ -1216,6 +1285,7 @@ async function addPhotos(files) {
   if (dup) bits.push(dup + ' déjà présente' + (dup > 1 ? 's' : ''));
   if (bad) bits.push(bad + ' illisible' + (bad > 1 ? 's' : ''));
   toast(bits.join(' · '));
+  if (ok && ui.block === 'mains' && ui.tab === 'edit') ui.det = true;   /* the photos wait in the details: show them */
   onPhotosChange();
 }
 
@@ -1351,12 +1421,14 @@ function boardProposal(res, h) {
   });
 }
 
-const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, seat: null, delAsk: null, block: 'home', ty: null, tf: null, tfBase: '', tcard: null, q: '', tq: '', tqOpen: false, tsY: 0, hDet: false, hFrom: 'list', pos: {}, undo: null, tmo: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
+const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, seat: null, mode: null, det: false, delAsk: null, block: 'home', ty: null, tf: null, tfBase: '', tcard: null, q: '', tq: '', tqOpen: false, tsY: 0, hDet: false, hFrom: 'list', pos: {}, undo: null, tmo: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
 
 /* ===== betting engine: replays the logged actions to get amounts, pot and SPR ===== */
+/* a villain counts as in the hand once he has a seat, a stack, cards seen, a read or an action; the empty one every new hand starts with plays nothing */
+const inHand = (h, v) => !!(v.pos || num(v.stack) > 0 || v.cards.some(c => c) || v.read || STREETS.some(s => h.streets[s].some(e => e.a === v.id)));
 function actorsOf(h) {
   return [{ id: 'H', pos: h.hero.pos, stack: num(h.hero.stack) }]
-    .concat(h.villains.map(v => ({ id: v.id, pos: v.pos, stack: num(v.stack) })));
+    .concat(h.villains.filter(v => inHand(h, v)).map(v => ({ id: v.id, pos: v.pos, stack: num(v.stack) })));
 }
 function labelOf(h, id) {
   if (id === 'H') return 'Hero';
@@ -1583,7 +1655,7 @@ function handText(h) {
   L.push((h.tournament || 'Tournoi') + ' · ' + fmtDate(h.date) + (h.handNo ? ' · main n°' + h.handNo : ''));
   L.push(TABLE_LABEL[h.table] + (num(h.ante) > 0 ? ' · ante ' + fmt(num(h.ante)) + ' bb' : '') + (h.phase ? ' · ' + h.phase : ''));
   L.push('Hero ' + (h.hero.pos || '?') + ' ' + stackTxt(h.hero.stack) + ' : ' + h.hero.cards.map(cardTxt).join(' '));
-  h.villains.filter(v => v.pos || num(v.stack) > 0 || v.cards.some(c => c) || v.read || STREETS.some(s => h.streets[s].some(e => e.a === v.id))).forEach(v => {
+  h.villains.filter(v => inHand(h, v)).forEach(v => {
     const shown = v.cards.some(c => c) ? ' : ' + v.cards.map(cardTxt).join(' ') : '';
     L.push((v.pos || v.id) + ' ' + stackTxt(v.stack) + shown + (v.read ? ' (' + v.read + ')' : ''));
   });
@@ -1637,87 +1709,163 @@ function secPhotos() {
   return out;
 }
 
+/* the camera: one touch from the table (photos of the board wait in the details) */
+function camBtn() {
+  return '<button type="button" class="camb" data-act="photoadd" aria-label="Ajouter des photos du board" title="Ajouter des photos du board"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l1.1-1.6A1.5 1.5 0 0 1 10 3.8h4a1.5 1.5 0 0 1 1.2.6L16.3 6h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.3"/></svg></button>';
+}
+
 function secContext() {
   const no = editingId ? ((groupInfo()[editingId] || {}).no || H.handNo || '') : nextHandNo(H);
   const names = Array.from(new Set(sortedHands().map(h => h.tournament).concat(tSorted(tStore.list).map(t => t.name)).filter(Boolean))).slice(0, 30);
   return '<div class="sec"><div class="sec-h"><span class="lbl">Tournoi</span><span class="sec-r"><span class="pot">' + (editingId ? 'Modification · ' : '') + 'main n°<b>' + esc(no) + '</b></span>' +
-    '<button type="button" class="camb" data-act="photoadd" aria-label="Ajouter des photos du board" title="Ajouter des photos du board"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l1.1-1.6A1.5 1.5 0 0 1 10 3.8h4a1.5 1.5 0 0 1 1.2.6L16.3 6h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.3"/></svg></button></span></div>' +
+    '</span></div>' +
     '<div class="grid2"><input class="inp" id="in-tourn" list="dl-tourn" placeholder="Nom du tournoi" value="' + esc(H.tournament) + '" data-in="tourn" autocomplete="off" aria-label="Nom du tournoi">' +
     '<div class="datebox"><span class="dt" id="date-txt">' + esc(dateLbl(H.date)) + '</span>' +
       '<svg class="dt-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>' +
       '<input type="date" id="in-date" value="' + esc(H.date) + '" data-in="date" aria-label="Date"></div></div>' +
     '<datalist id="dl-tourn">' + names.map(n => '<option value="' + esc(n) + '"></option>').join('') + '</datalist>' + tPickRow() +
+    fld('Ante', '<div class="row">' + chip('Aucune', { on: !(num(H.ante) > 0), attrs: 'data-act="ante" data-v="0"' }) + chip('BBA 1 bb', { on: num(H.ante) === 1, attrs: 'data-act="ante" data-v="1"' }) +
+      '<input class="inp num sm" id="in-ante" inputmode="decimal" placeholder="autre" value="' + (num(H.ante) > 0 && num(H.ante) !== 1 ? esc(H.ante) : '') + '" data-in="ante" aria-label="Ante totale en bb" autocomplete="off"></div>') +
     '</div>';
 }
 
-/* Betting round finished: no more actions to add. Offer the next street, or point at the result. */
-function closedHint(sim, st) {
+/* ===== the panel under the table (one screen, nothing to scroll): seats · action · result ===== */
+
+/* Betting round finished: no more actions to add. Offer the next street, or the result. */
+function dockClosed(sim, st) {
   const state = streetState(sim, st), i = STREETS.indexOf(st), nx = STREETS[i + 1];
   const why = state === 'over' ? 'Il ne reste qu\'un joueur.' : 'Tout le monde a parlé.';
-  const next = state === 'over' || !nx ? '<p class="hint" style="margin:0">' + (state === 'over' ? 'La main est terminée : ' : '') + 'renseigne le résultat plus bas.</p>'
-    : '<div class="row"><button type="button" class="btn ghost sm" data-act="street" data-v="' + nx + '">Passer ' + (nx === 'flop' ? 'au flop' : 'à la ' + STREET_LABEL[nx].toLowerCase()) + '</button></div>';
-  return '<p class="hint" style="margin:0 0 8px"><b>Tour de mise terminé.</b> ' + why + ' Pour corriger, supprime une action avec ×.</p>' + next;
+  const next = state === 'over' || !nx
+    ? '<button type="button" class="btn sm" data-act="dock" data-v="end">Résultat</button>'
+    : '<button type="button" class="btn ghost sm" data-act="street" data-v="' + nx + '">Passer ' + (nx === 'flop' ? 'au flop' : 'à la ' + STREET_LABEL[nx].toLowerCase()) + '</button>';
+  const undo = hasActions() ? '<button type="button" class="link" data-act="uact">Annuler la dernière</button>' : '';
+  return '<div class="builder"><div class="dk-h"><span class="dk-t"><b>' + esc(STREET_LABEL[st]) + '</b> · tour de mise terminé</span>' + undo + '</div>' +
+    '<p class="dk-hint">' + why + ' Pour corriger une autre action : Détails, Historique.</p><div class="row">' + next + '</div></div>';
 }
-function builder(sim, st) {
-  const S = sim.streets[st];
-  const alive = toAct(sim, st);
-  let aid = ui.actor;
-  if (!alive.some(a => a.id === aid)) aid = defaultActor(H, sim, st, alive);
-  if (!aid) return closedHint(sim, st);
-  const a = sim.byId[aid];
+function dockAct(sim) {
+  const st = ui.street, S = sim.streets[st], aid = dockActor(sim, st);
+  if (!aid) return dockClosed(sim, st);
+  const a = sim.byId[aid], nm = esc(aid === 'H' ? 'Hero' : labelOf(H, aid));
   const toCall = Math.max(0, S.bet - S.cur[aid]);
   const left = Number.isFinite(a.stack) ? a.stack - S.before[aid] - S.cur[aid] : NaN;
   const known = Number.isFinite(left);
   const kind = S.bet === 0 ? 'bet' : 'raise';
-  let html = '<div class="row">' + alive.map(x => chip(esc(labelOf(H, x.id)), { on: x.id === aid, attrs: 'data-act="actor" data-v="' + x.id + '"' })).join('') + '</div>';
-  const acts = [];
-  if (toCall > 0) {
-    acts.push(chip('Fold', { attrs: 'data-act="do" data-t="fold"' }));
-    acts.push(chip('Call ' + fmt(known ? Math.min(toCall, left) : toCall), { attrs: 'data-act="do" data-t="call"' }));
-  } else {
-    acts.push(chip('Check', { attrs: 'data-act="do" data-t="check"' }));
-  }
-  acts.push(chip(kind === 'bet' ? 'Bet' : 'Raise', { on: ui.pending === kind, dis: known && left <= toCall, attrs: 'data-act="pend" data-t="' + kind + '"' }));
-  acts.push(chip('All-in' + (known && left > 0 ? ' ' + fmt(left) : ''), { dis: !(known && left > 0), attrs: 'data-act="do" data-t="allin"' }));
-  html += '<div class="row">' + acts.join('') + '</div>';
+  const undo = hasActions() ? '<button type="button" class="link" data-act="uact">Annuler la dernière</button>' : '';
+  let html;
   if (ui.pending) {
-    const chips = ui.pending === 'bet'
+    const chips = (ui.pending === 'bet'
       ? BET_PCT.map(p => chip(p + '%<span class="sub">' + fmt(Math.round(S.potNow * p / 10) / 10) + '</span>', { cls: 'stack', attrs: 'data-act="size" data-k="pct" data-v="' + p + '"' }))
-      : RAISE_X.map(x => chip(x + 'x<span class="sub">' + fmt(Math.round(S.bet * x * 10) / 10) + '</span>', { cls: 'stack', attrs: 'data-act="size" data-k="x" data-v="' + x + '"' }));
-    html += '<div class="scroll-row">' + chips.join('') + '</div>' +
-      '<div class="stackrow"><input class="inp num sm" id="in-size" inputmode="decimal" placeholder="bb" aria-label="Montant total en bb">' +
-      '<button type="button" class="btn ghost sm" data-act="size" data-k="bb">' + (ui.pending === 'bet' ? 'Mise de' : 'Relance à') + ' X bb</button></div>';
+      : RAISE_X.map(x => chip(x + 'x<span class="sub">' + fmt(Math.round(S.bet * x * 10) / 10) + '</span>', { cls: 'stack', attrs: 'data-act="size" data-k="x" data-v="' + x + '"' })))
+      ;
+    const allin = chip('All-in' + (known && left > 0 ? ' ' + fmt(left) : ''), { dis: !(known && left > 0), attrs: 'data-act="do" data-t="allin"' });
+    html = '<div class="dk-h"><span class="dk-t"><b>' + nm + '</b> · ' + (ui.pending === 'bet' ? 'bet' : 'raise') + ' : quelle taille ?</span>' +
+      '<button type="button" class="link" data-act="pend" data-t="' + ui.pending + '">Retour</button></div>' +
+      '<div class="dk-sz">' + chips.join('') + '</div>' +
+      '<div class="dk-z3"><input class="inp num sm" id="in-size" inputmode="decimal" placeholder="bb" aria-label="Montant total en bb">' +
+      '<button type="button" class="btn ghost sm" data-act="size" data-k="bb">' + (ui.pending === 'bet' ? 'Mise de' : 'Relance à') + ' X bb</button>' + allin + '</div>';
+  } else {
+    const acts = [];
+    if (toCall > 0) {
+      acts.push(chip('Fold', { attrs: 'data-act="do" data-t="fold"' }));
+      acts.push(chip('Call ' + fmt(known ? Math.min(toCall, left) : toCall), { attrs: 'data-act="do" data-t="call"' }));
+    } else {
+      acts.push(chip('Check', { attrs: 'data-act="do" data-t="check"' }));
+    }
+    acts.push(chip(kind === 'bet' ? 'Bet' : 'Raise', { dis: known && left <= toCall, attrs: 'data-act="pend" data-t="' + kind + '"' }));
+    acts.push(chip('All-in' + (known && left > 0 ? ' ' + fmt(left) : ''), { dis: !(known && left > 0), attrs: 'data-act="do" data-t="allin"' }));
+    const sub = 'pot ' + fmt(S.potNow) + (Number.isFinite(S.spr) ? ' · SPR ' + fmt(Math.round(S.spr * 10) / 10) : '') + (st === 'preflop' && S.rows.length ? ' · ' + potKind(sim.raises) : '');
+    html = '<div class="dk-h"><span class="dk-t"><b>' + esc(STREET_LABEL[st]) + '</b> · à <b>' + nm + '</b> de parler</span>' + undo + '</div>' +
+      '<div class="dk-sub">' + esc(sub) + (known ? '' : ' · <button type="button" class="link sm" data-act="dock" data-v="seats" data-id="' + esc(aid) + '">stack de ' + nm + ' ?</button> (All-in, SPR)') + '</div><div class="row">' + acts.join('') + '</div>';
   }
-  if (!known) html += '<p class="hint" style="margin:0">Renseigne le stack de ' + esc(labelOf(H, aid)) + ' pour activer All-in et le SPR.</p>';
-  return html;
+  return '<div class="builder">' + html + '</div>';
 }
 
-function secStreets(sim) {
-  const st = ui.street, S = sim.streets[st];
-  const tabs = STREETS.map(s => '<button type="button" class="' + (s === st ? 'on' : '') + '" data-act="street" data-v="' + s + '">' + STREET_LABEL[s] +
-    ((H.streets[s].length || (H.board[s] || []).some(Boolean)) ? '<i class="dot"></i>' : '') + '</button>').join('');
-  const pk = ui.picker && ui.picker.group === st ? ui.picker.i : -1;
-  const board = st === 'preflop' ? '' : fld('Board', '<div class="cards">' + H.board[st].map((c, i) => slotBtn(st, i, c, pk === i)).join('') + '</div>');
-  const aliveN = sim.actors.filter(a => !S.folded[a.id]).length;
-  const third = st === 'preflop' ? (S.rows.length ? potKind(sim.raises) : '–') : String(aliveN);
-  const hud = '<div class="hud"><div><span class="k">Pot · bb</span><span class="v">' + fmt(S.potNow) + '</span>' + (S.rows.length ? '<span class="sub">départ ' + fmt(S.potStart) + '</span>' : '') + '</div>' +
-    '<div><span class="k">SPR</span><span class="v">' + (Number.isFinite(S.spr) ? fmt(Math.round(S.spr * 10) / 10) : '–') + '</span></div>' +
-    '<div><span class="k">' + (st === 'preflop' ? 'Type' : 'Actifs') + '</span><span class="v sm">' + esc(third) + '</span></div></div>';
-  /* a pending delete (first tap) that would also remove other actions: those are greyed out until the second tap or Annuler */
+/* the seat last touched: its stack (and the ante, with the Hero's), the cards seen and a read for an adversary */
+function dockSeats() {
+  const id = tblFocusId();
+  if (!id) return '';
+  if (id === 'H') {
+    return '<div class="dk-h"><span class="dk-t"><b>Hero</b> · ' + esc(posLabel(H.table, H.hero.pos)) + '</span><button type="button" class="link" data-act="hmove">Changer de siège</button></div>' +
+      '<div class="dk-r"><span class="dk-l">Stack</span>' + stackRow('hstack', '', H.hero.stack) + '</div>' +
+      (H.villains.some(v => inHand(H, v)) ? '' : '<p class="dk-hint">Touche un siège pour ajouter un adversaire. Un siège vide ne joue pas.</p>');
+  }
+  const v = H.villains.find(x => x.id === id);
+  const pk = ui.picker && ui.picker.group === v.id ? ui.picker.i : -1;
+  return '<div class="dk-h"><span class="dk-t"><b>Adversaire</b> · ' + esc(posLabel(H.table, v.pos)) + '</span><button type="button" class="link bad" data-act="delv" data-id="' + v.id + '">Retirer</button></div>' +
+    '<div class="dk-r"><span class="dk-l">Stack</span>' + stackRow('vstack', v.id, v.stack) + '</div>' +
+    '<div class="dk-r"><span class="dk-l">Vues</span><div class="cards">' + v.cards.map((c, i) => slotBtn(v.id, i, c, pk === i)).join('') + '</div>' +
+    '<input class="inp" id="in-read-' + v.id + '" placeholder="Lecture : reg, fish, short stack..." value="' + esc(v.read) + '" data-in="read" data-id="' + v.id + '" autocomplete="off" aria-label="Lecture sur l\'adversaire"></div>';
+}
+
+/* the end of the hand: how it went, and the cards the adversaries turned over */
+function dockEnd(sim) {
+  const F = sim.streets.river.folded, vs = H.villains.filter(v => inHand(H, v) && !F[v.id]);
+  const pk = ui.picker || {};
+  return '<div class="dk-h"><span class="dk-t"><b>Résultat</b> de la main</span></div>' +
+    '<div class="row">' + RESULTS.map(r => chip(r[1], { on: H.result === r[0], attrs: 'data-act="result" data-v="' + r[0] + '"' })).join('') + '</div>' +
+    (vs.length ? '<div class="dk-r"><span class="dk-l">Vues</span><div class="scroll-row">' + vs.map(v => '<span class="dk-v"><span class="dk-vn">' + esc(posLabel(H.table, v.pos)) + '</span>' +
+      v.cards.map((c, i) => slotBtn(v.id, i, c, pk.group === v.id && pk.i === i)).join('') + '</span>').join('') + '</div></div>' : '');
+}
+
+function dockHtml(sim, mode) {
+  const waiting = photosWaiting().length + (photoOk(H.photo) ? 1 : 0);
+  const fid = tblFocusId();
+  if (!H.hero.pos && fid && fid !== 'H') return '<div class="dock"><div class="dk-b">' + dockSeats() + '</div></div>';   /* a villain looked at while the Hero's seat is free */
+  if (!H.hero.pos) return '<div class="dock off"><p class="dk-hint">Choisis la taille de la table, fais-la tourner si besoin, puis touche ta place. Les adversaires viennent ensuite : touche leur siège.</p>' +
+    '<button type="button" class="btn ghost sm" data-act="det">Détails · tournoi, date, ante, photos' + (waiting ? '<i class="dot"></i>' : '') + '</button></div>';
+  const go = mode === 'seats' && !hasActions();
+  const sw = '<div class="seg dk-sw" role="group" aria-label="Étape de la saisie">' +
+    [['seats', 'Sièges'], ['act', 'Action'], ['end', 'Résultat']].map(k => '<button type="button" class="' + (mode === k[0] ? 'on' : '') + (go && k[0] === 'act' ? ' go' : '') + '" data-act="dock" data-v="' + k[0] + '">' + k[1] + '</button>').join('') +
+    '<button type="button" data-act="det">Détails' + (waiting ? '<i class="dot"></i>' : '') + '</button></div>';
+  return '<div class="dock">' + sw + '<div class="dk-b">' + (mode === 'act' ? dockAct(sim) : mode === 'end' ? dockEnd(sim) : dockSeats()) + '</div></div>';
+}
+
+/* one screen: the line, the table, the panel. The height is what is left between the header and the bar at the bottom, so the page does not scroll; on a screen too short for
+   that the page scrolls a little instead. */
+function stageFit() {
+  const root = document.documentElement, st = document.querySelector('#view-edit .stage');
+  if (!st || $('#view-edit').hidden) { root.classList.remove('stage-fit'); return; }
+  const nav = $('#nav'), plus = $('#nv-plus');
+  const probe = $('#safe-probe');
+  let bottom = window.innerHeight - (probe ? probe.offsetHeight : 0) - 8;
+  if (nav && !nav.hidden) bottom = Math.min(nav.getBoundingClientRect().top, plus ? plus.getBoundingClientRect().top : 1e9);
+  const avail = bottom - st.getBoundingClientRect().top - 10;
+  const hh = Math.max(avail, 500) + 'px';
+  root.classList.toggle('stage-fit', avail >= 500);
+  if (st.style.height !== hh) { st.style.height = hh; if (TBL.geoKey) tblPlace(); }   /* the table changed size: its seats follow */
+}
+window.addEventListener('resize', () => { if (ui.block === 'mains' && ui.tab === 'edit') { stageFit(); tblPlace(); } });
+window.addEventListener('orientationchange', () => setTimeout(() => { if (ui.block === 'mains' && ui.tab === 'edit') { stageFit(); tblPlace(); } }, 250));
+function secStage(sim) {
+  const mode = dockMode();
+  return '<div class="stage' + (H.hero.pos ? '' : ' nohero') + '" data-mode="' + mode + '">' + srowHtml(mode) + tblHtml(sim, mode) + dockHtml(sim, mode) + '</div>';
+}
+
+/* the history of the actions, street by street; deleting one that has others after it asks a second tap */
+function secHistory(sim) {
   const ask = (ui.delAsk || '').split(':');
-  const plan = ask[0] === st && +ask[2] === H.streets[st].length ? delPlan(H, st, +ask[1]) : null;
-  const log = S.rows.length ? '<ol class="log">' + S.rows.map(r => {
-    const idx = H.streets[st].indexOf(r.e);
-    const armed = plan && idx === +ask[1], gone = plan && idx > +ask[1] && idx > plan.keep;
-    return '<li' + (gone ? ' class="gone"' : '') + '><span class="who' + (r.id === 'H' ? ' hero' : '') + '">' + esc(labelOf(H, r.id)) + '</span><span class="what">' + esc(rowText(r)) + '</span>' +
-      '<span class="after">pot ' + fmt(r.potAfter) + '</span><button type="button" class="x' + (armed ? ' armed' : '') + '" data-act="delentry" data-st="' + st + '" data-i="' + idx + '" aria-label="' +
-      (armed ? 'Confirmer la suppression' : 'Supprimer cette action') + '">' + (armed ? 'Supprimer' : '×') + '</button></li>';
-  }).join('') + '</ol>' : '';
-  const warn = plan ? '<p class="hint delwarn"><b>' + (plan.extra === 1 ? 'Une autre action ne tiendrait plus' : plan.extra + ' autres actions ne tiendraient plus') + '.</b> ' +
-    'Les actions qui suivent ne seraient plus possibles sans celle-ci : elles partiraient avec elle' + (H.streets[st].length - 1 - plan.keep < plan.extra ? ' (y compris sur les tours suivants)' : '') + '. ' +
-    'Touche « Supprimer » pour confirmer.</p><div class="row"><button type="button" class="btn ghost sm" data-act="delcancel">Annuler</button></div>' : '';
-  return '<div class="sec" id="sec-action"><div class="sec-h"><span class="lbl">Action</span></div><div class="seg">' + tabs + '</div>' + board + hud + log + warn +
-    '<div class="builder">' + builder(sim, st) + '</div></div>';
+  let out = '';
+  STREETS.forEach(st => {
+    const S = sim.streets[st];
+    if (!S.rows.length) return;
+    const plan = ask[0] === st && +ask[2] === H.streets[st].length ? delPlan(H, st, +ask[1]) : null;
+    out += '<div class="hist-s"><span class="lbl">' + esc(STREET_LABEL[st]) + '</span><span class="sub">pot ' + fmt(S.potNow) + '</span></div><ol class="log">' + S.rows.map(r => {
+      const idx = H.streets[st].indexOf(r.e);
+      const armed = plan && idx === +ask[1], gone = plan && idx > +ask[1] && idx > plan.keep;
+      return '<li' + (gone ? ' class="gone"' : '') + '><span class="who' + (r.id === 'H' ? ' hero' : '') + '">' + esc(labelOf(H, r.id)) + '</span><span class="what">' + esc(rowText(r)) + '</span>' +
+        '<span class="after">pot ' + fmt(r.potAfter) + '</span><button type="button" class="x' + (armed ? ' armed' : '') + '" data-act="delentry" data-st="' + st + '" data-i="' + idx + '" aria-label="' +
+        (armed ? 'Confirmer la suppression' : 'Supprimer cette action') + '">' + (armed ? 'Supprimer' : '×') + '</button></li>';
+    }).join('') + '</ol>';
+    if (plan) out += '<p class="hint delwarn"><b>' + (plan.extra === 1 ? 'Une autre action ne tiendrait plus' : plan.extra + ' autres actions ne tiendraient plus') + '.</b> ' +
+      'Les actions qui suivent ne seraient plus possibles sans celle-ci : elles partiraient avec elle' + (H.streets[st].length - 1 - plan.keep < plan.extra ? ' (y compris sur les tours suivants)' : '') + '. ' +
+      'Touche « Supprimer » pour confirmer.</p><div class="row"><button type="button" class="btn ghost sm" data-act="delcancel">Annuler</button></div>';
+  });
+  return '<div class="sec" id="sec-action"><div class="sec-h"><span class="lbl">Historique</span></div>' + (out || '<p class="hint" style="margin:0">Aucune action pour l\'instant.</p>') + '</div>';
+}
+
+/* everything that is not the table, in a window over it */
+function secDetails(sim) {
+  return (editingId ? cmtShow(H) : '') + secContext() + secPhotos() + secHistory(sim) + secResult();
 }
 
 function confirmBtn(key, label, yes) {
@@ -1745,8 +1893,8 @@ function secResult() {
 
 function renderEdit() {
   const sim = simulate(H);
-  $('#view-edit').innerHTML = (editingId ? cmtShow(H) : '') + secPhotos() + secContext() + secTable(sim) + secFocus() + secStreets(sim) + secResult();
-  tblSync(); tblPlace();
+  $('#view-edit').innerHTML = secStage(sim);
+  stageFit(); tblSync(); tblPlace();
 }
 
 /* ===== table: the seat map of the hand (Saisir) =====
@@ -1797,6 +1945,7 @@ function tblPlace(fast) {
   if (!fast || !g) {   /* during a turn the size is known: no measuring, so nothing forces a layout in the middle of a frame */
     const W = box.clientWidth, Hh = box.clientHeight;
     if (!W || !Hh) { requestAnimationFrame(() => tblPlace()); return; }   /* the screen is not shown yet: try again when it is */
+    box.style.setProperty('--k', Math.max(0.72, Math.min(1, Hh / 330)).toFixed(3));   /* the pot, the board and the Hero's cards shrink with a short table; the seats stay full size */
     g = tblGeo(W, Hh);
   }
   const svg = box.firstElementChild;
@@ -1856,15 +2005,39 @@ function tblFocusId() {
   if (id && id !== 'H' && H.villains.some(v => v.id === id)) return id;
   return H.hero.pos ? 'H' : null;
 }
-function seatHtml(p, j, foc) {
-  const isH = H.hero.pos === p, v = isH ? null : H.villains.find(x => x.pos === p);
+/* the panel under the table: seats (stacks, cards seen), action (fold / call / raise), result */
+function hasActions() { return STREETS.some(s => H.streets[s].length); }
+function dockMode() { return H.hero.pos ? (ui.mode || (hasActions() ? 'act' : 'seats')) : 'seats'; }
+/* who is to speak on the street being looked at: the seat touched if it may speak, else the next one in turn */
+function dockActor(sim, st) {
+  const alive = toAct(sim, st);
+  let aid = ui.actor;
+  if (!alive.some(a => a.id === aid)) aid = defaultActor(H, sim, st, alive);
+  return aid || null;
+}
+/* what a seat shows of its last action on this street */
+function rowShort(r) {
+  const e = r.e;
+  if (e.t === 'fold') return 'fold';
+  if (e.t === 'check') return 'check';
+  if (e.t === 'call') return 'call ' + fmt(r.add);
+  if (e.t === 'allin') return 'all-in ' + fmt(r.to);
+  return (r.first && e.t === 'bet' ? 'bet ' : 'raise ') + fmt(r.to);
+}
+function seatHtml(p, j, foc, cx) {
+  const isH = H.hero.pos === p, v = isH ? null : H.villains.find(x => x.pos === p), id = isH ? 'H' : v ? v.id : '';
   const stk = isH ? num(H.hero.stack) : v ? num(v.stack) : 0;
   const dealer = p === 'BTN' || (H.table === 'HU' && p === 'SB');
-  const on = (isH && foc === 'H') || (v && foc === v.id);
+  const acting = cx && cx.mode === 'act';
+  const on = !acting && ((isH && foc === 'H') || (v && foc === v.id));
+  const act = !!(acting && id && cx.aid === id);
+  const folded = !!(id && cx && cx.S.folded[id]);
+  const last = id && cx ? cx.S.rows.filter(r => r.id === id).pop() : null;
   const lbl = isH ? 'Hero, ' + posLabel(H.table, p) : v ? 'Adversaire, ' + posLabel(H.table, p) : 'Siège ' + posLabel(H.table, p) + ', libre';
   const cards = v && v.cards.some(Boolean) ? '<span class="sc">' + v.cards.map(c => c ? cardFace(c, 'mini') : '').join('') + '</span>' : '';
-  return '<button type="button" class="seat' + (isH ? ' hero' : v ? ' vil' : '') + (on ? ' foc' : '') + '" data-act="seat" data-p="' + esc(p) + '" data-j="' + j + '" aria-label="' + esc(lbl) + '">' +
+  return '<button type="button" class="seat' + (isH ? ' hero' : v ? ' vil' : '') + (on ? ' foc' : '') + (act ? ' act' : '') + (folded ? ' fold' : '') + '"' + (acting && id && cx.may[id] ? ' data-may="1"' : '') + ' data-act="seat" data-p="' + esc(p) + '" data-j="' + j + '" aria-label="' + esc(lbl + (last ? ', ' + rowShort(last) : '') + (act ? ', à parler' : '')) + '">' +
     (isH ? '<span class="sh">Hero</span>' : '') + '<span class="sp">' + esc(p) + '</span>' + (stk > 0 ? '<span class="ss">' + fmt(stk) + '</span>' : '') +
+    (last ? '<span class="sa">' + esc(rowShort(last)) + '</span>' : '') +
     (dealer ? '<i class="dbtn">D</i>' : '') + cards + '</button>';
 }
 
@@ -1880,8 +2053,19 @@ function tblBoard() {
     '<span class="bg">' + H.board[g].map((c, i) => slotBtn(g, i, c, !!pk && pk.group === g && pk.i === i)).join('') + '</span>').join('') + '</div>';
 }
 
-function secTable(sim) {
-  const T = TABLES[H.table], hp = H.hero.pos, foc = tblFocusId(), S = sim.streets[ui.street], ante = num(H.ante);
+/* the line above the table: the size of the table while the seats are being set, the streets while the hand is being played */
+function srowHtml(mode) {
+  if (H.hero.pos && mode !== 'seats') {
+    return '<div class="srow"><div class="seg" role="group" aria-label="Street">' + STREETS.map(s => '<button type="button" class="' + (s === ui.street ? 'on' : '') + '" data-act="street" data-v="' + s + '">' + STREET_LABEL[s] +
+      ((H.streets[s].length || (H.board[s] || []).some(Boolean)) ? '<i class="dot"></i>' : '') + '</button>').join('') + '</div>' + camBtn() + '</div>';
+  }
+  return '<div class="srow"><div class="seg" role="group" aria-label="Taille de la table">' + Object.keys(TABLES).map(k => '<button type="button" class="' + (H.table === k ? 'on' : '') + '" data-act="table" data-v="' + k + '">' + TABLE_LABEL[k] + '</button>').join('') + '</div>' + camBtn() + '</div>';
+}
+
+function tblHtml(sim, mode) {
+  const T = TABLES[H.table], hp = H.hero.pos, foc = tblFocusId(), S = sim.streets[ui.street];
+  const may = {}; if (mode === 'act') toAct(sim, ui.street).forEach(a => { may[a.id] = true; });
+  const cx = { S: S, mode: mode, aid: mode === 'act' ? dockActor(sim, ui.street) : null, may: may };
   const pk = ui.picker && ui.picker.group === 'hero' ? ui.picker.i : -1;
   const svg = '<svg class="tbl-svg" aria-hidden="true" focusable="false"><defs><radialGradient id="tbl-fg" cx="50%" cy="44%" r="64%"><stop offset="0" stop-color="#2b2e34"/>' +
     '<stop offset=".72" stop-color="#181a1e"/><stop offset="1" stop-color="#0e0f12"/></radialGradient>' +
@@ -1894,33 +2078,7 @@ function secTable(sim) {
   const bd = hp ? tblBoard() : '';
   const hc = hp ? '<div class="hc' + (TBL.fresh === 'hero' ? ' pop' : '') + '">' + H.hero.cards.map((c, i) => slotBtn('hero', i, c, pk === i)).join('') + '</div>' : '';
   TBL.fresh = '';
-  const hint = hp && !H.villains.length
-    ? '<p class="hint" style="margin:0">Touche un siège pour ajouter un adversaire. Un siège vide ne joue pas : ses blindes restent dans le pot.</p>'
-    : '';
-  return '<div class="sec tsec">' +
-    '<div class="seg" role="group" aria-label="Taille de la table">' + Object.keys(TABLES).map(k => '<button type="button" class="' + (H.table === k ? 'on' : '') + '" data-act="table" data-v="' + k + '">' + TABLE_LABEL[k] + '</button>').join('') + '</div>' +
-    '<div class="stackrow anterow"><span class="lbl">Ante</span>' + chip('Aucune', { on: !(ante > 0), attrs: 'data-act="ante" data-v="0"' }) + chip('BBA 1 bb', { on: ante === 1, attrs: 'data-act="ante" data-v="1"' }) +
-      '<input class="inp num sm" id="in-ante" inputmode="decimal" placeholder="autre" value="' + (ante > 0 && ante !== 1 ? esc(H.ante) : '') + '" data-in="ante" aria-label="Ante totale en bb" autocomplete="off"></div>' +
-    '<div class="tbl' + (hp ? '' : ' rot') + '" id="tbl" role="group" aria-label="Table, ' + TABLE_LABEL[H.table] + '">' + svg + centre + bd + hc + T.map((p, j) => seatHtml(p, j, foc)).join('') + '</div>' +
-    hint + '</div>';
-}
-
-/* under the table: the seat last touched (stack, cards seen, read) */
-function secFocus() {
-  const id = tblFocusId();
-  if (!id) return '';
-  if (id === 'H') {
-    return '<div class="sec tfoc"><div class="sec-h"><span class="lbl">Hero · ' + esc(posLabel(H.table, H.hero.pos)) + '</span>' +
-      '<button type="button" class="link" data-act="hmove">Changer de siège</button></div>' +
-      fld('Stack en bb', stackRow('hstack', '', H.hero.stack)) + '</div>';
-  }
-  const v = H.villains.find(x => x.id === id);
-  const pk = ui.picker && ui.picker.group === v.id ? ui.picker.i : -1;
-  return '<div class="sec tfoc"><div class="sec-h"><span class="lbl">Adversaire · ' + esc(posLabel(H.table, v.pos)) + '</span>' +
-    '<button type="button" class="link bad" data-act="delv" data-id="' + v.id + '">Retirer</button></div>' +
-    fld('Stack en bb', stackRow('vstack', v.id, v.stack)) +
-    fld('Cartes vues (optionnel)', '<div class="cards">' + v.cards.map((c, i) => slotBtn(v.id, i, c, pk === i)).join('') + '</div>') +
-    '<input class="inp" id="in-read-' + v.id + '" placeholder="Lecture : reg, fish, short stack..." value="' + esc(v.read) + '" data-in="read" data-id="' + v.id + '" autocomplete="off" aria-label="Lecture sur l\'adversaire"></div>';
+  return '<div class="tbl' + (hp ? '' : ' rot') + '" id="tbl" role="group" aria-label="Table, ' + TABLE_LABEL[H.table] + '">' + svg + centre + bd + hc + T.map((p, j) => seatHtml(p, j, foc, cx)).join('') + '</div>';
 }
 
 /* a stack or the ante typed: the seats and the pot follow without redrawing the table */
@@ -1982,29 +2140,57 @@ window.addEventListener('pointerup', e => {
 }, true);
 window.addEventListener('pointercancel', () => { tblTap = null; }, true);
 
-/* ---- the finger: turning the table before the Hero is seated ---- */
+/* ---- the finger: turning the table before the Hero is seated ----
+   The table turns the way the finger goes round it: the finger's direction from the middle of the table is mapped on the rim, so the seat under the finger
+   follows it on the top, the bottom and the sides alike. When the screen is a fixed one (nothing to scroll) any direction turns it; on a short screen that
+   scrolls, only a sideways drag does, so the page can still be scrolled. */
+function tblRimU(g, x, y) {
+  if (!g.ang) {
+    g.ang = [];
+    let prev = Math.PI / 2;
+    for (let k = 0; k <= 360; k++) {
+      let a = Math.atan2(g.pts[k][1] - g.cy, g.pts[k][0] - g.cx);
+      if (k === 0) a = Math.PI / 2; else while (a < prev) a += 2 * Math.PI;
+      g.ang.push(a); prev = a;
+    }
+  }
+  const a0 = g.ang[0], P = 2 * Math.PI;
+  let t = Math.atan2(y - g.cy, x - g.cx);
+  while (t < a0) t += P;
+  while (t >= a0 + P) t -= P;
+  let lo = 0, hi = 360;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (g.ang[m] <= t) lo = m; else hi = m; }
+  const f = (t - g.ang[lo]) / ((g.ang[hi] - g.ang[lo]) || 1);
+  return (g.cum[lo] + (g.cum[hi] - g.cum[lo]) * f) / g.len;
+}
 document.addEventListener('pointerdown', e => {
   if (H.hero.pos || ui.tab !== 'edit' || !e.target.closest) return;
   const box = e.target.closest('#tbl');
   if (!box || (e.pointerType === 'mouse' && e.button !== 0)) return;
   const r = box.getBoundingClientRect();
-  TBL.drag = { id: e.pointerId, box: box, x0: e.clientX, y0: e.clientY, on: false, off0: 0, top: e.clientY < r.top + r.height / 2, hist: [] };
+  TBL.drag = { id: e.pointerId, box: box, x0: e.clientX, y0: e.clientY, r: r, on: false, u: 0, hist: [] };
 });
 window.addEventListener('pointermove', e => {
   const d = TBL.drag;
   if (!d || d.id !== e.pointerId) return;
-  const dx = e.clientX - d.x0, dy = e.clientY - d.y0;
+  const g = TBL.geo;
+  if (!g) return;
+  const fixed = document.documentElement.classList.contains('stage-fit');
   if (!d.on) {
-    if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(dy)) return;
-    d.on = true; d.x0 = e.clientX; d.off0 = TBL.off;
+    const dx = e.clientX - d.x0, dy = e.clientY - d.y0;
+    if (Math.hypot(dx, dy) < 8 || (!fixed && Math.abs(dx) < Math.abs(dy))) return;
+    d.on = true; d.u = tblRimU(g, e.clientX - d.r.left, e.clientY - d.r.top);
     TBL.target = null; TBL.v = 0;   /* the finger takes over from any turn under way */
     try { d.box.setPointerCapture(e.pointerId); } catch (x) {}
     return;
   }
-  const g = TBL.geo;
-  if (!g) return;
-  const sgn = d.top ? 1 : -1;   /* the table follows the finger: above the middle the rim runs left to right, below it right to left */
-  TBL.off = d.off0 + sgn * (e.clientX - d.x0) / g.len * tblN();
+  const px = e.clientX - d.r.left, py = e.clientY - d.r.top;
+  if (Math.hypot(px - g.cx, py - g.cy) < 24) return;   /* right on the middle the direction means nothing */
+  const u = tblRimU(g, px, py);
+  let du = u - d.u;
+  du -= Math.round(du);   /* the short way round */
+  d.u = u;
+  TBL.off += du * tblN();
   const now = performance.now();
   d.hist.push([now, TBL.off]);
   while (d.hist.length > 2 && now - d.hist[0][0] > 90) d.hist.shift();
@@ -2104,7 +2290,8 @@ function renderSheet() {
   const root = $('#sheet-root');
   const tOn = !!(ui.tf && ui.block === 'suivi' && !ui.modal);
   const cOn = !tOn && !!(ui.tcard && ui.block === 'suivi' && !ui.modal);
-  lockPage(tOn || cOn);
+  const dOn = !!(ui.det && ui.block === 'mains' && ui.tab === 'edit' && !ui.modal && !ui.askOpen && !ui.pview && !ui.picker);
+  lockPage(tOn || cOn || dOn);
   if (tOn) { renderTSheet(); return; }   /* the tournament form: its own sheet, redrawn in place */
   if (cOn) { renderTCard(); return; }   /* the card of a tournament */
   if (ui.modal) {
@@ -2143,6 +2330,14 @@ function renderSheet() {
       return;
     }
   }
+  if (dOn) {   /* the details of the hand: a window over the table; it keeps its scroll when it is redrawn */
+    const old = root.querySelector('.sheet.det'), y = old ? old.scrollTop : 0;
+    root.innerHTML = '<div class="scrim" data-act="detx"></div><div class="sheet det" role="dialog" aria-modal="true" aria-label="Détails de la main"><div class="sheet-in">' +
+      '<div class="sheet-h"><span class="lbl">Détails de la main</span><button type="button" class="btn sm" data-act="detx">Fermer</button></div>' + secDetails(simulate(H)) + '</div></div>';
+    const nw = root.querySelector('.sheet.det');
+    if (nw) nw.scrollTop = y;
+    return;
+  }
   if (!ui.picker) { root.innerHTML = ''; return; }
   const g = ui.picker.group, i = ui.picker.i, arr = cardsOf(H, g);
   if (!arr) { ui.picker = null; root.innerHTML = ''; return; }
@@ -2169,7 +2364,9 @@ function renderTabs() {
   document.body.classList.toggle('home', ui.block === 'home');
   /* bottom bar: in Suivi and Mains only; out of the way while a hand is being reviewed on a phone */
   const reviewing = mains && ui.tab === 'review' && !isWide() && ui.rv && !ui.rv.done;
-  const showNav = ui.block !== 'home' && !reviewing;
+  const entering = mains && ui.tab === 'edit' && !isWide();   /* a hand being entered on a phone has the whole screen: the table and its panel */
+  const showNav = ui.block !== 'home' && !reviewing && !entering;
+  if (!entering) document.documentElement.classList.remove('stage-fit');
   $('#nav').hidden = !showNav;
   document.documentElement.classList.toggle('has-nav', showNav);
   document.querySelectorAll('#nav .nv').forEach(b => { const on = b.dataset.v === ui.block; b.classList.toggle('on', on); if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
@@ -2613,16 +2810,16 @@ function renderAll() {
   renderTabs(); renderBanner();
   renderBlock();
   renderSave(); renderSheet();
-  navSync();
+  navSync(); stageFit();
 }
 let adopted = false, draftLoaded = false;
 /* photos finished loading or changed: redraw what shows them, unless a field is being typed in */
 function onPhotosChange() {
-  const a = document.activeElement, typing = a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && $('#view-edit').contains(a);
+  const a = document.activeElement, typing = a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && ($('#view-edit').contains(a) || $('#sheet-root').contains(a));
   if (ui.block !== 'mains') return;
   if (ui.tab === 'edit' && !typing) renderEdit();
   else if (ui.tab === 'list') renderList();
-  renderSheet();
+  if (!typing) renderSheet();
 }
 function onStoreChange() {
   if (store.ready && !adopted) {
@@ -3639,7 +3836,7 @@ const AT = {
 
 /* ===== actions ===== */
 let origJson = '';
-function rerender() { renderEdit(); renderSave(); renderSheet(); renderTabs(); saveDraftSoon(); }
+function rerender() { renderEdit(); renderSave(); renderSheet(); renderTabs(); stageFit(); saveDraftSoon(); }
 
 function removeVillain(id) {
   const was = statesOf(H);
@@ -3678,17 +3875,15 @@ function flowNext(from) {
   if (state === 'open') return;
   const i = STREETS.indexOf(from);
   if (state === 'over' || i === STREETS.length - 1) {
-    ui.picker = null; ui.pending = null; ui.actor = null;
+    ui.picker = null; ui.pending = null; ui.actor = null; ui.mode = 'end';
     rerender(); toast(state === 'over' ? 'Main terminée' : 'Bilan de la main');
-    scrollToEl('#sec-result');
     return;
   }
   const nx = STREETS[i + 1];
-  ui.street = nx; ui.pending = null; ui.actor = null;
+  ui.street = nx; ui.pending = null; ui.actor = null; ui.mode = 'act';
   const n = H.board[nx].findIndex(c => !isFull(c));
   ui.picker = n >= 0 ? { group: nx, i: n } : null;
   rerender();
-  scrollToEl('#sec-action');
 }
 function pushAction(t, sz) {
   const aid = currentActor();
@@ -3729,19 +3924,19 @@ function openHand(id) {
   H = normHand(clone(h)); editingId = h.id; origJson = JSON.stringify(H); ui.seat = null;
   rememberPos();
   ui.hFrom = ui.tab === 'edit' ? 'list' : ui.tab;   /* « retour » goes back to the screen the hand was opened from */
-  ui.tab = 'edit'; ui.hDet = true; ui.street = 'preflop'; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = '';
+  ui.tab = 'edit'; ui.hDet = true; ui.street = 'preflop'; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = ''; ui.mode = 'act'; ui.det = false;
   renderAll(); window.scrollTo(0, 0); saveDraftSoon();
 }
 /* the entry screen for a fresh hand (an entry already in progress is simply taken back up) */
 function startNew() {
   rememberPos(); autoLive();
-  ui.tab = 'edit'; ui.hDet = false; ui.rv = null; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = ''; ui.delGroup = null;
+  ui.tab = 'edit'; ui.hDet = false; ui.rv = null; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = ''; ui.delGroup = null; ui.det = false;
   renderAll(); window.scrollTo(0, 0); saveDraftSoon();
 }
 function resetEditor(ctx) {
   H = newHand(ctx || { tournament: H.tournament, date: H.date, table: H.table, ante: H.ante });
   editingId = null; origJson = ''; ui.tManual = false; ui.hDet = false; ui.seat = null;
-  ui.street = 'preflop'; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = ''; ui.tagDraft = '';
+  ui.street = 'preflop'; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = ''; ui.tagDraft = ''; ui.mode = null; ui.det = false;
   clearDraft();
 }
 /* an empty new hand carries the tournament in progress, unless a name was chosen or typed by hand */
@@ -3951,7 +4146,7 @@ const A = {
     if (same) window.scrollTo(0, 0); else { placeView(); enterView(); }   /* the tab already open: back to its top; another one: where it was left */
   },
   table(el) {
-    H.table = el.dataset.v; TBL.off = 0; TBL.v = 0; TBL.target = null;
+    H.table = el.dataset.v; TBL.off = 0; TBL.v = 0; TBL.target = null; ui.mode = null;
     const ok = new Set(TABLES[H.table]);
     if (!ok.has(H.hero.pos)) H.hero.pos = '';
     H.villains.forEach(v => { if (!ok.has(v.pos)) v.pos = ''; });
@@ -3966,7 +4161,7 @@ const A = {
     const p = el.dataset.p, v = H.villains.find(x => x.pos === p);
     if (!H.hero.pos) {
       if (v) { ui.seat = v.id; rerender(); return; }   /* a villain's seat cannot be the Hero's */
-      H.hero.pos = p; ui.seat = 'H'; TBL.fresh = 'hero';
+      H.hero.pos = p; ui.seat = 'H'; ui.mode = 'seats'; TBL.fresh = 'hero';
       TBL.keep = true; rerender();   /* drawn where the table is; the page shows the whole table, then the table glides until the Hero's seat is at the bottom */
       tblBringIn(() => { TBL.keep = false; if (H.hero.pos) tblSpringTo(tblHome()); });
       return;
@@ -3974,9 +4169,24 @@ const A = {
     if (H.hero.pos === p) ui.seat = 'H';
     else if (v) ui.seat = v.id;
     else { const id = 'V' + (H.nextV++); H.villains.push({ id: id, pos: p, stack: '', cards: [null, null], read: '' }); ui.seat = id; }
+    if (dockMode() === 'act' && ui.seat) {   /* the seat touched is the one that speaks, if it still may */
+      if (toAct(simulate(H), ui.street).some(a => a.id === ui.seat)) { ui.actor = ui.seat; ui.pending = null; }
+    }
     rerender();
   },
-  hmove() { H.hero.pos = ''; ui.seat = null; rerender(); },   /* the table is free to turn again; villains keep their seats */
+  hmove() { H.hero.pos = ''; ui.seat = null; ui.mode = null; rerender(); },
+  /* the steps under the table, the details window, the last action taken back */
+  dock(el) { ui.mode = el.dataset.v; ui.pending = null; if (el.dataset.id) ui.seat = el.dataset.id; rerender(); },
+  det() { ui.det = true; renderSheet(); },
+  detx() { ui.det = false; ui.delAsk = null; ui.confirm = ''; renderEdit(); renderSheet(); },
+  uact() {
+    let st = ui.street;
+    while (st && !H.streets[st].length) st = STREETS[STREETS.indexOf(st) - 1];
+    if (!st) return;
+    H.streets = delPlan(H, st, H.streets[st].length - 1).h.streets;
+    ui.street = st; ui.pending = null; ui.actor = null; ui.delAsk = null;
+    rerender();
+  },   /* the table is free to turn again; villains keep their seats */
   delv(el) { removeVillain(el.dataset.id); rerender(); },
   pick(el) { ui.picker = { group: el.dataset.g, i: +el.dataset.i }; renderEdit(); renderSheet(); },
   rank(el) { setCardPart('rank', el.dataset.v); },
@@ -3989,7 +4199,7 @@ const A = {
     ui.undo = null; clearTimeout(ui.toastTimer); $('#toast').hidden = true;
     if (f) f();
   },
-  street(el) { ui.street = el.dataset.v; ui.pending = null; ui.actor = null; renderEdit(); },
+  street(el) { ui.street = el.dataset.v; ui.pending = null; ui.actor = null; ui.delAsk = null; renderEdit(); },
   actor(el) { ui.actor = el.dataset.v; ui.pending = null; renderEdit(); },
   do(el) { pushAction(el.dataset.t); },
   pend(el) { ui.pending = ui.pending === el.dataset.t ? null : el.dataset.t; renderEdit(); },
@@ -4006,12 +4216,12 @@ const A = {
   delentry(el) {
     /* an action in the middle cannot just vanish: the ones after it may no longer make sense. Those go too, after a second tap. */
     const st = el.dataset.st, i = +el.dataset.i, plan = delPlan(H, st, i), key = st + ':' + i + ':' + H.streets[st].length;
-    if (plan.extra > 0 && ui.delAsk !== key) { ui.delAsk = key; renderEdit(); return; }
+    if (plan.extra > 0 && ui.delAsk !== key) { ui.delAsk = key; renderEdit(); renderSheet(); return; }
     ui.delAsk = null; ui.actor = null; ui.pending = null;
     H.streets = plan.h.streets;
     rerender();
   },
-  delcancel() { ui.delAsk = null; renderEdit(); },
+  delcancel() { ui.delAsk = null; renderEdit(); renderSheet(); },
   result(el) { H.result = H.result === el.dataset.v ? '' : el.dataset.v; rerender(); },
   phase(el) { H.phase = H.phase === el.dataset.v ? '' : el.dataset.v; rerender(); },
   tag(el) { const t = el.dataset.v, i = H.tags.indexOf(t); if (i >= 0) H.tags.splice(i, 1); else H.tags.push(t); rerender(); },
@@ -4122,7 +4332,7 @@ const A = {
       toast('Enregistrement impossible' + (e && e.code ? ' (' + e.code + ')' : ''));
     }).then(() => { r.busy = false; });
   },
-  confirm(el) { ui.confirm = el.dataset.v; renderEdit(); },
+  confirm(el) { ui.confirm = el.dataset.v; renderEdit(); renderSheet(); },
   'do-del'() {
     const id = editingId, ph = photosOf([id]);
     storeRemove(id).then(() => {
@@ -4286,7 +4496,7 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (e.target && e.target.id === 'in-tq' && ui.block === 'suivi') { AT.tqtoggle(); return; }   /* Escape in the tournament search: close it */
-  if (ui.pview) A.phclose(); else if (ui.askOpen) A['askopen-cancel'](); else if (ui.tf && ui.block === 'suivi') AT.tclose(); else if (ui.tcard && ui.block === 'suivi') AT.tcardx();
+  if (ui.pview) A.phclose(); else if (ui.det && ui.block === 'mains' && !ui.modal && !ui.askOpen && !ui.picker) A.detx(); else if (ui.askOpen) A['askopen-cancel'](); else if (ui.tf && ui.block === 'suivi') AT.tclose(); else if (ui.tcard && ui.block === 'suivi') AT.tcardx();
 });
 document.addEventListener('click', e => {
   const t = e.target;
