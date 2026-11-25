@@ -289,6 +289,15 @@ body.wide-rv .wrap,body.wide-rv .top{max-width:1280px}
 body.wide-rv .top{flex-direction:row;align-items:center;justify-content:space-between;gap:20px;padding:10px 14px}
 body.wide-rv .top-row{flex:1;padding:0 6px}
 body.wide-rv .seg{flex:0 0 440px}
+/* entering a hand on a computer (wide screens only: the body gets .wide-ed): the header on one line, the table large on the left, the panel on the right */
+body.wide-ed .wrap,body.wide-ed .top{max-width:1240px}
+body.wide-ed .top{flex-direction:row;align-items:center;justify-content:space-between;gap:20px;padding:10px 14px}
+body.wide-ed .top-row{flex:1;padding:0 6px}
+body.wide-ed .top>.seg{flex:0 0 440px}
+body.wide-ed .stage{display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-rows:auto auto minmax(0,1fr);column-gap:34px;row-gap:8px}
+body.wide-ed .stage>.srow,body.wide-ed .stage>.tbar{grid-column:1}
+body.wide-ed .stage>.tbl{grid-column:1;grid-row:3;max-width:none;max-height:none;width:100%;height:100%}
+body.wide-ed .stage>.dock{grid-column:2;grid-row:1/4;height:auto}
 .pc-rv{display:grid;grid-template-columns:minmax(340px,400px) minmax(0,1fr);gap:18px;align-items:start;margin-top:14px}
 .pc-side{position:sticky;top:92px;height:calc(100vh - 108px);display:flex;flex-direction:column;gap:14px;min-height:0}
 .pc-side .sec{margin-top:0;padding:16px 14px;gap:14px}
@@ -727,49 +736,49 @@ html.has-nav.has-sb .toast{bottom:calc(var(--navh) + 98px)}
 .tin{position:absolute;left:0;top:0;pointer-events:none}
 .tin .bd,.tin .hc{pointer-events:auto}
 /* a seat: a round with its position. Free: graphite; an adversary: a platinum ring; the Hero: pearl white */
-.seat{position:absolute;left:0;top:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:45px;height:45px;padding:0;border-radius:50%;
+.seat{position:absolute;left:0;top:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:calc(45px*var(--ss,1));height:calc(45px*var(--ss,1));padding:0;border-radius:50%;
   border:1.5px solid transparent;background:linear-gradient(180deg,#333439,#222327 55%,#1b1c1f) padding-box,linear-gradient(180deg,#7a7b81,#4a4b50 40%,#36373c 70%,#5d5e64) border-box;
-  color:#eeeef0;font:500 12.5px/1 var(--f-body);letter-spacing:0;white-space:nowrap;
+  color:#eeeef0;font:500 calc(12.5px*var(--ss,1))/1 var(--f-body);letter-spacing:0;white-space:nowrap;
   box-shadow:0 0 0 3px rgba(0,0,0,.5),0 8px 18px rgba(0,0,0,.6),inset 0 1px 1px rgba(255,255,255,.1);will-change:transform;touch-action:inherit;-webkit-tap-highlight-color:transparent}
 .seat.hero::before{content:"";position:absolute;left:17%;right:17%;top:5%;height:40%;border-radius:50%;pointer-events:none}   /* the pearl's shine */
 .seat::after{content:"";position:absolute;inset:-4px;border-radius:50%}
 .seat:active{filter:brightness(1.3)}
 .seat.vil{border-width:2px;background:linear-gradient(180deg,#3b3d43,#25272c 55%,#1b1c20) padding-box,linear-gradient(180deg,#ffffff,#cfd5de 40%,#8f98a5 72%,#d9dee6) border-box}
-.seat.hero{width:48px;height:48px;background:radial-gradient(circle at 50% 26%,#ffffff,#eef1f6 42%,#cbd2dd 88%) padding-box,linear-gradient(180deg,#ffffff,#9ea8b6) border-box;color:#0b0c0e;font-weight:600;
+.seat.hero{width:calc(48px*var(--ss,1));height:calc(48px*var(--ss,1));background:radial-gradient(circle at 50% 26%,#ffffff,#eef1f6 42%,#cbd2dd 88%) padding-box,linear-gradient(180deg,#ffffff,#9ea8b6) border-box;color:#0b0c0e;font-weight:600;
   box-shadow:0 0 0 3px rgba(0,0,0,.45),0 0 18px var(--tbl-glow),0 8px 18px rgba(0,0,0,.55)}
 .seat.hero::before{background:linear-gradient(180deg,rgba(255,255,255,.7),rgba(255,255,255,0))}
-.seat.hero .sh{font:700 7px/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;opacity:.62}
+.seat.hero .sh{font:700 calc(7px*var(--ss,1))/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;opacity:.62}
 .seat.foc{outline:2px solid var(--tbl-rim);outline-offset:3px}
-.seat .sp.lg{font-size:11.5px;letter-spacing:-.02em}   /* UTG+1, UTG+2: inside the round */
+.seat .sp.lg{font-size:calc(11.5px*var(--ss,1));letter-spacing:-.02em}   /* UTG+1, UTG+2: inside the round */
 /* what a seat has to say (stack, last action): a small label under the round, above it for the seats of the top half so the pot stays clear */
-.seat .sl{position:absolute;left:50%;top:calc(100% + 4px);transform:translateX(-50%);display:flex;align-items:center;gap:4px;padding:3px 7px;border-radius:9px;
-  background:rgba(12,12,14,.92);border:1px solid var(--edge);font:600 10px/1 var(--f-body);color:var(--fg-2);letter-spacing:.01em;white-space:nowrap;pointer-events:none}
+.seat .sl{position:absolute;left:50%;top:calc(100% + 4px);transform:translateX(-50%);display:flex;align-items:center;gap:4px;padding:calc(3px*var(--ss,1)) calc(7px*var(--ss,1));border-radius:9px;
+  background:rgba(12,12,14,.92);border:1px solid var(--edge);font:600 calc(10px*var(--ss,1))/1 var(--f-body);color:var(--fg-2);letter-spacing:.01em;white-space:nowrap;pointer-events:none}
 .seat.up .sl{top:auto;bottom:calc(100% + 8px)}
-.seat .ss{font:600 10px/1 var(--f-mono);color:var(--fg);font-variant-numeric:tabular-nums}
+.seat .ss{font:600 calc(10px*var(--ss,1))/1 var(--f-mono);color:var(--fg);font-variant-numeric:tabular-nums}
 .seat .ss+.sa::before{content:"·";margin-right:4px;color:var(--fg-3)}
-.seat .dbtn{position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 50% 30%,#ffffff,#e6e9ef 58%,#b9c1cc);color:#0b0c0e;font:800 10px/18px var(--f-body);text-align:center;font-style:normal;box-shadow:0 0 0 1.5px rgba(0,0,0,.5),0 2px 5px rgba(0,0,0,.6)}
+.seat .dbtn{position:absolute;top:calc(-5px*var(--ss,1));right:calc(-5px*var(--ss,1));width:calc(18px*var(--ss,1));height:calc(18px*var(--ss,1));border-radius:50%;background:radial-gradient(circle at 50% 30%,#ffffff,#e6e9ef 58%,#b9c1cc);color:#0b0c0e;font:800 calc(10px*var(--ss,1))/calc(18px*var(--ss,1)) var(--f-body);text-align:center;font-style:normal;box-shadow:0 0 0 1.5px rgba(0,0,0,.5),0 2px 5px rgba(0,0,0,.6)}
 .sc{position:absolute;left:50%;top:50%;display:flex;pointer-events:none;will-change:transform}
-.sc .card.mini{width:22px;height:31px;border-radius:5px;box-shadow:0 2px 6px rgba(0,0,0,.55)}
-.sc .card.mini .r{font-size:12px}
-.sc .card.mini .s{font-size:9px;margin-top:1px}
+.sc .card.mini{width:calc(22px*var(--ss,1));height:calc(31px*var(--ss,1));border-radius:5px;box-shadow:0 2px 6px rgba(0,0,0,.55)}
+.sc .card.mini .r{font-size:calc(12px*var(--ss,1))}
+.sc .card.mini .s{font-size:calc(9px*var(--ss,1));margin-top:1px}
 .sc .card.mini+.card.mini{margin-left:-5px}
 .tcn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:88%;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;pointer-events:none}
-.tcn .k{font:600 10px/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3)}
-.tcn .v{font:600 calc(30px*var(--k,1))/1 var(--f-disp);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
-.tcn.ask .q{font:600 20px/1.15 var(--f-disp);letter-spacing:-.02em}
-.tcn.ask .s{font:500 12.5px/1.4 var(--f-body);color:var(--fg-2)}
-.tcn.pt{top:25%;width:max-content;max-width:62%}
-.bd{position:absolute;left:50%;top:38%;transform:translateX(-50%);z-index:1;display:flex;gap:7px;align-items:center}
+.tcn .k{font:600 calc(10px*var(--k,1))/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3)}
+.tcn .v{font:600 calc(26px*var(--k,1))/1 var(--f-disp);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.tcn.ask .q{font:600 calc(21px*var(--ss,1))/1.15 var(--f-disp);letter-spacing:-.02em}
+.tcn.ask .s{font:500 calc(12.5px*var(--ss,1))/1.4 var(--f-body);color:var(--fg-2)}
+.tcn.pt{top:20%;width:max-content;max-width:70%;flex-direction:row;align-items:baseline;gap:8px}   /* the pot on one line: room for a big board */
+.bd{position:absolute;left:50%;top:31%;transform:translateX(-50%);z-index:1;display:flex;gap:7px;align-items:center}
 .bd .bg{display:flex;gap:3px}
-.bd .card{width:calc(29px*var(--k,1));height:calc(41px*var(--k,1));border-radius:6px}
-.bd .card .r{font-size:calc(15px*var(--k,1))}
-.bd .card .s{font-size:calc(12px*var(--k,1));margin-top:2px}
-.bd .card.empty .r{font-size:calc(17px*var(--k,1))}
-.hc{position:absolute;left:50%;bottom:13%;transform:translateX(-50%);z-index:1;display:flex;gap:8px}
-.hc .card{width:47px;height:calc(66px*var(--k,1));border-radius:10px}
-.hc .card .r{font-size:calc(24px*var(--k,1))}
-.hc .card .s{font-size:calc(19px*var(--k,1));margin-top:3px}
-.hc .card.empty .r{font-size:calc(25px*var(--k,1))}
+.bd .card{width:calc(40px*var(--k,1));height:calc(56px*var(--k,1));border-radius:calc(7px*var(--k,1))}
+.bd .card .r{font-size:calc(21px*var(--k,1))}
+.bd .card .s{font-size:calc(17px*var(--k,1));margin-top:calc(3px*var(--k,1))}
+.bd .card.empty .r{font-size:calc(22px*var(--k,1))}
+.hc{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);z-index:1;display:flex;gap:8px}
+.hc .card{width:calc(50px*var(--k,1));height:calc(70px*var(--k,1));border-radius:calc(10px*var(--k,1))}
+.hc .card .r{font-size:calc(26px*var(--k,1))}
+.hc .card .s{font-size:calc(21px*var(--k,1));margin-top:calc(3px*var(--k,1))}
+.hc .card.empty .r{font-size:calc(26px*var(--k,1))}
 .hc .card:first-child{transform:rotate(-4deg)}
 .hc .card:last-child{transform:rotate(4deg)}
 @media (prefers-reduced-motion:no-preference){
@@ -1984,15 +1993,19 @@ function tblHome() {
   return -j + n * Math.round((TBL.off + j) / n);
 }
 
-/* the table: a stadium (straight top and bottom, round ends) about 3 wide for 2 high, as big as the box allows with room around it for the seats
-   and their labels; it never stretches. The seats sit on its outer edge. The edge is walked from the bottom centre, clockwise on screen, with the
+/* the table: a stadium (straight top and bottom, round ends) about 3 wide for 2 high (up to 1.6 wide when the height is what limits it), as big as
+   the box allows with room around it for the seats and their labels. The side seats may reach into the margin of the page. On a big screen the
+   seats grow with the table (ss, up to 1.5x). The seats sit on its outer edge. The edge is walked from the bottom centre, clockwise on screen, with the
    straight parts counting for less than the round ends (TBL_WS), so the seats near the corners sit towards the corners as on the drawing.
    pts / cum: 361 points evenly spaced on that walk (u = k / 360), which the seats and the finger both use. */
-const TBL_R = 1.48, TBL_WS = 0.37, TBL_MX = 26, TBL_MY = 46;
+const TBL_R = 1.48, TBL_RMAX = 1.6, TBL_WS = 0.37, TBL_MX = 12, TBL_MY = 46;
 function tblGeo(W, Hh) {
   const key = W + 'x' + Hh;
   if (TBL.geoKey === key) return TBL.geo;
-  const w = Math.max(140, Math.min(W - 2 * TBL_MX, (Hh - 2 * TBL_MY) * TBL_R)), h = w / TBL_R, r = h / 2, L = w - h;
+  const fit = ss => { const wm = W - 2 * TBL_MX * ss, hm = Hh - 2 * TBL_MY * ss, hh = Math.max(95, Math.min(hm, wm / TBL_R)); return [Math.max(140, Math.min(wm, hh * TBL_RMAX)), hh]; };
+  let ss = 1;
+  for (let it = 0; it < 4; it++) ss = Math.max(1, Math.min(1.5, fit(ss)[1] / 260));
+  const wh = fit(ss), w = wh[0], h = wh[1], r = h / 2, L = w - h;
   const x = (W - w) / 2, y = (Hh - h) / 2, cx = W / 2, cy = Hh / 2, lx = x + r, rx = x + w - r;
   const half = L / 2 * TBL_WS, arc = Math.PI * r, len = 2 * half + 2 * arc + L * TBL_WS;   /* bottom (left half), left end, top, right end, bottom (right half) */
   const at = sp => {
@@ -2009,7 +2022,7 @@ function tblGeo(W, Hh) {
   const M = 360, pts = [], cum = [];
   for (let k = 0; k <= M; k++) { pts.push(k === M ? pts[0].slice() : at(k / M * len)); cum.push(k / M * len); }
   TBL.geoKey = key;
-  TBL.geo = { W: W, H: Hh, pts: pts, cum: cum, len: len, cx: cx, cy: cy, x: x, y: y, w: w, h: h, rail: Math.max(9, h * 0.056), band: Math.max(10, h * 0.07) };
+  TBL.geo = { W: W, H: Hh, pts: pts, cum: cum, len: len, cx: cx, cy: cy, x: x, y: y, w: w, h: h, rail: Math.max(9, h * 0.056), band: Math.max(10, h * 0.07), ss: ss };
   return TBL.geo;
 }
 function tblPt(g, u) {
@@ -2029,7 +2042,8 @@ function tblPlace(fast) {
     const W = box.clientWidth, Hh = box.clientHeight;
     if (!W || !Hh) { requestAnimationFrame(() => tblPlace()); return; }   /* the screen is not shown yet: try again when it is */
     g = tblGeo(W, Hh);
-    box.style.setProperty('--k', Math.max(0.7, Math.min(1, g.h / 238)).toFixed(3));   /* the pot, the board and the Hero's cards shrink with a small table; the seats stay full size */
+    box.style.setProperty('--k', Math.max(0.7, Math.min(1.9, g.h / 250)).toFixed(3));   /* the pot, the board and the Hero's cards follow the size of the table */
+    box.style.setProperty('--ss', g.ss.toFixed(3));   /* the seats: full size on a phone, bigger on a big table */
   }
   const svg = box.firstElementChild;
   if (!fast && svg && svg.dataset.k !== TBL.geoKey) {
@@ -2056,7 +2070,7 @@ function tblPlace(fast) {
     const c = s.querySelector('.sc');   /* the cards seen on a villain lie towards the middle of the table */
     if (c) {
       const dx = g.cx - p[0], dy = g.cy - p[1], d = Math.hypot(dx, dy) || 1;
-      c.style.transform = 'translate(' + (dx / d * 47).toFixed(1) + 'px,' + (dy / d * 40).toFixed(1) + 'px) translate(-50%,-50%)';
+      c.style.transform = 'translate(' + (dx / d * 47 * g.ss).toFixed(1) + 'px,' + (dy / d * 40 * g.ss).toFixed(1) + 'px) translate(-50%,-50%)';
     }
   });
 }
@@ -2471,6 +2485,7 @@ function renderSheet() {
 function renderTabs() {
   const mains = ui.block === 'mains';
   document.body.classList.toggle('wide-rv', mains && ui.tab === 'review' && isWide());
+  document.body.classList.toggle('wide-ed', mains && ui.tab === 'edit' && isWide());
   $('#tabs').hidden = !mains;
   document.body.classList.toggle('home', ui.block === 'home');
   /* bottom bar: in Suivi and Mains only; out of the way while a hand is being reviewed on a phone */
