@@ -166,8 +166,12 @@ ol.log li.gone .who,ol.log li.gone .what,ol.log li.gone .after{opacity:.38;text-
 .seg.mini button{flex:none;min-height:32px;padding:0 13px;font-size:12.5px}
 #tabs[hidden],#blocks[hidden]{display:none}
 .top-row{flex-wrap:wrap}
-.stat{order:3;flex-basis:100%}
+.stat-row{order:3;flex-basis:100%;display:flex;gap:12px;justify-content:space-between;align-items:baseline;min-width:0}
+.stat-row[hidden]{display:none}
 .stat:empty{display:none}
+.stat-row .stat:first-child{flex:1 1 0;min-width:0}
+.stat.note{flex:0 1 auto;max-width:72%;text-align:right}
+.stat.note.warn{color:var(--warn)}
 #view-home[hidden]{display:none}
 #view-home{min-height:calc(100vh - 170px);min-height:calc(100svh - 170px);display:flex;flex-direction:column;justify-content:center}
 body.home .wrap>div[aria-hidden]{height:0!important}
@@ -348,8 +352,6 @@ body.wide-rv .seg{flex:0 0 440px}
   padding:0 max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 .savebar-in{pointer-events:auto;max-width:640px;margin:0 auto;display:flex;gap:12px;align-items:center;padding:8px 8px 8px 20px;border-radius:999px;
   border:1px solid var(--edge-hi);background:var(--sheet);box-shadow:var(--shadow),inset 0 1px 0 var(--edge-hi);-webkit-backdrop-filter:blur(26px) saturate(140%);backdrop-filter:blur(26px) saturate(140%)}
-.save-note{flex:1;min-width:0;font-size:12.5px;line-height:1.3;color:var(--fg-2)}
-.save-note.warn{color:var(--warn)}
 .scrim{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.62);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:51;max-height:88%;overflow:auto;background:var(--sheet);border:1px solid var(--edge);border-bottom:0;border-radius:30px 30px 0 0;
   box-shadow:0 -20px 60px rgba(0,0,0,.4),inset 0 1px 0 var(--edge-hi);-webkit-backdrop-filter:blur(28px) saturate(160%);backdrop-filter:blur(28px) saturate(160%);
@@ -703,10 +705,69 @@ html.has-nav.has-sb .toast{bottom:calc(var(--navh) + 98px)}
 #tq-box[hidden]{display:none}
 
 /* a stored hand is open: the ✕ of the save bar */
-.savebar-in.hx{padding-left:8px}
-.sb-x{flex:none;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:var(--glass-2);color:var(--fg);display:grid;place-items:center;box-shadow:inset 0 1px 0 var(--edge-hi)}
-.sb-x:active{background:var(--glass-3)}
-.sb-x svg{width:18px;height:18px}
+/* table of the hand (Saisir): graphite felt, rim in cold white platinum; seats are moved by transform only */
+:root{--tbl-rim:#E4EBF5;--tbl-glow:rgba(200,216,242,.55)}
+.tsec .seg button{padding:0 6px;white-space:nowrap}
+.tbl{position:relative;width:100%;max-width:420px;margin:4px auto 2px;aspect-ratio:100/106;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+.tbl.rot{touch-action:pan-y;cursor:grab}
+.tbl.rot:active{cursor:grabbing}
+.tbl-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.t-felt{fill:url(#tbl-fg)}
+.t-halo{fill:none;stroke:var(--tbl-glow);stroke-width:16;opacity:.2}
+.t-glow{fill:none;stroke:var(--tbl-glow);stroke-width:4;opacity:.7}
+.t-in{fill:none;stroke:rgba(228,235,245,.09);stroke-width:1;vector-effect:non-scaling-stroke}
+.t-rim{fill:none;stroke:var(--tbl-rim);stroke-width:1.6}
+.seat{position:absolute;left:0;top:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:60px;height:44px;padding:0 10px;border-radius:22px;
+  border:1.5px dashed rgba(228,235,245,.42);background:#0f1013;color:var(--fg-2);font:700 11.5px/1 var(--f-body);letter-spacing:.02em;white-space:nowrap;will-change:transform;touch-action:inherit;-webkit-tap-highlight-color:transparent}
+.seat::after{content:"";position:absolute;inset:-4px}
+.seat:active{filter:brightness(1.3)}
+.seat .ss{font:600 10.5px/1 var(--f-mono);color:var(--fg);font-variant-numeric:tabular-nums}
+.seat.vil{border:1.5px solid rgba(228,235,245,.72);background:#1d2025;color:var(--fg)}
+.seat.hero{min-width:72px;height:56px;gap:2px;border:1.5px solid var(--tbl-rim);background:linear-gradient(180deg,#f6f8fc,#cdd5e1);color:#0b0c0e;box-shadow:0 0 18px var(--tbl-glow),0 6px 16px rgba(0,0,0,.5)}
+.seat.hero .sh{font:700 8.5px/1 var(--f-body);letter-spacing:.16em;text-transform:uppercase;opacity:.62}
+.seat.hero .sp{font-size:14px}
+.seat.hero .ss{color:#0b0c0e}
+.seat.foc{outline:2px solid var(--tbl-rim);outline-offset:3px}
+.seat .dbtn{position:absolute;top:-8px;right:-5px;width:18px;height:18px;border-radius:50%;background:#EEF2F8;color:#0b0c0e;font:800 10px/18px var(--f-body);text-align:center;font-style:normal;box-shadow:0 1px 4px rgba(0,0,0,.55)}
+.sc{position:absolute;left:50%;top:50%;display:flex;pointer-events:none;will-change:transform}
+.sc .card.mini{width:22px;height:31px;border-radius:5px;box-shadow:0 2px 6px rgba(0,0,0,.55)}
+.sc .card.mini .r{font-size:12px}
+.sc .card.mini .s{font-size:9px;margin-top:1px}
+.sc .card.mini+.card.mini{margin-left:-5px}
+.tcn{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);width:62%;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;pointer-events:none}
+.tcn .k{font:600 10px/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3)}
+.tcn .v{font:600 30px/1 var(--f-disp);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.tcn.ask .q{font:600 20px/1.15 var(--f-disp);letter-spacing:-.02em}
+.tcn.ask .s{font:500 12.5px/1.4 var(--f-body);color:var(--fg-2)}
+.hc{position:absolute;left:50%;bottom:68px;transform:translateX(-50%);z-index:1;display:flex;gap:8px}
+.hc .card:first-child{transform:rotate(-4deg)}
+.hc .card:last-child{transform:rotate(4deg)}
+@media (prefers-reduced-motion:no-preference){
+  .hc.pop{animation:hcIn .5s .3s cubic-bezier(.22,.8,.24,1) both}
+  @keyframes hcIn{from{opacity:0;transform:translateX(-50%) translateY(16px)}to{opacity:1;transform:translateX(-50%)}}
+}
+.tfoc .stackrow{margin-top:0}
+.anterow{align-items:center;flex-wrap:nowrap}
+.anterow .lbl{flex:none;margin-right:2px}
+.anterow .inp{flex:1;min-width:0}
+/* saving a hand lives in the header (nothing floats over the entry area): ✕ to leave a stored hand, Enregistrer with an orange dot while something is missing */
+.hsave{order:2;margin-left:auto;display:flex;align-items:center;gap:10px;flex:none}
+.hsave[hidden]{display:none}
+.hs-save{position:relative;height:34px;padding:0 15px;border:0;border-radius:999px;background:linear-gradient(180deg,var(--acc-1),var(--acc-2));color:var(--on-acc);font:700 13px var(--f-body);white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.6)}
+.hs-save::before{content:"";position:absolute;inset:-6px -4px}
+.hs-save:active{filter:brightness(.92)}
+.hs-save:disabled{opacity:.4}
+.hs-dot{position:absolute;top:-2px;right:-1px;width:10px;height:10px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 2px var(--bg)}
+.hs-x{position:relative;width:34px;height:34px;padding:0;border:1px solid var(--edge-hi);border-radius:50%;background:var(--glass-3);color:var(--fg);display:grid;place-items:center}
+.hs-x::before{content:"";position:absolute;inset:-6px}
+.hs-x:active{background:var(--glass-3);filter:brightness(1.25)}
+.hs-x svg{width:15px;height:15px}
+html.hs-on h1 span{display:none}
+html.hs-room .brand{min-height:34px}
+@media (prefers-reduced-motion:no-preference){
+  .hsave:not([hidden]){animation:hsIn .3s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes hsIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+}
 </style>
 <style>body{padding-top:env(safe-area-inset-top,0px)}</style>
 </head>
@@ -716,7 +777,8 @@ html.has-nav.has-sb .toast{bottom:calc(var(--navh) + 98px)}
   <div class="top-row">
     <div class="brand"><h1><button type="button" class="brand-btn" data-act="block" data-v="home" aria-label="Accueil CariocAce Copilot">CariocAce <span>Copilot</span></button></h1><i class="led" id="led" aria-hidden="true"></i></div>
     <button type="button" class="livepill" id="livepill" data-act="livego" hidden><i class="ld" aria-hidden="true"></i><span id="livepill-t"></span></button>
-    <span class="stat" id="stat"></span>
+    <span class="hsave" id="hsave" hidden></span>
+    <div class="stat-row" id="stat-row" hidden><span class="stat" id="stat"></span><span class="stat note" id="stat-note"></span></div>
   </div>
   <div class="seg" id="tabs" hidden>
     <button type="button" class="on" data-act="tab" data-v="edit">Saisir</button>
@@ -1278,7 +1340,7 @@ function boardProposal(res, h) {
   });
 }
 
-const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, delAsk: null, block: 'home', ty: null, tf: null, tfBase: '', tcard: null, q: '', tq: '', tqOpen: false, tsY: 0, hDet: false, hFrom: 'list', pos: {}, undo: null, tmo: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
+const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, seat: null, delAsk: null, block: 'home', ty: null, tf: null, tfBase: '', tcard: null, q: '', tq: '', tqOpen: false, tsY: 0, hDet: false, hFrom: 'list', pos: {}, undo: null, tmo: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
 
 /* ===== betting engine: replays the logged actions to get amounts, pot and SPR ===== */
 function actorsOf(h) {
@@ -1567,7 +1629,6 @@ function secPhotos() {
 function secContext() {
   const no = editingId ? ((groupInfo()[editingId] || {}).no || H.handNo || '') : nextHandNo(H);
   const names = Array.from(new Set(sortedHands().map(h => h.tournament).concat(tSorted(tStore.list).map(t => t.name)).filter(Boolean))).slice(0, 30);
-  const ante = num(H.ante);
   return '<div class="sec"><div class="sec-h"><span class="lbl">Tournoi</span><span class="sec-r"><span class="pot">' + (editingId ? 'Modification · ' : '') + 'main n°<b>' + esc(no) + '</b></span>' +
     '<button type="button" class="camb" data-act="photoadd" aria-label="Ajouter des photos du board" title="Ajouter des photos du board"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l1.1-1.6A1.5 1.5 0 0 1 10 3.8h4a1.5 1.5 0 0 1 1.2.6L16.3 6h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.3"/></svg></button></span></div>' +
     '<div class="grid2"><input class="inp" id="in-tourn" list="dl-tourn" placeholder="Nom du tournoi" value="' + esc(H.tournament) + '" data-in="tourn" autocomplete="off" aria-label="Nom du tournoi">' +
@@ -1575,36 +1636,7 @@ function secContext() {
       '<svg class="dt-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>' +
       '<input type="date" id="in-date" value="' + esc(H.date) + '" data-in="date" aria-label="Date"></div></div>' +
     '<datalist id="dl-tourn">' + names.map(n => '<option value="' + esc(n) + '"></option>').join('') + '</datalist>' + tPickRow() +
-    '<div class="seg">' + Object.keys(TABLES).map(k => '<button type="button" class="' + (H.table === k ? 'on' : '') + '" data-act="table" data-v="' + k + '">' + TABLE_LABEL[k] + '</button>').join('') + '</div>' +
-    fld('Ante', '<div class="stackrow">' + chip('Aucune', { on: !(ante > 0), attrs: 'data-act="ante" data-v="0"' }) + chip('BBA 1 bb', { on: ante === 1, attrs: 'data-act="ante" data-v="1"' }) +
-      '<input class="inp num sm" id="in-ante" inputmode="decimal" placeholder="autre" value="' + (ante > 0 && ante !== 1 ? esc(H.ante) : '') + '" data-in="ante" aria-label="Ante totale en bb" autocomplete="off"></div>') +
     '</div>';
-}
-
-function secHero() {
-  const taken = new Set(H.villains.map(v => v.pos).filter(Boolean));
-  const pk = ui.picker && ui.picker.group === 'hero' ? ui.picker.i : -1;
-  return '<div class="sec"><div class="sec-h"><span class="lbl">Hero</span></div>' +
-    fld('Position', '<div class="row">' + TABLES[H.table].map(p => chip(posLabel(H.table, p), { on: H.hero.pos === p, dis: taken.has(p), attrs: 'data-act="hpos" data-v="' + p + '"' })).join('') + '</div>') +
-    fld('Stack en bb', stackRow('hstack', '', H.hero.stack)) +
-    fld('Cartes', '<div class="cards">' + H.hero.cards.map((c, i) => slotBtn('hero', i, c, pk === i)).join('') + '</div>') +
-    '</div>';
-}
-
-function secVillains() {
-  const blocks = H.villains.map((v, idx) => {
-    const taken = new Set([H.hero.pos].concat(H.villains.filter(x => x.id !== v.id).map(x => x.pos)).filter(Boolean));
-    const pk = ui.picker && ui.picker.group === v.id ? ui.picker.i : -1;
-    return '<div class="vill"><div class="sec-h"><span class="lbl">Adversaire ' + (idx + 1) + '</span><button type="button" class="link bad" data-act="delv" data-id="' + v.id + '">Retirer</button></div>' +
-      fld('Position', '<div class="row">' + TABLES[H.table].map(p => chip(posLabel(H.table, p), { on: v.pos === p, dis: taken.has(p), attrs: 'data-act="vpos" data-id="' + v.id + '" data-v="' + p + '"' })).join('') + '</div>') +
-      fld('Stack en bb', stackRow('vstack', v.id, v.stack)) +
-      fld('Cartes vues (optionnel)', '<div class="cards">' + v.cards.map((c, i) => slotBtn(v.id, i, c, pk === i)).join('') + '</div>') +
-      '<input class="inp" id="in-read-' + v.id + '" placeholder="Lecture : reg, fish, short stack..." value="' + esc(v.read) + '" data-in="read" data-id="' + v.id + '" autocomplete="off" aria-label="Lecture sur l\'adversaire"></div>';
-  }).join('');
-  const full = H.villains.length >= TABLES[H.table].length - 1;
-  return '<div class="sec"><div class="sec-h"><span class="lbl">Adversaires</span></div>' +
-    (blocks || '<p class="hint" style="margin:0">Ajoute les joueurs qui ont mis des jetons ou vu le flop. Les blindes non jouées sont comptées dans le pot.</p>') +
-    '<div class="row"><button type="button" class="btn ghost sm" data-act="addv"' + (full ? ' disabled' : '') + '>+ Adversaire</button></div></div>';
 }
 
 /* Betting round finished: no more actions to add. Offer the next street, or point at the result. */
@@ -1702,8 +1734,252 @@ function secResult() {
 
 function renderEdit() {
   const sim = simulate(H);
-  $('#view-edit').innerHTML = (editingId ? cmtShow(H) : '') + secPhotos() + secContext() + secHero() + secVillains() + secStreets(sim) + secResult();
+  $('#view-edit').innerHTML = (editingId ? cmtShow(H) : '') + secPhotos() + secContext() + secTable(sim) + secFocus() + secStreets(sim) + secResult();
+  tblSync(); tblPlace();
 }
+
+/* ===== table: the seat map of the hand (Saisir) =====
+   The seats sit on an oval rim. Before the Hero has picked his seat, the table turns under the finger (with a little momentum) and always
+   settles with a seat at the bottom; once he picks one, that seat glides to the bottom and stays there. One critically damped spring drives
+   every turn (drag release, tap on a seat, arrow key), so nothing ever starts or stops abruptly. */
+const TBL = { off: 0, v: 0, target: null, raf: 0, last: 0, drag: null, noClick: false, geo: null, geoKey: '', keep: false, fresh: '' };
+const tblN = () => TABLES[H.table].length;
+const tblMod = (x, n) => ((x % n) + n) % n;
+const tblIdx = pos => TABLES[H.table].indexOf(pos);
+const tblCalm = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+/* the offset that puts the Hero's seat at the bottom — the one nearest to where the table is now, so it turns the short way */
+function tblHome() {
+  const j = tblIdx(H.hero.pos), n = tblN();
+  if (j < 0) return TBL.off;
+  return -j + n * Math.round((TBL.off + j) / n);
+}
+
+/* the rim: a squared oval, walked at constant speed so the seats are evenly spaced; u = 0 is the bottom centre, then clockwise on screen */
+function tblGeo(W, Hh) {
+  const key = W + 'x' + Hh;
+  if (TBL.geoKey === key) return TBL.geo;
+  const a = W / 2 - 31, b = Hh / 2 - 27, e = 2 / 2.35, M = 360, cx = W / 2, cy = Hh / 2, pts = [], cum = [0];
+  for (let k = 0; k <= M; k++) {
+    const t = k / M * 2 * Math.PI, s = Math.sin(t), c = Math.cos(t);
+    pts.push([cx - a * Math.sign(s) * Math.pow(Math.abs(s), e), cy + b * Math.sign(c) * Math.pow(Math.abs(c), e)]);
+    if (k) cum.push(cum[k - 1] + Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]));
+  }
+  const d = 'M' + pts.slice(0, M).map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L') + 'Z';
+  TBL.geoKey = key;
+  TBL.geo = { W: W, H: Hh, pts: pts, cum: cum, len: cum[M], d: d, cx: cx, cy: cy };
+  return TBL.geo;
+}
+function tblPt(g, u) {
+  const L = tblMod(u, 1) * g.len, c = g.cum;
+  let lo = 0, hi = c.length - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (c[m] <= L) lo = m; else hi = m; }
+  const f = (L - c[lo]) / ((c[hi] - c[lo]) || 1), p0 = g.pts[lo], p1 = g.pts[hi];
+  return [p0[0] + (p1[0] - p0[0]) * f, p0[1] + (p1[1] - p0[1]) * f];
+}
+
+/* puts every seat where the current offset says (called after each render and on each animation frame; only transforms move) */
+function tblPlace(fast) {
+  const box = $('#tbl');
+  if (!box) return;
+  let g = TBL.geo;
+  if (!fast || !g) {   /* during a turn the size is known: no measuring, so nothing forces a layout in the middle of a frame */
+    const W = box.clientWidth, Hh = box.clientHeight;
+    if (!W || !Hh) { requestAnimationFrame(() => tblPlace()); return; }   /* the screen is not shown yet: try again when it is */
+    g = tblGeo(W, Hh);
+  }
+  const svg = box.firstElementChild;
+  if (!fast && svg && svg.dataset.k !== TBL.geoKey) {
+    svg.setAttribute('viewBox', '0 0 ' + g.W + ' ' + g.H);
+    svg.querySelectorAll('path').forEach(p => p.setAttribute('d', g.d));
+    const inner = svg.querySelector('.t-in');
+    if (inner) inner.setAttribute('transform', 'translate(' + g.cx + ' ' + g.cy + ') scale(.9) translate(' + (-g.cx) + ' ' + (-g.cy) + ')');
+    svg.dataset.k = TBL.geoKey;
+  }
+  const n = tblN();
+  box.querySelectorAll('.seat').forEach(s => {
+    const p = tblPt(g, (+s.dataset.j + TBL.off) / n);
+    s.style.transform = 'translate3d(' + p[0].toFixed(2) + 'px,' + p[1].toFixed(2) + 'px,0) translate(-50%,-50%)';
+    const c = s.querySelector('.sc');   /* the cards seen on a villain lie towards the middle of the table */
+    if (c) {
+      const dx = g.cx - p[0], dy = g.cy - p[1], d = Math.hypot(dx, dy) || 1;
+      c.style.transform = 'translate(' + (dx / d * 47).toFixed(1) + 'px,' + (dy / d * 40).toFixed(1) + 'px) translate(-50%,-50%)';
+    }
+  });
+}
+/* with the Hero seated, his seat is at the bottom whatever happened (stored hand opened, table size changed…), unless a turn is under way */
+function tblSync() {
+  if (!H.hero.pos || TBL.target !== null || TBL.drag || TBL.keep) return;
+  TBL.off = tblHome(); TBL.v = 0;
+}
+
+/* the spring: critically damped, exact for any frame time, so a release at any speed flows into the settling */
+function tblSpringTo(target) {
+  TBL.target = target;
+  if (tblCalm()) { TBL.off = target; TBL.v = 0; TBL.target = null; tblPlace(); return; }
+  TBL.last = 0;
+  if (!TBL.raf) TBL.raf = requestAnimationFrame(tblStep);
+}
+function tblStep(ts) {
+  TBL.raf = 0;
+  if (TBL.target === null) return;
+  const dt = Math.min(0.05, TBL.last ? (ts - TBL.last) / 1000 : 0.016);
+  TBL.last = ts;
+  const w = 10, A = TBL.off - TBL.target, B = TBL.v + w * A, k = Math.exp(-w * dt);
+  TBL.off = TBL.target + (A + B * dt) * k;
+  TBL.v = (B - w * (A + B * dt)) * k;
+  if (Math.abs(TBL.off - TBL.target) < 0.0004 && Math.abs(TBL.v) < 0.002) {
+    const n = tblN();
+    TBL.off = tblMod(TBL.target, n); TBL.v = 0; TBL.target = null;
+    tblPlace(true);
+    return;
+  }
+  tblPlace(true);
+  TBL.raf = requestAnimationFrame(tblStep);
+}
+
+/* ---- what the table shows ---- */
+function tblFocusId() {
+  const id = ui.seat;
+  if (id === 'H' && H.hero.pos) return 'H';
+  if (id && id !== 'H' && H.villains.some(v => v.id === id)) return id;
+  return H.hero.pos ? 'H' : null;
+}
+function seatHtml(p, j, foc) {
+  const isH = H.hero.pos === p, v = isH ? null : H.villains.find(x => x.pos === p);
+  const stk = isH ? num(H.hero.stack) : v ? num(v.stack) : 0;
+  const dealer = p === 'BTN' || (H.table === 'HU' && p === 'SB');
+  const on = (isH && foc === 'H') || (v && foc === v.id);
+  const lbl = isH ? 'Hero, ' + posLabel(H.table, p) : v ? 'Adversaire, ' + posLabel(H.table, p) : 'Siège ' + posLabel(H.table, p) + ', libre';
+  const cards = v && v.cards.some(Boolean) ? '<span class="sc">' + v.cards.map(c => c ? cardFace(c, 'mini') : '').join('') + '</span>' : '';
+  return '<button type="button" class="seat' + (isH ? ' hero' : v ? ' vil' : '') + (on ? ' foc' : '') + '" data-act="seat" data-p="' + esc(p) + '" data-j="' + j + '" aria-label="' + esc(lbl) + '">' +
+    (isH ? '<span class="sh">Hero</span>' : '') + '<span class="sp">' + esc(p) + '</span>' + (stk > 0 ? '<span class="ss">' + fmt(stk) + '</span>' : '') +
+    (dealer ? '<i class="dbtn">D</i>' : '') + cards + '</button>';
+}
+
+function secTable(sim) {
+  const T = TABLES[H.table], hp = H.hero.pos, foc = tblFocusId(), S = sim.streets[ui.street], ante = num(H.ante);
+  const pk = ui.picker && ui.picker.group === 'hero' ? ui.picker.i : -1;
+  const svg = '<svg class="tbl-svg" aria-hidden="true" focusable="false"><defs><radialGradient id="tbl-fg" cx="50%" cy="44%" r="64%"><stop offset="0" stop-color="#2b2e34"/>' +
+    '<stop offset=".72" stop-color="#181a1e"/><stop offset="1" stop-color="#0e0f12"/></radialGradient>' +
+    '<filter id="tbl-g1" x="-15%" y="-15%" width="130%" height="130%"><feGaussianBlur stdDeviation="7"/></filter>' +
+    '<filter id="tbl-g2" x="-15%" y="-15%" width="130%" height="130%"><feGaussianBlur stdDeviation="2.4"/></filter></defs>' +
+    '<path class="t-halo" filter="url(#tbl-g1)"/><path class="t-felt"/><path class="t-in"/><path class="t-glow" filter="url(#tbl-g2)"/><path class="t-rim"/></svg>';
+  const centre = hp
+    ? '<div class="tcn"><span class="k">Pot · bb</span><span class="v" id="tbl-pot">' + fmt(S.potNow) + '</span></div>'
+    : '<div class="tcn ask"><span class="q">Où es-tu ?</span><span class="s">Fais glisser la table, puis touche ta place</span></div>';
+  const hc = hp ? '<div class="hc' + (TBL.fresh === 'hero' ? ' pop' : '') + '">' + H.hero.cards.map((c, i) => slotBtn('hero', i, c, pk === i)).join('') + '</div>' : '';
+  TBL.fresh = '';
+  const hint = hp && !H.villains.length
+    ? '<p class="hint" style="margin:0">Touche un siège pour ajouter un adversaire. Un siège vide ne joue pas : ses blindes restent dans le pot.</p>'
+    : '';
+  return '<div class="sec tsec">' +
+    '<div class="seg" role="group" aria-label="Taille de la table">' + Object.keys(TABLES).map(k => '<button type="button" class="' + (H.table === k ? 'on' : '') + '" data-act="table" data-v="' + k + '">' + TABLE_LABEL[k] + '</button>').join('') + '</div>' +
+    '<div class="stackrow anterow"><span class="lbl">Ante</span>' + chip('Aucune', { on: !(ante > 0), attrs: 'data-act="ante" data-v="0"' }) + chip('BBA 1 bb', { on: ante === 1, attrs: 'data-act="ante" data-v="1"' }) +
+      '<input class="inp num sm" id="in-ante" inputmode="decimal" placeholder="autre" value="' + (ante > 0 && ante !== 1 ? esc(H.ante) : '') + '" data-in="ante" aria-label="Ante totale en bb" autocomplete="off"></div>' +
+    '<div class="tbl' + (hp ? '' : ' rot') + '" id="tbl" role="group" aria-label="Table, ' + TABLE_LABEL[H.table] + '">' + svg + centre + hc + T.map((p, j) => seatHtml(p, j, foc)).join('') + '</div>' +
+    hint + '</div>';
+}
+
+/* under the table: the seat last touched (stack, cards seen, read) */
+function secFocus() {
+  const id = tblFocusId();
+  if (!id) return '';
+  if (id === 'H') {
+    return '<div class="sec tfoc"><div class="sec-h"><span class="lbl">Hero · ' + esc(posLabel(H.table, H.hero.pos)) + '</span>' +
+      '<button type="button" class="link" data-act="hmove">Changer de siège</button></div>' +
+      fld('Stack en bb', stackRow('hstack', '', H.hero.stack)) + '</div>';
+  }
+  const v = H.villains.find(x => x.id === id);
+  const pk = ui.picker && ui.picker.group === v.id ? ui.picker.i : -1;
+  return '<div class="sec tfoc"><div class="sec-h"><span class="lbl">Adversaire · ' + esc(posLabel(H.table, v.pos)) + '</span>' +
+    '<button type="button" class="link bad" data-act="delv" data-id="' + v.id + '">Retirer</button></div>' +
+    fld('Stack en bb', stackRow('vstack', v.id, v.stack)) +
+    fld('Cartes vues (optionnel)', '<div class="cards">' + v.cards.map((c, i) => slotBtn(v.id, i, c, pk === i)).join('') + '</div>') +
+    '<input class="inp" id="in-read-' + v.id + '" placeholder="Lecture : reg, fish, short stack..." value="' + esc(v.read) + '" data-in="read" data-id="' + v.id + '" autocomplete="off" aria-label="Lecture sur l\'adversaire"></div>';
+}
+
+/* a stack or the ante typed: the seats and the pot follow without redrawing the table */
+function tblLive() {
+  const box = $('#tbl');
+  if (!box) return;
+  box.querySelectorAll('.seat').forEach(s => {
+    const p = s.dataset.p, isH = H.hero.pos === p, v = isH ? null : H.villains.find(x => x.pos === p);
+    const stk = isH ? num(H.hero.stack) : v ? num(v.stack) : 0;
+    let ss = s.querySelector('.ss');
+    if (stk > 0) {
+      if (!ss) { ss = document.createElement('span'); ss.className = 'ss'; s.querySelector('.sp').after(ss); }
+      ss.textContent = fmt(stk);
+    } else if (ss) ss.remove();
+  });
+  const pot = $('#tbl-pot');
+  if (pot) pot.textContent = fmt(simulate(H).streets[ui.street].potNow);
+}
+
+/* after a seat is touched, the panel under the table must be in view: a short, slow scroll, only if needed, never pushing the table under the header */
+function tblReveal() {
+  const f = $('.tfoc'), box = $('#tbl'), top = $('.top');
+  if (!f || !box) return;
+  const hb = top ? top.getBoundingClientRect().bottom : 0, r = f.getBoundingClientRect(), b = box.getBoundingClientRect();
+  const over = r.bottom - (window.innerHeight - 110);
+  if (over <= 0) return;
+  const by = Math.min(over, Math.max(0, b.top - hb - 8));
+  if (by > 4) window.scrollBy({ top: by, behavior: tblCalm() ? 'auto' : 'smooth' });
+}
+
+/* ---- the finger: turning the table before the Hero is seated ---- */
+document.addEventListener('pointerdown', e => {
+  if (H.hero.pos || ui.tab !== 'edit' || !e.target.closest) return;
+  const box = e.target.closest('#tbl');
+  if (!box || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  const r = box.getBoundingClientRect();
+  TBL.drag = { id: e.pointerId, box: box, x0: e.clientX, y0: e.clientY, on: false, off0: 0, top: e.clientY < r.top + r.height / 2, hist: [] };
+});
+window.addEventListener('pointermove', e => {
+  const d = TBL.drag;
+  if (!d || d.id !== e.pointerId) return;
+  const dx = e.clientX - d.x0, dy = e.clientY - d.y0;
+  if (!d.on) {
+    if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(dy)) return;
+    d.on = true; d.x0 = e.clientX; d.off0 = TBL.off;
+    TBL.target = null; TBL.v = 0;   /* the finger takes over from any turn under way */
+    try { d.box.setPointerCapture(e.pointerId); } catch (x) {}
+    return;
+  }
+  const g = TBL.geo;
+  if (!g) return;
+  const sgn = d.top ? 1 : -1;   /* the table follows the finger: above the middle the rim runs left to right, below it right to left */
+  TBL.off = d.off0 + sgn * (e.clientX - d.x0) / g.len * tblN();
+  const now = performance.now();
+  d.hist.push([now, TBL.off]);
+  while (d.hist.length > 2 && now - d.hist[0][0] > 90) d.hist.shift();
+  tblPlace(true);
+});
+function tblRelease(e) {
+  const d = TBL.drag;
+  if (!d || d.id !== e.pointerId) return;
+  TBL.drag = null;
+  if (!d.on) return;
+  try { d.box.releasePointerCapture(e.pointerId); } catch (x) {}
+  TBL.noClick = true; setTimeout(() => { TBL.noClick = false; }, 60);   /* the lift is not a tap on the seat under the finger */
+  const h = d.hist, n = tblN();
+  let v = 0;
+  if (h.length > 1) { const a = h[0], b = h[h.length - 1]; v = b[0] > a[0] ? (b[1] - a[1]) / ((b[0] - a[0]) / 1000) : 0; }
+  v = Math.max(-n * 2.5, Math.min(n * 2.5, v));
+  TBL.v = e.type === 'pointercancel' ? 0 : v;
+  tblSpringTo(Math.round(TBL.off + TBL.v * 0.2));
+}
+window.addEventListener('pointerup', tblRelease);
+window.addEventListener('pointercancel', tblRelease);
+window.addEventListener('click', e => { if (TBL.noClick) { e.stopPropagation(); e.preventDefault(); TBL.noClick = false; } }, true);
+/* arrows turn it too (no button for it on screen) */
+document.addEventListener('keydown', e => {
+  if (H.hero.pos || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || !e.target.closest || !e.target.closest('#tbl')) return;
+  e.preventDefault();
+  const base = TBL.target !== null ? TBL.target : Math.round(TBL.off);
+  tblSpringTo(base + (e.key === 'ArrowLeft' ? 1 : -1));
+});
+window.addEventListener('resize', () => { TBL.geoKey = ''; tblPlace(); });
 
 /* ===== sheet: card picker and text viewer ===== */
 /* the area under a photo: actions, key form, reading in progress, or what Claude read */
@@ -1847,6 +2123,7 @@ function renderTabs() {
   const waiting = store.ready ? reviewStats(store.hands).pending : 0;
   $('#rcount').textContent = waiting ? '(' + waiting + ')' : '';
   $('#stat').textContent = mains && ui.tab === 'edit' ? (H.tournament || '') : '';
+  statRowSync();
   livePillSync();
 }
 function renderBanner() {
@@ -1863,34 +2140,51 @@ function renderBanner() {
     led.title = ok ? 'Synchronisé avec ton compte' : store.mode === 'init' ? 'Chargement' : 'Sauvegarde locale';
   }
 }
+/* the header's save control (edit tab): ✕ to leave a stored hand, Enregistrer / Mettre à jour with an orange dot while something is missing,
+   and on the line under the title what is missing. Nothing floats over the entry area any more. */
+function headSave(editing, blank) {
+  const show = editing && !blank, hs = $('#hsave'), nt = $('#stat-note');
+  document.documentElement.classList.toggle('hs-on', !!show);
+  document.documentElement.classList.toggle('hs-room', !!editing);   /* the room is kept from the start, so the header never jumps when the first note comes in */
+  hs.hidden = !show;
+  let html = '', note = editing ? 'Rien à enregistrer pour l\'instant.' : '', warn = false;
+  if (show) {
+    const iss = issues(H);
+    warn = iss.length > 0;
+    note = warn ? 'À compléter : ' + iss.join(' · ') : 'Main complète.';
+    html = (editingId ? '<button type="button" class="hs-x" data-act="edclose" aria-label="Fermer la main sans enregistrer"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' : '') +
+      '<button type="button" class="hs-save" data-act="save" aria-describedby="stat-note">' + (editingId ? 'Mettre à jour' : 'Enregistrer') + (warn ? '<i class="hs-dot" aria-hidden="true"></i>' : '') + '</button>';
+  }
+  if (hs.dataset.h !== html) { hs.innerHTML = html; hs.dataset.h = html; }   /* rewritten only when it changes, so a tap is never lost to a redraw */
+  if (nt.textContent !== note) nt.textContent = note;
+  nt.className = 'stat note' + (warn ? ' warn' : '');
+  statRowSync();
+}
+function statRowSync() {
+  const r = $('#stat-row');
+  if (r) r.hidden = !$('#stat').textContent && !$('#stat-note').textContent;
+}
 function renderSave() {
   const mains = ui.block === 'mains';
   const reviewing = mains && ui.tab === 'review' && !isWide() && ui.rv && !ui.rv.done;
-  /* nothing to save yet (a blank hand): no bar, so the screen keeps its room; it comes in with the first thing noted */
+  /* nothing to save yet (a blank hand): no control, so the screen keeps its room; it comes in with the first thing noted */
   const blank = mains && ui.tab === 'edit' && isPristine(H) && !editingId;
-  $('#savebar').hidden = !(mains && ui.tab === 'edit' || reviewing) || blank;
+  headSave(mains && ui.tab === 'edit', blank);
+  $('#savebar').hidden = !reviewing;   /* the bottom bar is now only the review's ✗ / ✓ */
   document.documentElement.classList.toggle('has-sb', !$('#savebar').hidden);
-  $('#savebar-in').className = 'savebar-in' + (reviewing ? ' vd' : '');
-  if (reviewing && ui.rv.edit) {   /* writing the correction: switch to Bon, or move on */
+  $('#savebar-in').className = 'savebar-in vd';
+  if (!reviewing) { $('#savebar-in').innerHTML = ''; return; }
+  if (ui.rv.edit) {   /* writing the correction: switch to Bon, or move on */
     $('#savebar-in').innerHTML =
       '<button type="button" class="vbtn good" data-keepfocus data-act="rvset" data-v="good"><span class="g" aria-hidden="true">✓</span>Bon</button>' +
       '<button type="button" class="vbtn next" data-keepfocus data-act="rvfixdone">' + (ui.rv.edit.adv ? 'Suivante ›' : 'OK') + '</button>';
     return;
   }
-  if (reviewing) {   /* ✗ / ✓ stay under the thumb, whatever the length of the hand */
-    const h = rvHand(), cur = h ? h.verdict : '';
-    $('#savebar-in').innerHTML =
-      '<button type="button" class="vbtn bad' + (cur === 'bad' ? ' on' : '') + '" data-act="rvset" data-v="bad"><span class="g" aria-hidden="true">✗</span>Mauvais</button>' +
-      '<button type="button" class="vbtn good' + (cur === 'good' ? ' on' : '') + '" data-act="rvset" data-v="good"><span class="g" aria-hidden="true">✓</span>Bon</button>';
-    return;
-  }
-  const iss = issues(H), empty = isPristine(H) && !editingId;
-  const note = empty ? 'Rien à enregistrer pour l\'instant.' : iss.length ? 'À compléter : ' + iss.join(' · ') : 'Main complète.';
-  /* a stored hand is open: a way out that is always under the thumb, no need to go down to the end of the page */
-  $('#savebar-in').className = 'savebar-in' + (editingId ? ' hx' : '');
-  $('#savebar-in').innerHTML = (editingId ? '<button type="button" class="sb-x" data-act="edclose" aria-label="Fermer la main sans enregistrer"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' : '') +
-    '<div class="save-note' + (iss.length && !empty ? ' warn' : '') + '">' + esc(note) + '</div>' +
-    '<button type="button" class="btn" data-act="save"' + (empty ? ' disabled' : '') + '>' + (editingId ? 'Mettre à jour' : 'Enregistrer') + '</button>';
+  /* ✗ / ✓ stay under the thumb, whatever the length of the hand */
+  const h = rvHand(), cur = h ? h.verdict : '';
+  $('#savebar-in').innerHTML =
+    '<button type="button" class="vbtn bad' + (cur === 'bad' ? ' on' : '') + '" data-act="rvset" data-v="bad"><span class="g" aria-hidden="true">✗</span>Mauvais</button>' +
+    '<button type="button" class="vbtn good' + (cur === 'good' ? ' on' : '') + '" data-act="rvset" data-v="good"><span class="g" aria-hidden="true">✓</span>Bon</button>';
 }
 
 /* ===== comment on a hand: loud when shown, a text field while written, a quiet button when empty ===== */
@@ -3292,6 +3586,7 @@ function removeVillain(id) {
   STREETS.forEach(s => { H.streets[s] = H.streets[s].filter(e => e.a !== id); });
   tidy(H, 'preflop', was);
   if (ui.actor === id) ui.actor = null;
+  if (ui.seat === id) ui.seat = null;
   if (ui.picker && ui.picker.group === id) ui.picker = null;
 }
 function currentActor() {
@@ -3370,7 +3665,7 @@ function leaveHand() {
 function openHand(id) {
   const h = store.hands.find(x => x.id === id);
   if (!h) return;
-  H = normHand(clone(h)); editingId = h.id; origJson = JSON.stringify(H);
+  H = normHand(clone(h)); editingId = h.id; origJson = JSON.stringify(H); ui.seat = null;
   rememberPos();
   ui.hFrom = ui.tab === 'edit' ? 'list' : ui.tab;   /* « retour » goes back to the screen the hand was opened from */
   ui.tab = 'edit'; ui.hDet = true; ui.street = 'preflop'; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = '';
@@ -3384,7 +3679,7 @@ function startNew() {
 }
 function resetEditor(ctx) {
   H = newHand(ctx || { tournament: H.tournament, date: H.date, table: H.table, ante: H.ante });
-  editingId = null; origJson = ''; ui.tManual = false; ui.hDet = false;
+  editingId = null; origJson = ''; ui.tManual = false; ui.hDet = false; ui.seat = null;
   ui.street = 'preflop'; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = ''; ui.tagDraft = '';
   clearDraft();
 }
@@ -3595,7 +3890,7 @@ const A = {
     if (same) window.scrollTo(0, 0); else { placeView(); enterView(); }   /* the tab already open: back to its top; another one: where it was left */
   },
   table(el) {
-    H.table = el.dataset.v;
+    H.table = el.dataset.v; TBL.off = 0; TBL.v = 0; TBL.target = null;
     const ok = new Set(TABLES[H.table]);
     if (!ok.has(H.hero.pos)) H.hero.pos = '';
     H.villains.forEach(v => { if (!ok.has(v.pos)) v.pos = ''; });
@@ -3603,11 +3898,24 @@ const A = {
     rerender();
   },
   ante(el) { H.ante = +el.dataset.v; rerender(); },
-  hpos(el) { H.hero.pos = H.hero.pos === el.dataset.v ? '' : el.dataset.v; rerender(); },
   hstack(el) { H.hero.stack = num(H.hero.stack) === +el.dataset.v ? '' : +el.dataset.v; rerender(); },
-  vpos(el) { const v = H.villains.find(x => x.id === el.dataset.id); if (v) { v.pos = v.pos === el.dataset.v ? '' : el.dataset.v; rerender(); } },
   vstack(el) { const v = H.villains.find(x => x.id === el.dataset.id); if (v) { v.stack = num(v.stack) === +el.dataset.v ? '' : +el.dataset.v; rerender(); } },
-  addv() { H.villains.push({ id: 'V' + (H.nextV++), pos: '', stack: '', cards: [null, null], read: '' }); rerender(); },
+  /* a seat of the table: the Hero's own (first touch), a villain to add, or one already there to look at */
+  seat(el) {
+    const p = el.dataset.p, v = H.villains.find(x => x.pos === p);
+    if (!H.hero.pos) {
+      if (v) { ui.seat = v.id; rerender(); tblReveal(); return; }   /* a villain's seat cannot be the Hero's */
+      H.hero.pos = p; ui.seat = 'H'; TBL.fresh = 'hero';
+      TBL.keep = true; rerender(); TBL.keep = false;   /* drawn where the table is; then it glides until the Hero's seat is at the bottom */
+      tblSpringTo(tblHome()); tblReveal();
+      return;
+    }
+    if (H.hero.pos === p) ui.seat = 'H';
+    else if (v) ui.seat = v.id;
+    else { const id = 'V' + (H.nextV++); H.villains.push({ id: id, pos: p, stack: '', cards: [null, null], read: '' }); ui.seat = id; }
+    rerender(); tblReveal();
+  },
+  hmove() { H.hero.pos = ''; ui.seat = null; rerender(); },   /* the table is free to turn again; villains keep their seats */
   delv(el) { removeVillain(el.dataset.id); rerender(); },
   pick(el) { ui.picker = { group: el.dataset.g, i: +el.dataset.i }; renderEdit(); renderSheet(); },
   rank(el) { setCardPart('rank', el.dataset.v); },
@@ -3933,9 +4241,9 @@ document.addEventListener('input', e => {
   if (k === 'fix') { ui.fixDraft = { id: t.dataset.id, text: t.value }; return; }   /* review field: kept until validated or left */
   if (k === 'tourn') { H.tournament = t.value; ui.tManual = true; $('#stat').textContent = t.value; syncPickT(); }
   else if (k === 'date') { H.date = t.value || todayStr(); const dt = $('#date-txt'); if (dt) dt.textContent = dateLbl(H.date); }
-  else if (k === 'ante') { H.ante = num(t.value) > 0 ? num(t.value) : 0; syncChips('ante', null, H.ante); }
-  else if (k === 'hstack') { H.hero.stack = t.value; syncChips('hstack', '', num(t.value)); }
-  else if (k === 'vstack') { const v = H.villains.find(x => x.id === t.dataset.id); if (v) { v.stack = t.value; syncChips('vstack', t.dataset.id, num(t.value)); } }
+  else if (k === 'ante') { H.ante = num(t.value) > 0 ? num(t.value) : 0; syncChips('ante', null, H.ante); tblLive(); }
+  else if (k === 'hstack') { H.hero.stack = t.value; syncChips('hstack', '', num(t.value)); tblLive(); }
+  else if (k === 'vstack') { const v = H.villains.find(x => x.id === t.dataset.id); if (v) { v.stack = t.value; syncChips('vstack', t.dataset.id, num(t.value)); tblLive(); } }
   else if (k === 'read') { const v = H.villains.find(x => x.id === t.dataset.id); if (v) v.read = t.value; }
   else if (k === 'note') H.note = t.value;
   else if (k === 'comment') H.comment = t.value;
