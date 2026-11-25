@@ -35,7 +35,7 @@ Deux blocs :
 ## Façon de travailler (choisie par l'auteur le 25 nov. 2026)
 
 1. **Une branche par évolution**, partie de `main` à jour : `git switch main && git pull && git switch -c <sujet-court>`. Jamais de commit ni de push direct sur `main`.
-2. **Tester en local avant de proposer** : serveur `python3 -m http.server 8000` à la racine (config `copilot` de `.claude/launch.json` si elle existe), http://localhost:8000/ en format mobile (375 × 812) puis bureau. Pas d'erreur dans la console ; vérifier la fonction modifiée, et qu'une main et un tournoi s'enregistrent, se rouvrent et survivent à un rechargement. Les données de `localhost` sont séparées de celles du téléphone (autre origine) : on peut tout casser en test.
+2. **Tester en local avant de proposer** : serveur `copilot` de `.claude/launch.json` (`python3 -m http.server 8000` à la racine), http://localhost:8000/ en format mobile (375 × 812) puis bureau. Pas d'erreur dans la console ; vérifier la fonction modifiée, et qu'une main et un tournoi s'enregistrent, se rouvrent et survivent à un rechargement. Les données de `localhost` sont séparées de celles du téléphone (autre origine) : on peut tout casser en test.
    - Les événements focus / blur ne partent pas tant que la fenêtre de test n'a pas le focus (`document.hasFocus()` faux) : les tester avec de vrais clics, pas en JavaScript.
    - Une main neuve contient toujours un adversaire sans siège (`V1`) : c'est normal.
 3. **Tester sur l'iPhone avant la fusion** quand le toucher compte (glisser, clavier, geste retour) : même Wi-Fi, Safari sur `http://<adresse du Mac>:8000/` (`ipconfig getifaddr en0`). Données séparées de la vraie appli.
