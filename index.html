@@ -790,6 +790,21 @@ html.hs-room .brand{min-height:34px}
 .srow .camb{width:46px;height:46px}
 .srow .seg button{min-height:44px;font-size:13px;padding:0 3px;white-space:nowrap}
 .srow .seg .dot{margin-left:4px}
+/* the tournament of the hand: a light bar over the table, the first thing to fill; while it is typed in, the tournaments of the Suivi come under it */
+.tbar{position:relative;flex:none;z-index:4}   /* over the seats (2), under the floating header (5) */
+.tb-f{display:flex;align-items:center;gap:10px;height:44px;padding:0 14px 0 16px;border:1px solid var(--edge);border-radius:22px;background:rgba(255,255,255,.03);cursor:text;transition:border-color .2s,box-shadow .2s}
+.tb-f .lbl{flex:none;color:var(--fg-3)}
+.tb-f input{flex:1;min-width:0;height:42px;padding:0;border:0;background:none;color:var(--fg);font:600 16px/1.2 var(--f-body);outline:none;text-overflow:ellipsis}
+.tb-f input::placeholder{color:var(--fg-2);font-weight:500}
+.tb-f svg{flex:none;width:16px;height:16px;color:var(--fg-3)}
+.tbar.empty .tb-f{border-color:rgba(255,255,255,.34);box-shadow:0 0 18px rgba(255,255,255,.12),inset 0 1px 0 var(--edge-hi)}
+.tbar.empty .tb-f input::placeholder{color:var(--fg);opacity:.82}
+.tbar.empty .tb-f svg{color:var(--fg)}
+.tb-f:focus-within{border-color:var(--acc-2);box-shadow:0 0 0 1px var(--acc-wash)}
+.tb-sug{display:none;position:absolute;left:0;right:0;top:calc(100% + 6px);flex-wrap:wrap;gap:8px;padding:10px;border:1px solid var(--edge);border-radius:22px;
+  background:var(--sheet);box-shadow:var(--shadow);-webkit-backdrop-filter:blur(28px) saturate(160%);backdrop-filter:blur(28px) saturate(160%)}
+.tbar.open .tb-sug:not(:empty){display:flex}
+.tb-sug .chip{max-width:100%;min-height:44px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stage .tbl{flex:1 1 0;min-height:0;width:100%;max-width:420px;max-height:440px;margin:0 auto;aspect-ratio:auto}
 html.stage-fit .tbl.rot{touch-action:none}
 html.stage-fit .endsp{display:none}
@@ -823,9 +838,9 @@ html.stage-fit body{overflow:clip;overscroll-behavior:none}   /* clip, not hidde
 .dock .inp.num.sm{width:64px;flex:none}
 .dock .stackrow .inp.num.sm{width:62px}
 .dock .cards{flex-wrap:nowrap;gap:6px;flex:none}
-.dock .cards .card,.dock .dk-v .card{width:44px;height:46px;border-radius:8px}
-.dock .cards .card .r,.dock .dk-v .card .r{font-size:17px}
-.dock .cards .card .s,.dock .dk-v .card .s{font-size:13px;margin-top:2px}
+.dock .cards .card,.dock .dk-v .card,.bil .dk-v .card{width:44px;height:46px;border-radius:8px}
+.dock .cards .card .r,.dock .dk-v .card .r,.bil .dk-v .card .r{font-size:17px}
+.dock .cards .card .s,.dock .dk-v .card .s,.bil .dk-v .card .s{font-size:13px;margin-top:2px}
 .dk-sz{display:flex;gap:5px}
 .dk-sz .chip{flex:1 1 0;min-width:0;padding:0 2px;min-height:44px;font-size:13px}
 .dk-sz .chip .sub{font-size:10.5px}
@@ -1150,8 +1165,8 @@ async function setVerdict(id, v) {
 let draftTimer = null;
 function writeDraft() {
   try {
-    if (isPristine(H) && !editingId) localStorage.removeItem(LS_DRAFT);
-    else localStorage.setItem(LS_DRAFT, JSON.stringify({ h: H, editingId: editingId }));
+    if (isPristine(H) && !editingId && !(ui.tManual && (H.tournament || '').trim())) localStorage.removeItem(LS_DRAFT);   /* a name typed on a blank hand is kept */
+    else localStorage.setItem(LS_DRAFT, JSON.stringify({ h: H, editingId: editingId, tManual: !!ui.tManual }));
   } catch (e) { /* storage unavailable */ }
 }
 function saveDraftSoon() {
@@ -1161,7 +1176,7 @@ function saveDraftSoon() {
 function loadDraft() {
   try {
     const s = JSON.parse(localStorage.getItem(LS_DRAFT) || 'null');
-    if (s && s.h && s.h.hero) return { h: normHand(s.h), editingId: s.editingId || null };
+    if (s && s.h && s.h.hero) return { h: normHand(s.h), editingId: s.editingId || null, tManual: !!s.tManual };
   } catch (e) { /* ignore */ }
   return null;
 }
@@ -1285,7 +1300,8 @@ async function addPhotos(files) {
   if (dup) bits.push(dup + ' déjà présente' + (dup > 1 ? 's' : ''));
   if (bad) bits.push(bad + ' illisible' + (bad > 1 ? 's' : ''));
   toast(bits.join(' · '));
-  if (ok && ui.block === 'mains' && ui.tab === 'edit') ui.det = true;   /* the photos wait in the details: show them */
+  const typingName = document.activeElement && document.activeElement.id === 'in-tourn';
+  if (ok && ui.block === 'mains' && ui.tab === 'edit' && !ui.bil && !typingName) ui.det = true;   /* the photos wait in the details: show them (not over the Bilan, nor while the name is typed: the dot on « Détails » says they wait) */
   onPhotosChange();
 }
 
@@ -1421,7 +1437,7 @@ function boardProposal(res, h) {
   });
 }
 
-const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, seat: null, mode: null, det: false, delAsk: null, block: 'home', ty: null, tf: null, tfBase: '', tcard: null, q: '', tq: '', tqOpen: false, tsY: 0, hDet: false, hFrom: 'list', pos: {}, undo: null, tmo: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
+const ui = { pc: { sel: null, end: false, edit: null }, fixDraft: null, focusFix: false, tab: 'edit', street: 'preflop', picker: null, pending: null, actor: null, seat: null, mode: null, det: false, bil: false, bilY: 0, tbQ: null, delAsk: null, block: 'home', ty: null, tf: null, tfBase: '', tcard: null, q: '', tq: '', tqOpen: false, tsY: 0, hDet: false, hFrom: 'list', pos: {}, undo: null, tmo: null, filter: 'all', delGroup: null, rv: null, confirmDel: false, tagDraft: '', modal: null, askOpen: null, pview: null, keyAsk: false, readCache: {}, toastTimer: null };
 
 /* ===== betting engine: replays the logged actions to get amounts, pot and SPR ===== */
 /* a villain counts as in the hand once he has a seat, a stack, cards seen, a read or an action; the empty one every new hand starts with plays nothing */
@@ -1714,19 +1730,46 @@ function camBtn() {
   return '<button type="button" class="camb" data-act="photoadd" aria-label="Ajouter des photos du board" title="Ajouter des photos du board"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l1.1-1.6A1.5 1.5 0 0 1 10 3.8h4a1.5 1.5 0 0 1 1.2.6L16.3 6h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.3"/></svg></button>';
 }
 
+/* the date and the ante (the name of the tournament is in the bar over the table) */
 function secContext() {
   const no = editingId ? ((groupInfo()[editingId] || {}).no || H.handNo || '') : nextHandNo(H);
-  const names = Array.from(new Set(sortedHands().map(h => h.tournament).concat(tSorted(tStore.list).map(t => t.name)).filter(Boolean))).slice(0, 30);
-  return '<div class="sec"><div class="sec-h"><span class="lbl">Tournoi</span><span class="sec-r"><span class="pot">' + (editingId ? 'Modification · ' : '') + 'main n°<b>' + esc(no) + '</b></span>' +
+  return '<div class="sec"><div class="sec-h"><span class="lbl">Date et ante</span><span class="sec-r"><span class="pot">' + (editingId ? 'Modification · ' : '') + 'main n°<b>' + esc(no) + '</b></span>' +
     '</span></div>' +
-    '<div class="grid2"><input class="inp" id="in-tourn" list="dl-tourn" placeholder="Nom du tournoi" value="' + esc(H.tournament) + '" data-in="tourn" autocomplete="off" aria-label="Nom du tournoi">' +
     '<div class="datebox"><span class="dt" id="date-txt">' + esc(dateLbl(H.date)) + '</span>' +
       '<svg class="dt-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>' +
-      '<input type="date" id="in-date" value="' + esc(H.date) + '" data-in="date" aria-label="Date"></div></div>' +
-    '<datalist id="dl-tourn">' + names.map(n => '<option value="' + esc(n) + '"></option>').join('') + '</datalist>' + tPickRow() +
-    fld('Ante', '<div class="row">' + chip('Aucune', { on: !(num(H.ante) > 0), attrs: 'data-act="ante" data-v="0"' }) + chip('BBA 1 bb', { on: num(H.ante) === 1, attrs: 'data-act="ante" data-v="1"' }) +
+      '<input type="date" id="in-date" value="' + esc(H.date) + '" data-in="date" aria-label="Date"></div>' +
+    fld('Ante','<div class="row">' + chip('Aucune', { on: !(num(H.ante) > 0), attrs: 'data-act="ante" data-v="0"' }) + chip('BBA 1 bb', { on: num(H.ante) === 1, attrs: 'data-act="ante" data-v="1"' }) +
       '<input class="inp num sm" id="in-ante" inputmode="decimal" placeholder="autre" value="' + (num(H.ante) > 0 && num(H.ante) !== 1 ? esc(H.ante) : '') + '" data-in="ante" aria-label="Ante totale en bb" autocomplete="off"></div>') +
     '</div>';
+}
+
+/* ===== the tournament of the hand: a bar over the table, the first thing to fill (never required) =====
+   Typed, or one touch on a name under it: the tournaments of the Suivi (the one being played first), then the names of the hands already noted.
+   The list is the whole one when the field is entered; it narrows once something is typed. */
+function tbNames(q) {
+  const seen = new Set(), out = [];
+  const add = (n, live) => { const k = normName(n); if (k && !seen.has(k)) { seen.add(k); out.push({ n: String(n).trim(), live: live }); } };
+  tSorted(tStore.list).sort((a, b) => (b.live === true) - (a.live === true)).forEach(t => add(t.name, t.live === true));
+  sortedHands().forEach(h => add(h.tournament, false));
+  const k = normName(q);
+  return (k ? out.filter(o => { const m = normName(o.n); return m !== k && m.indexOf(k) >= 0; }) : out).slice(0, 6);
+}
+function tbarHtml() {
+  const v = H.tournament || '';
+  return '<div class="tbar' + (v.trim() ? '' : ' empty') + '" id="tbar"><label class="tb-f" for="in-tourn"><span class="lbl">Tournoi</span>' +
+    '<input id="in-tourn" placeholder="Nom du tournoi" value="' + esc(v) + '" data-in="tourn" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Nom du tournoi">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></label>' +
+    '<div class="tb-sug" id="tb-sug"></div></div>';
+}
+/* open: the names under the bar (ui.tbQ = what was typed since the field was entered, null = nothing yet) */
+function tbSync(open) {
+  const bar = $('#tbar'), sug = $('#tb-sug');
+  if (!bar || !sug) return;
+  bar.classList.toggle('empty', !(H.tournament || '').trim());
+  if (!open) { bar.classList.remove('open'); return; }
+  sug.innerHTML = tbNames(ui.tbQ).map(o => chip((o.live ? '<i class="ld" aria-hidden="true"></i>' : '') + esc(o.n),
+    { on: normName(H.tournament) === normName(o.n), attrs: 'data-act="pickt" data-v="' + esc(o.n) + '" data-keepfocus' })).join('');
+  bar.classList.add('open');
 }
 
 /* ===== the panel under the table (one screen, nothing to scroll): seats · action · result ===== */
@@ -1797,14 +1840,14 @@ function dockSeats() {
     '<input class="inp" id="in-read-' + v.id + '" placeholder="Lecture : reg, fish, short stack..." value="' + esc(v.read) + '" data-in="read" data-id="' + v.id + '" autocomplete="off" aria-label="Lecture sur l\'adversaire"></div>';
 }
 
-/* the end of the hand: how it went, and the cards the adversaries turned over */
-function dockEnd(sim) {
-  const F = sim.streets.river.folded, vs = H.villains.filter(v => inHand(H, v) && !F[v.id]);
-  const pk = ui.picker || {};
-  return '<div class="dk-h"><span class="dk-t"><b>Résultat</b> de la main</span></div>' +
-    '<div class="row">' + RESULTS.map(r => chip(r[1], { on: H.result === r[0], attrs: 'data-act="result" data-v="' + r[0] + '"' })).join('') + '</div>' +
-    (vs.length ? '<div class="dk-r"><span class="dk-l">Vues</span><div class="scroll-row">' + vs.map(v => '<span class="dk-v"><span class="dk-vn">' + esc(posLabel(H.table, v.pos)) + '</span>' +
-      v.cards.map((c, i) => slotBtn(v.id, i, c, pk.group === v.id && pk.i === i)).join('') + '</span>').join('') + '</div></div>' : '');
+/* the end of the hand: the Bilan is a window over the table (it opens with « Résultat »); here, what it holds so far and a way back to it */
+function dockEnd() {
+  const n = H.tags.length;
+  const bits = [H.result ? RESULT_FR[H.result] : '', H.phase || '', n ? n + ' tag' + (n > 1 ? 's' : '') : '', (H.note || '').trim() ? 'note' : '',
+    H.verdict === 'good' ? '✓ Bon' : H.verdict === 'bad' ? '✗ Mauvais' : ''].filter(Boolean);
+  return '<div class="dk-h"><span class="dk-t"><b>Bilan</b> de la main</span></div>' +
+    '<p class="dk-hint">' + esc(bits.length ? bits.join(' · ') : 'Résultat, cartes vues, phase, tags, note, verdict.') + '</p>' +
+    '<div class="row"><button type="button" class="btn sm" data-act="bil">' + (bits.length ? 'Modifier le Bilan' : 'Ouvrir le Bilan') + '</button></div>';
 }
 
 function dockHtml(sim, mode) {
@@ -1812,12 +1855,12 @@ function dockHtml(sim, mode) {
   const fid = tblFocusId();
   if (!H.hero.pos && fid && fid !== 'H') return '<div class="dock"><div class="dk-b">' + dockSeats() + '</div></div>';   /* a villain looked at while the Hero's seat is free */
   if (!H.hero.pos) return '<div class="dock off"><p class="dk-hint">Choisis la taille de la table, fais-la tourner si besoin, puis touche ta place. Les adversaires viennent ensuite : touche leur siège.</p>' +
-    '<button type="button" class="btn ghost sm" data-act="det">Détails · tournoi, date, ante, photos' + (waiting ? '<i class="dot"></i>' : '') + '</button></div>';
+    '<button type="button" class="btn ghost sm" data-act="det">Détails · date, ante, photos' + (waiting ? '<i class="dot"></i>' : '') + '</button></div>';
   const go = mode === 'seats' && !hasActions();
   const sw = '<div class="seg dk-sw" role="group" aria-label="Étape de la saisie">' +
     [['seats', 'Sièges'], ['act', 'Action'], ['end', 'Résultat']].map(k => '<button type="button" class="' + (mode === k[0] ? 'on' : '') + (go && k[0] === 'act' ? ' go' : '') + '" data-act="dock" data-v="' + k[0] + '">' + k[1] + '</button>').join('') +
     '<button type="button" data-act="det">Détails' + (waiting ? '<i class="dot"></i>' : '') + '</button></div>';
-  return '<div class="dock">' + sw + '<div class="dk-b">' + (mode === 'act' ? dockAct(sim) : mode === 'end' ? dockEnd(sim) : dockSeats()) + '</div></div>';
+  return '<div class="dock">' + sw + '<div class="dk-b">' + (mode === 'act' ? dockAct(sim) : mode === 'end' ? dockEnd() : dockSeats()) + '</div></div>';
 }
 
 /* one screen: the line, the table, the panel. The height is what is left between the header and the bar at the bottom, so the page does not scroll; on a screen too short for
@@ -1838,7 +1881,7 @@ window.addEventListener('resize', () => { if (ui.block === 'mains' && ui.tab ===
 window.addEventListener('orientationchange', () => setTimeout(() => { if (ui.block === 'mains' && ui.tab === 'edit') { stageFit(); tblPlace(); } }, 250));
 function secStage(sim) {
   const mode = dockMode();
-  return '<div class="stage' + (H.hero.pos ? '' : ' nohero') + '" data-mode="' + mode + '">' + srowHtml(mode) + tblHtml(sim, mode) + dockHtml(sim, mode) + '</div>';
+  return '<div class="stage' + (H.hero.pos ? '' : ' nohero') + '" data-mode="' + mode + '">' + srowHtml(mode) + tbarHtml() + tblHtml(sim, mode) + dockHtml(sim, mode) + '</div>';
 }
 
 /* the history of the actions, street by street; deleting one that has others after it asks a second tap */
@@ -1863,9 +1906,9 @@ function secHistory(sim) {
   return '<div class="sec" id="sec-action"><div class="sec-h"><span class="lbl">Historique</span></div>' + (out || '<p class="hint" style="margin:0">Aucune action pour l\'instant.</p>') + '</div>';
 }
 
-/* everything that is not the table, in a window over it */
+/* what is not the table nor the Bilan, in a window over it */
 function secDetails(sim) {
-  return (editingId ? cmtShow(H) : '') + secContext() + secPhotos() + secHistory(sim) + secResult();
+  return (editingId ? cmtShow(H) : '') + secContext() + secPhotos() + secHistory(sim) + secTools();
 }
 
 function confirmBtn(key, label, yes) {
@@ -1874,21 +1917,34 @@ function confirmBtn(key, label, yes) {
     : '<button type="button" class="btn ghost sm" data-act="confirm" data-v="' + key + '">' + label + '</button>';
 }
 
-function secResult() {
-  const tagsAll = Array.from(new Set(TAGS.concat(store.hands.reduce((a, h) => a.concat(h.tags || []), [])).concat(H.tags)));
+/* the end of the details: the hand as text, sent to Replay, emptied or deleted */
+function secTools() {
   const extra = editingId
     ? confirmBtn('del', 'Supprimer', 'Confirmer la suppression') + confirmBtn('abandon', 'Abandonner les changements', 'Abandonner')
     : (isPristine(H) ? '' : confirmBtn('clear', 'Vider la saisie', 'Vider'));
-  return '<div class="sec" id="sec-result"><div class="sec-h"><span class="lbl">Bilan</span></div>' +
+  return '<div class="sec"><div class="row"><button type="button" class="btn ghost sm" data-act="copy">Copier le texte</button><button type="button" class="btn ghost sm" data-act="replay">Faire deviner</button>' + extra + '</div></div>';
+}
+
+/* the Bilan: everything about how the hand ended, in one window opened by « Résultat ». What is noted right after the hand comes first,
+   what is noted after GTO Wizard last; the hand is saved from the bottom of it. */
+function secBilan(sim) {
+  const tagsAll = Array.from(new Set(TAGS.concat(store.hands.reduce((a, h) => a.concat(h.tags || []), [])).concat(H.tags)));
+  const F = sim.streets.river.folded, vs = H.villains.filter(v => inHand(H, v) && !F[v.id]);
+  const iss = issues(H);
+  return '<div class="sec" id="sec-result">' +
     fld('Résultat', '<div class="row">' + RESULTS.map(r => chip(r[1], { on: H.result === r[0], attrs: 'data-act="result" data-v="' + r[0] + '"' })).join('') + '</div>') +
+    (vs.length ? fld('Cartes vues', '<div class="scroll-row">' + vs.map(v => '<span class="dk-v"><span class="dk-vn">' + esc(posLabel(H.table, v.pos)) + '</span>' +
+      v.cards.map((c, i) => slotBtn(v.id, i, c, false)).join('') + '</span>').join('') + '</div>') : '') +
     fld('Phase du tournoi', '<div class="row">' + PHASES.map(p => chip(esc(p), { on: H.phase === p, attrs: 'data-act="phase" data-v="' + esc(p) + '"' })).join('') + '</div>') +
     fld('Tags', '<div class="row">' + tagsAll.map(t => chip(esc(t), { on: H.tags.indexOf(t) >= 0, attrs: 'data-act="tag" data-v="' + esc(t) + '"' })).join('') + '</div>' +
       '<div class="stackrow"><input class="inp" id="in-tag" placeholder="Nouveau tag" value="' + esc(ui.tagDraft) + '" data-in="tagdraft" autocomplete="off" aria-label="Nouveau tag"><button type="button" class="btn ghost sm" data-act="addtag">Ajouter</button></div>') +
+    fld('Note', '<textarea class="inp" id="in-note" data-in="note" placeholder="Ce que tu as pensé, le spot qui te gêne, la lecture sur le joueur...">' + esc(H.note) + '</textarea>') +
     fld('Verdict après GTO Wizard', '<div class="row">' + chip('✓ Bon', { on: H.verdict === 'good', cls: 'vgood', attrs: 'data-act="verdict" data-v="good"' }) +
       chip('✗ Mauvais', { on: H.verdict === 'bad', cls: 'vbad', attrs: 'data-act="verdict" data-v="bad"' }) + '</div>') +
     fld(H.verdict === 'bad' ? 'Correction (ce qu\'il fallait faire)' : 'Commentaire après la revue', '<textarea class="inp" id="in-comment" data-in="comment" maxlength="1000" placeholder="' + (H.verdict === 'bad' ? 'Ce qu\'il fallait faire...' : 'Optionnel') + '">' + esc(H.comment) + '</textarea>') +
-    fld('Note', '<textarea class="inp" id="in-note" data-in="note" placeholder="Ce que tu as pensé, le spot qui te gêne, la lecture sur le joueur...">' + esc(H.note) + '</textarea>') +
-    '<div class="row"><button type="button" class="btn ghost sm" data-act="copy">Copier le texte</button><button type="button" class="btn ghost sm" data-act="replay">Faire deviner</button>' + extra + '</div></div>';
+    '</div>' +
+    '<button type="button" class="btn" data-act="save">' + (editingId ? 'Mettre à jour la main' : 'Enregistrer la main') + '</button>' +
+    (iss.length ? '<p class="hint" style="margin:0">Elle sera enregistrée comme « À compléter » : il manque ' + esc(iss.join(', ')) + '.</p>' : '');
 }
 
 function renderEdit() {
@@ -2291,7 +2347,8 @@ function renderSheet() {
   const tOn = !!(ui.tf && ui.block === 'suivi' && !ui.modal);
   const cOn = !tOn && !!(ui.tcard && ui.block === 'suivi' && !ui.modal);
   const dOn = !!(ui.det && ui.block === 'mains' && ui.tab === 'edit' && !ui.modal && !ui.askOpen && !ui.pview && !ui.picker);
-  lockPage(tOn || cOn || dOn);
+  const bOn = !dOn && !!(ui.bil && ui.block === 'mains' && ui.tab === 'edit' && !ui.modal && !ui.askOpen && !ui.pview && !ui.picker);
+  lockPage(tOn || cOn || dOn || bOn);
   if (tOn) { renderTSheet(); return; }   /* the tournament form: its own sheet, redrawn in place */
   if (cOn) { renderTCard(); return; }   /* the card of a tournament */
   if (ui.modal) {
@@ -2330,11 +2387,19 @@ function renderSheet() {
       return;
     }
   }
+  if (bOn) {   /* the Bilan: a window over the table; it keeps its scroll when it is redrawn, and when it comes back after a card was picked */
+    const old = root.querySelector('.sheet.bil'), y = old ? old.scrollTop : (ui.bilY || 0);
+    root.innerHTML = '<div class="scrim" data-act="bilx"></div><div class="sheet det bil" role="dialog" aria-modal="true" aria-label="Bilan de la main"><div class="sheet-in">' +
+      '<div class="sheet-h"><span class="lbl">Bilan de la main</span><button type="button" class="btn sm" data-act="bilx">Fermer</button></div>' + secBilan(simulate(H)) + '</div></div>';
+    const nw = root.querySelector('.sheet.bil');
+    if (nw) nw.scrollTop = y;
+    return;
+  }
   if (dOn) {   /* the details of the hand: a window over the table; it keeps its scroll when it is redrawn */
-    const old = root.querySelector('.sheet.det'), y = old ? old.scrollTop : 0;
+    const old = root.querySelector('.sheet.det:not(.bil)'), y = old ? old.scrollTop : 0;
     root.innerHTML = '<div class="scrim" data-act="detx"></div><div class="sheet det" role="dialog" aria-modal="true" aria-label="Détails de la main"><div class="sheet-in">' +
       '<div class="sheet-h"><span class="lbl">Détails de la main</span><button type="button" class="btn sm" data-act="detx">Fermer</button></div>' + secDetails(simulate(H)) + '</div></div>';
-    const nw = root.querySelector('.sheet.det');
+    const nw = root.querySelector('.sheet.det:not(.bil)');
     if (nw) nw.scrollTop = y;
     return;
   }
@@ -2380,7 +2445,7 @@ function renderTabs() {
   $('#count').textContent = store.ready ? '(' + store.hands.length + ')' : '';
   const waiting = store.ready ? reviewStats(store.hands).pending : 0;
   $('#rcount').textContent = waiting ? '(' + waiting + ')' : '';
-  $('#stat').textContent = mains && ui.tab === 'edit' ? (H.tournament || '') : '';
+  $('#stat').textContent = '';   /* the name of the tournament is in the bar over the table, not repeated in the header */
   statRowSync();
   livePillSync();
 }
@@ -3181,15 +3246,6 @@ function tHandLinks() {
   });
   return out;
 }
-/* the editor of a hand offers the tournaments of the Suivi, newest first, one chip per name */
-function tPickRow() {
-  const seen = new Set(), names = [];
-  tSorted(tStore.list).slice().sort((a, b) => (b.live === true) - (a.live === true)).forEach(t => { const k = normName(t.name); if (k && !seen.has(k)) { seen.add(k); names.push({ n: t.name, live: t.live === true }); } });
-  if (!names.length) return '';
-  return fld('Depuis ton Suivi', '<div class="scroll-row">' + names.slice(0, 6).map(o => chip((o.live ? '<i class="ld" aria-hidden="true"></i>' : '') + esc(o.n), { on: normName(H.tournament) === normName(o.n), attrs: 'data-act="pickt" data-v="' + esc(o.n) + '"' })).join('') + '</div>');
-}
-function syncPickT() { document.querySelectorAll('[data-act=pickt]').forEach(c => c.classList.toggle('on', normName(c.dataset.v) === normName(H.tournament))); }
-
 /* ===== curve of the cumulative net, drawn with the browser alone ===== */
 let tCv = null;   /* what is on screen, for the finger / mouse readout */
 function tChart(chrono) {
@@ -3875,7 +3931,7 @@ function flowNext(from) {
   if (state === 'open') return;
   const i = STREETS.indexOf(from);
   if (state === 'over' || i === STREETS.length - 1) {
-    ui.picker = null; ui.pending = null; ui.actor = null; ui.mode = 'end';
+    ui.picker = null; ui.pending = null; ui.actor = null; ui.mode = 'end'; ui.bil = true; ui.bilY = 0;   /* the hand is over: its Bilan opens */
     rerender(); toast(state === 'over' ? 'Main terminée' : 'Bilan de la main');
     return;
   }
@@ -3924,19 +3980,19 @@ function openHand(id) {
   H = normHand(clone(h)); editingId = h.id; origJson = JSON.stringify(H); ui.seat = null;
   rememberPos();
   ui.hFrom = ui.tab === 'edit' ? 'list' : ui.tab;   /* « retour » goes back to the screen the hand was opened from */
-  ui.tab = 'edit'; ui.hDet = true; ui.street = 'preflop'; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = ''; ui.mode = 'act'; ui.det = false;
+  ui.tab = 'edit'; ui.hDet = true; ui.street = 'preflop'; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = ''; ui.mode = 'act'; ui.det = false; ui.bil = false;
   renderAll(); window.scrollTo(0, 0); saveDraftSoon();
 }
 /* the entry screen for a fresh hand (an entry already in progress is simply taken back up) */
 function startNew() {
   rememberPos(); autoLive();
-  ui.tab = 'edit'; ui.hDet = false; ui.rv = null; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = ''; ui.delGroup = null; ui.det = false;
+  ui.tab = 'edit'; ui.hDet = false; ui.rv = null; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = ''; ui.delGroup = null; ui.det = false; ui.bil = false;
   renderAll(); window.scrollTo(0, 0); saveDraftSoon();
 }
 function resetEditor(ctx) {
   H = newHand(ctx || { tournament: H.tournament, date: H.date, table: H.table, ante: H.ante });
   editingId = null; origJson = ''; ui.tManual = false; ui.hDet = false; ui.seat = null;
-  ui.street = 'preflop'; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = ''; ui.tagDraft = ''; ui.mode = null; ui.det = false;
+  ui.street = 'preflop'; ui.picker = null; ui.pending = null; ui.actor = null; ui.confirm = ''; ui.tagDraft = ''; ui.mode = null; ui.det = false; ui.bil = false;
   clearDraft();
 }
 /* an empty new hand carries the tournament in progress, unless a name was chosen or typed by hand */
@@ -4176,7 +4232,9 @@ const A = {
   },
   hmove() { H.hero.pos = ''; ui.seat = null; ui.mode = null; rerender(); },
   /* the steps under the table, the details window, the last action taken back */
-  dock(el) { ui.mode = el.dataset.v; ui.pending = null; if (el.dataset.id) ui.seat = el.dataset.id; rerender(); },
+  dock(el) { ui.mode = el.dataset.v; ui.pending = null; if (el.dataset.id) ui.seat = el.dataset.id; if (ui.mode === 'end') { ui.bil = true; ui.bilY = 0; } rerender(); },   /* « Résultat » opens the Bilan */
+  bil() { ui.mode = 'end'; ui.pending = null; ui.bil = true; ui.bilY = 0; rerender(); },
+  bilx() { ui.bil = false; renderEdit(); renderSheet(); },
   det() { ui.det = true; renderSheet(); },
   detx() { ui.det = false; ui.delAsk = null; ui.confirm = ''; renderEdit(); renderSheet(); },
   uact() {
@@ -4188,7 +4246,7 @@ const A = {
     rerender();
   },   /* the table is free to turn again; villains keep their seats */
   delv(el) { removeVillain(el.dataset.id); rerender(); },
-  pick(el) { ui.picker = { group: el.dataset.g, i: +el.dataset.i }; renderEdit(); renderSheet(); },
+  pick(el) { const b = document.querySelector('#sheet-root .sheet.bil'); if (b) ui.bilY = b.scrollTop; ui.picker = { group: el.dataset.g, i: +el.dataset.i }; renderEdit(); renderSheet(); },   /* from the Bilan: it comes back where it was */
   rank(el) { setCardPart('rank', el.dataset.v); },
   suit(el) { setCardPart('suit', el.dataset.v); },
   clearcard() { const arr = cardsOf(H, ui.picker.group); if (arr) { arr[ui.picker.i] = null; rerender(); } },
@@ -4496,7 +4554,8 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (e.target && e.target.id === 'in-tq' && ui.block === 'suivi') { AT.tqtoggle(); return; }   /* Escape in the tournament search: close it */
-  if (ui.pview) A.phclose(); else if (ui.det && ui.block === 'mains' && !ui.modal && !ui.askOpen && !ui.picker) A.detx(); else if (ui.askOpen) A['askopen-cancel'](); else if (ui.tf && ui.block === 'suivi') AT.tclose(); else if (ui.tcard && ui.block === 'suivi') AT.tcardx();
+  if (e.target && e.target.id === 'in-tourn') return;   /* Escape in the name of the tournament: only leaves the field */
+  if (ui.pview) A.phclose(); else if (ui.det && ui.block === 'mains' && !ui.modal && !ui.askOpen && !ui.picker) A.detx(); else if (ui.bil && ui.block === 'mains' && !ui.modal && !ui.askOpen && !ui.picker) A.bilx(); else if (ui.askOpen) A['askopen-cancel'](); else if (ui.tf && ui.block === 'suivi') AT.tclose(); else if (ui.tcard && ui.block === 'suivi') AT.tcardx();
 });
 document.addEventListener('click', e => {
   const t = e.target;
@@ -4510,7 +4569,7 @@ document.addEventListener('input', e => {
   if (k === 'tq') { ui.tq = t.value; tqSync(); return; }   /* tournaments search (Suivi) */
   if (k === 'apikey') { ui.keyDraft = t.value; return; }   /* the key: held only until saved, never part of the hand */
   if (k === 'fix') { ui.fixDraft = { id: t.dataset.id, text: t.value }; return; }   /* review field: kept until validated or left */
-  if (k === 'tourn') { H.tournament = t.value; ui.tManual = true; $('#stat').textContent = t.value; syncPickT(); }
+  if (k === 'tourn') { H.tournament = t.value; ui.tManual = true; ui.tbQ = t.value; tbSync(true); }
   else if (k === 'date') { H.date = t.value || todayStr(); const dt = $('#date-txt'); if (dt) dt.textContent = dateLbl(H.date); }
   else if (k === 'ante') { H.ante = num(t.value) > 0 ? num(t.value) : 0; syncChips('ante', null, H.ante); tblLive(); }
   else if (k === 'hstack') { H.hero.stack = t.value; syncChips('hstack', '', num(t.value)); tblLive(); }
@@ -4531,6 +4590,7 @@ document.addEventListener('change', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'in-tag') { e.preventDefault(); A.addtag(); }
+  if ((e.key === 'Enter' || e.key === 'Escape') && e.target.id === 'in-tourn' && !e.isComposing) { e.preventDefault(); e.target.blur(); }
   if (e.key === 'Enter' && e.target.id === 'in-key') { e.preventDefault(); A.keysave(); }
 });
 /* review on a computer: keys. B = Bon, M = Mauvais, ← → = previous / next, C = copy. Never while typing in a field. */
@@ -4556,6 +4616,8 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('mousedown', e => { if (e.target.closest && e.target.closest('[data-keepfocus]')) e.preventDefault(); });
 document.addEventListener('focusout', e => { if (e.target && e.target.id === 'in-fix') setTimeout(commitFix, 200); });
+document.addEventListener('focusin', e => { if (e.target && e.target.id === 'in-tourn') { ui.tbQ = null; tbSync(true); } });
+document.addEventListener('focusout', e => { if (e.target && e.target.closest && e.target.closest('#tbar')) setTimeout(() => { const a = document.activeElement; if (!(a && a.closest && a.closest('#tbar'))) tbSync(false); }, 250); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(draftTimer); writeDraft(); commitFix(); tdNow(); } });
 window.addEventListener('pagehide', () => { clearTimeout(draftTimer); writeDraft(); commitFix(); tdNow(); });
 
@@ -4565,10 +4627,12 @@ window.addEventListener('pagehide', () => { clearTimeout(draftTimer); writeDraft
 let navBusy = false, navDirty = false, navTimer = 0;
 const navHave = () => { const st = history.state; return st && typeof st.d === 'number' ? st.d : 0; };
 const navOver = () => !!(ui.pview || ui.askOpen || ui.modal || ui.picker || ((ui.tf || ui.tcard) && ui.block === 'suivi'));
+const navEdit = () => ui.block === 'mains' && ui.tab === 'edit';
 function navDepth() {
   if (ui.block === 'home') return 0;
   let d = 1;
   if (ui.block === 'suivi' ? !!ui.tstage : (ui.tab === 'edit' && ui.hDet) || (ui.tab === 'review' && !!ui.rv)) d++;
+  if (navEdit()) d += (ui.det ? 1 : 0) + (ui.bil ? 1 : 0);   /* the details and the Bilan: one level each */
   if (navOver()) d++;
   return d;
 }
@@ -4595,6 +4659,8 @@ function navClose() {
   else if (ui.askOpen) A['askopen-cancel']();
   else if (ui.modal) A.closemodal();
   else if (ui.picker) A.closesheet();
+  else if (navEdit() && ui.det) A.detx();
+  else if (navEdit() && ui.bil) A.bilx();
   else if (ui.tf && ui.block === 'suivi') AT.tclose();
   else if (ui.tcard && ui.block === 'suivi') AT.tcardx();
   else if (ui.block === 'suivi' && ui.tstage) AT.tback();
@@ -4616,7 +4682,7 @@ try { if (window.history && history.replaceState) history.replaceState({ d: 0 },
 /* ===== boot ===== */
 tLoad();
 const saved = loadDraft();
-if (saved) { H = saved.h; editingId = saved.editingId; draftLoaded = true; }
+if (saved) { H = saved.h; editingId = saved.editingId; draftLoaded = true; ui.tManual = saved.tManual; }
 else H = newHand({ tournament: liveOnlyName() });
 if (isWide()) ui.tab = 'review';   /* a computer is for reviewing */
 if (WIDE_Q) { const onWide = () => renderAll(); if (WIDE_Q.addEventListener) WIDE_Q.addEventListener('change', onWide); else if (WIDE_Q.addListener) WIDE_Q.addListener(onWide); }
