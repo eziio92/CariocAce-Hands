@@ -565,13 +565,27 @@ img.wait{opacity:0}
 .mc-v small{margin-left:3px;font:500 12px var(--f-body);letter-spacing:0;color:var(--fg-2)}
 .mc-bar{height:6px;margin:10px 0 8px;border-radius:999px;background:var(--field);overflow:hidden}
 .mc-bar u{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--acc-2),var(--acc-1));text-decoration:none}
-.mc-s{display:flex;align-items:center;gap:12px;font:500 12px var(--f-body);color:var(--fg-3)}
-.mc-s span{flex:none;white-space:nowrap}
-.mc-sp{flex:1;min-width:0;height:30px}
-.mc-sp polyline{fill:none;stroke:var(--fg);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke;opacity:.8}
+/* the mental tab: per mark, the trend and the curve (0 to 10, one point per debrief) */
+.mc-tr{margin:6px 0 0;font:600 13px/1.3 var(--f-body);color:var(--fg-2)}
+.mc-tr span{font-weight:500;font-size:12px;color:var(--fg-3);margin-left:4px}
+.mc-tr.up{color:var(--ok)}
+.mc-tr.dn{color:var(--bad)}
+.mc-n{margin:6px 0 0;font:500 11.5px var(--f-body);color:var(--fg-3)}
+.mch{position:relative;display:grid;grid-template-columns:18px minmax(0,1fr);grid-template-rows:110px auto;column-gap:6px;margin-top:12px}
+.mch-y{position:relative;grid-row:1}
+.mch-y span{position:absolute;right:0;transform:translateY(-50%);font:500 10px/1 var(--f-body);font-variant-numeric:tabular-nums;color:var(--fg-3)}
+.mch-s{grid-row:1;grid-column:2;width:100%;height:110px;overflow:visible}
+.mch-g{fill:none;stroke:var(--edge);stroke-width:1;stroke-dasharray:3 4;vector-effect:non-scaling-stroke}
+.mch-a{fill:rgba(255,255,255,.06)}
+.mch-l{fill:none;stroke:var(--acc-2);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.mch-d{fill:none;stroke:var(--acc-2);stroke-width:6;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.mch-d.last{stroke:var(--acc-1);stroke-width:9}
+.mch-x{grid-column:2;display:flex;justify-content:space-between;margin-top:4px;font:500 10.5px var(--f-body);color:var(--fg-3)}
 .dbh{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:48px;padding:0 4px 0 0;border:0;border-top:1px solid var(--edge);background:transparent;color:var(--fg);font:600 15px var(--f-body);text-align:left}
 .dbh i{margin-left:8px;font-style:normal;font-weight:500;font-size:12.5px;color:var(--fg-3)}
 .dbh[aria-expanded=true] .mo-ch{transform:rotate(90deg)}
+.dbh.req i{color:var(--warn)}   /* required to close the tournament */
+.sc.need{padding:4px;margin:-4px;border-radius:18px;box-shadow:0 0 0 1.5px var(--warn)}   /* a mark still missing when « Enregistrer » was touched */
 .sc{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
 .sc-b{min-height:46px;padding:0;border-radius:14px;border:1px solid var(--edge);background:var(--field);color:var(--fg);font:600 17px var(--f-disp);font-variant-numeric:tabular-nums}
 .sc-b:active{background:var(--glass-3)}
@@ -762,11 +776,12 @@ html.has-nav.has-sb .toast{bottom:calc(var(--navh) + 98px)}
 .seat.edl .sl{left:12px;transform:none}
 .seat.edr .sl{left:auto;right:12px;transform:none}
 .seat .dbtn{position:absolute;top:calc(-5px*var(--ss,1));right:calc(-5px*var(--ss,1));width:calc(18px*var(--ss,1));height:calc(18px*var(--ss,1));border-radius:50%;background:radial-gradient(circle at 50% 30%,#ffffff,#e6e9ef 58%,#b9c1cc);color:#0b0c0e;font:800 calc(10px*var(--ss,1))/calc(18px*var(--ss,1)) var(--f-body);text-align:center;font-style:normal;box-shadow:0 0 0 1.5px rgba(0,0,0,.5),0 2px 5px rgba(0,0,0,.6)}
-.sc{position:absolute;left:50%;top:50%;display:flex;pointer-events:none;will-change:transform}
-.sc .card.mini{width:calc(22px*var(--ss,1));height:calc(31px*var(--ss,1));border-radius:5px;box-shadow:0 2px 6px rgba(0,0,0,.55)}
-.sc .card.mini .r{font-size:calc(12px*var(--ss,1))}
-.sc .card.mini .s{font-size:calc(9px*var(--ss,1));margin-top:1px}
-.sc .card.mini+.card.mini{margin-left:-5px}
+/* the cards seen on a villain's seat (not .sc: that is the 0-10 marks of the mental debrief, in the tournament form) */
+.svc{position:absolute;left:50%;top:50%;display:flex;pointer-events:none;will-change:transform}
+.svc .card.mini{width:calc(22px*var(--ss,1));height:calc(31px*var(--ss,1));border-radius:5px;box-shadow:0 2px 6px rgba(0,0,0,.55)}
+.svc .card.mini .r{font-size:calc(12px*var(--ss,1))}
+.svc .card.mini .s{font-size:calc(9px*var(--ss,1));margin-top:1px}
+.svc .card.mini+.card.mini{margin-left:-5px}
 .tcn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:88%;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;pointer-events:none}
 .tcn .k{font:600 calc(10px*var(--k,1))/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3)}
 .tcn .v{font:600 calc(26px*var(--k,1))/1 var(--f-disp);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
@@ -2109,7 +2124,7 @@ function tblPlace(fast) {
     const ex = (p[0] - g.x) / g.w;   /* the far left and right of the table: the label is kept on the inside */
     s.classList.toggle('edl', ex < 0.06);
     s.classList.toggle('edr', ex > 0.94);
-    const c = s.querySelector('.sc');   /* the cards seen on a villain lie towards the middle of the table */
+    const c = s.querySelector('.svc');   /* the cards seen on a villain lie towards the middle of the table */
     if (c) {
       const dx = g.cx - p[0], dy = g.cy - p[1], d = Math.hypot(dx, dy) || 1;
       c.style.transform = ph   /* a phone: beside the seat, on the side of the middle (its label is under it) */
@@ -2185,7 +2200,7 @@ function seatHtml(p, j, foc, cx) {
   const folded = !!(id && cx && cx.S.folded[id]);
   const last = id && cx ? cx.S.rows.filter(r => r.id === id).pop() : null;
   const lbl = isH ? 'Hero, ' + posLabel(H.table, p) : v ? 'Adversaire, ' + posLabel(H.table, p) : 'Siège ' + posLabel(H.table, p) + ', libre';
-  const cards = v && v.cards.some(Boolean) ? '<span class="sc">' + v.cards.map(c => c ? cardFace(c, 'mini') : '').join('') + '</span>' : '';
+  const cards = v && v.cards.some(Boolean) ? '<span class="svc">' + v.cards.map(c => c ? cardFace(c, 'mini') : '').join('') + '</span>' : '';
   return '<button type="button" class="seat' + (isH ? ' hero' : v ? ' vil' : '') + (on ? ' foc' : '') + (act ? ' act' : '') + (folded ? ' fold' : '') + '"' + (acting && id && cx.may[id] ? ' data-may="1"' : '') + ' data-act="seat" data-p="' + esc(p) + '" data-j="' + j + '" aria-label="' + esc(lbl + (last ? ', ' + rowShort(last) : '') + (act ? ', à parler' : '')) + '">' +
     (isH ? '<span class="sh">Hero</span>' : '') + '<span class="sp' + (p.length > 4 ? ' lg' : '') + '">' + esc(p) + '</span>' +
     (stk > 0 || last ? '<span class="sl">' + (stk > 0 ? '<span class="ss">' + fmt(stk) + '</span>' : '') + (last ? '<span class="sa">' + esc(rowShort(last)) + '</span>' : '') + '</span>' : '') +
@@ -3435,19 +3450,38 @@ function tLiveBox(links) {
 }
 
 /* ===== mental space: averages and curve per mark, the debriefs, the tournaments still to debrief ===== */
+/* per mark: the average, the debriefs in order (value and date), and the trend: the last debriefs (5, or half of them when there are fewer
+   than 10) against the same number just before. Under half a point apart, it is stable. */
 function mStats(list) {
   const rows = tChrono(list.filter(t => t.mental)), o = { n: rows.length, k: {} };
+  const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
   M_KEYS.forEach(k => {
-    const v = rows.map(t => t.mental[k]).filter(x => x !== null), l5 = v.slice(-5), avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
-    o.k[k] = { n: v.length, avg: avg(v), last: avg(l5), series: v };
+    const pts = rows.filter(t => t.mental[k] !== null && t.mental[k] !== undefined).map(t => ({ v: t.mental[k], date: t.date })), v = pts.map(x => x.v);
+    const w = Math.min(5, Math.floor(v.length / 2));
+    const delta = w >= 2 ? avg(v.slice(-w)) - avg(v.slice(-2 * w, -w)) : null;
+    o.k[k] = { n: v.length, avg: avg(v), pts: pts, w: w, delta: delta };
   });
   return o;
 }
-function mSpark(pts) {
-  const n = pts.length, Y = v => (30 - v * 3).toFixed(1);
+function mTrend(s) {
+  if (s.delta === null) return '<p class="mc-tr">Tendance à partir de 4 débriefs</p>';
+  const d = Math.round(s.delta * 10) / 10, gap = (d === 0 ? 'même niveau' : (d > 0 ? '+' : '−') + fmt1(Math.abs(d))) + ' sur les ' + s.w + ' derniers débriefs';
+  const kind = Math.abs(s.delta) < 0.5 ? ['st', '→ stable'] : d > 0 ? ['up', '↗ en progression'] : ['dn', '↘ en baisse'];
+  return '<p class="mc-tr ' + kind[0] + '">' + kind[1] + ' <span>' + esc(gap) + '</span></p>';
+}
+/* the curve of a mark: one point per debrief, in order, on a 0-10 scale; the latest point stands out */
+function mChart(pts) {
+  const n = pts.length;
   if (!n) return '';
-  const p = n === 1 ? '0,' + Y(pts[0]) + ' 100,' + Y(pts[0]) : pts.map((v, i) => (i / (n - 1) * 100).toFixed(1) + ',' + Y(v)).join(' ');
-  return '<svg class="mc-sp" viewBox="0 -2 100 34" preserveAspectRatio="none" aria-hidden="true"><polyline points="' + p + '"/></svg>';
+  const X = i => n === 1 ? 150 : (8 + i * 284 / (n - 1)), Y = v => 100 - v * 9;
+  const line = pts.map((p, i) => X(i).toFixed(1) + ',' + Y(p.v).toFixed(1)).join(' ');
+  const area = n > 1 ? '<polygon class="mch-a" points="' + X(0).toFixed(1) + ',100 ' + line + ' ' + X(n - 1).toFixed(1) + ',100"/>' : '';
+  const dots = pts.map((p, i) => '<path class="mch-d' + (i === n - 1 ? ' last' : '') + '" d="M' + X(i).toFixed(1) + ' ' + Y(p.v).toFixed(1) + 'h0"/>').join('');
+  const dl = d => { const x = new Date(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)); return x.getDate() + ' ' + x.toLocaleDateString('fr-FR', { month: 'short' }); };
+  return '<div class="mch"><div class="mch-y" aria-hidden="true"><span style="top:9.1%">10</span><span style="top:50%">5</span><span style="top:90.9%">0</span></div>' +
+    '<svg class="mch-s" viewBox="0 0 300 110" preserveAspectRatio="none" aria-hidden="true"><path class="mch-g" d="M0 10H300M0 55H300M0 100H300"/>' + area +
+    (n > 1 ? '<polyline class="mch-l" points="' + line + '"/>' : '') + dots + '</svg>' +
+    (n > 1 ? '<div class="mch-x"><span>' + esc(dl(pts[0].date)) + '</span><span>' + esc(dl(pts[n - 1].date)) + '</span></div>' : '') + '</div>';
 }
 function mRow(t, todo) {
   const d = new Date(+t.date.slice(0, 4), +t.date.slice(5, 7) - 1, +t.date.slice(8, 10)), m = t.mental;
@@ -3458,11 +3492,10 @@ function mRow(t, todo) {
 }
 function tMentalHtml(list, y) {
   const ms = mStats(list), without = list.filter(t => !t.mental), rows = list.filter(t => t.mental), todo = without.slice(0, 5);
-  const cards = M_KEYS.map(k => {
+  const cards = M_KEYS.map(k => {   /* each mark: its average, whether it goes up or down, and its curve */
     const s = ms.k[k];
     return '<div class="mc"><div class="mc-t"><span class="k">' + M_LABEL[k] + '</span><span class="mc-v">' + (s.avg === null ? '–' : esc(fmt1(s.avg)) + '<small>/10</small>') + '</span></div>' +
-      (s.avg === null ? '' : '<div class="mc-bar" aria-hidden="true"><u style="width:' + (s.avg * 10).toFixed(1) + '%"></u></div>' +
-        '<div class="mc-s">' + mSpark(s.series) + '<span>' + (s.n > 5 ? '5 derniers : ' + esc(fmt1(s.last)) : s.n + ' note' + (s.n > 1 ? 's' : '')) + '</span></div>') + '</div>';
+      (s.avg === null ? '' : mTrend(s) + mChart(s.pts) + '<p class="mc-n">' + s.n + ' débrief' + (s.n > 1 ? 's' : '') + ' · moyenne de l\'année</p>') + '</div>';
   }).join('');
   return '<div class="sec"><div class="sec-h"><span class="lbl">Mental ' + y + '</span><span class="pot">' + (ms.n ? '<b>' + ms.n + '</b> débrief' + (ms.n > 1 ? 's' : '') + ' sur ' + list.length : list.length + ' tournoi' + (list.length > 1 ? 's' : '')) + '</span></div>' +
     (ms.n ? '<div class="mcs">' + cards + '</div>' : '<p class="hint" style="margin:0">Aucun débrief en ' + y + '. Après un tournoi, note ton niveau de jeu, ta discipline et ta récupération émotionnelle de 0 à 10.</p>') +
@@ -3476,13 +3509,24 @@ function tScoreFld(k, label, v) {
   b += '<button type="button" class="sc-b sc-x" data-act="tscore" data-k="' + k + '" data-v="" aria-label="Effacer la note">×</button>';
   return fld(label + ' <em class="sc-v" id="sc-' + k + '-v">' + (v === null ? 'non noté' : v + '/10') + '</em>', '<div class="sc" role="group" aria-label="' + label + '">' + b + '</div>');
 }
+/* closing a tournament (a new one already over, « Terminer », or one that was being played and no longer is): its three marks are required.
+   A tournament closed earlier and only corrected now is not held to it (it stays in « À débriefer »). */
+function tClosing(f) {
+  if (f.live) return false;
+  if (!f.id || f.fin) return true;
+  const old = tStore.list.find(t => t.id === f.id);
+  return !!(old && old.live);
+}
+const tDbTag = (f, n) => n === 3 ? '3/3 notés' : tClosing(f) ? 'obligatoire' + (n ? ' · ' + n + '/3' : '') : n ? n + '/3 noté' + (n > 1 ? 's' : '') : 'facultatif';
 function tDebriefFld(f) {
-  const n = (f.mg !== null) + (f.md !== null) + (f.mr !== null);
-  return '<div class="fld"><button type="button" class="dbh" data-act="tdbt" aria-expanded="' + (f.dbo ? 'true' : 'false') + '"><span>Débrief mental <i>' + (n ? n + '/3 noté' + (n > 1 ? 's' : '') : 'facultatif') + '</i></span>' +
-    '<svg class="mo-ch" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>' +
-    (f.dbo ? tScoreFld('g', M_LABEL.g, f.mg) + tScoreFld('d', M_LABEL.d, f.md) + tScoreFld('r', M_LABEL.r, f.mr) +
+  const n = (f.mg !== null) + (f.md !== null) + (f.mr !== null), req = tClosing(f), open = f.dbo || req;   /* required: always open */
+  return '<div class="fld" id="t-dbf">' + (req
+    ? '<div class="dbh req"><span>Débrief mental <i>' + tDbTag(f, n) + '</i></span></div>'
+    : '<button type="button" class="dbh" data-act="tdbt" aria-expanded="' + (open ? 'true' : 'false') + '"><span>Débrief mental <i>' + tDbTag(f, n) + '</i></span>' +
+      '<svg class="mo-ch" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>') +
+    (open ? tScoreFld('g', M_LABEL.g, f.mg) + tScoreFld('d', M_LABEL.d, f.md) + tScoreFld('r', M_LABEL.r, f.mr) +
       fld('Note du débrief (facultatif)', '<textarea class="inp" id="in-tdb" data-in="t-db" maxlength="600" placeholder="Ce qui s\'est passé, ce que tu retiens...">' + esc(f.db) + '</textarea>') +
-      '<p class="hint" style="margin:0">De 0 à 10. Ces notes sont à part : elles ne comptent ni dans le ROI, ni dans l\'ITM.</p>' : '') + '</div>';
+      '<p class="hint" style="margin:0">De 0 à 10' + (req ? ', les trois notes obligatoires pour clôturer le tournoi' : '') + '. Ces notes sont à part : elles ne comptent ni dans le ROI, ni dans l\'ITM.</p>' : '') + '</div>';
 }
 /* the form state of a saved tournament */
 function tFormFrom(t, over) {
@@ -3820,7 +3864,8 @@ function tSync() {
     const o = $('#sc-' + k + '-v'); if (o) o.textContent = v === null ? 'non noté' : v + '/10';
   });
   const dh = document.querySelector('#sheet-root .dbh i');
-  if (dh) { const n = (f.mg !== null) + (f.md !== null) + (f.mr !== null); dh.textContent = n ? n + '/3 noté' + (n > 1 ? 's' : '') : 'facultatif'; }
+  if (dh) { const n = (f.mg !== null) + (f.md !== null) + (f.mr !== null); dh.textContent = tDbTag(f, n); }
+  M_KEYS.forEach(k => { const g = document.querySelector('#sheet-root [data-act=tscore][data-k=' + k + ']'); if (g && g.parentElement) g.parentElement.classList.toggle('need', !!f.needM && f['m' + k] === null); });
   const er = $('#t-err'); if (er) { er.textContent = f.err || ''; er.hidden = !f.err; }
   const cl = $('#t-clear'); if (cl) cl.hidden = tfSnap(f) === ui.tfBase;
   tdSoon();
@@ -3936,7 +3981,7 @@ const AT = {
   tserie(el) { const f = ui.tf; if (!f) return; f.serie = normName(f.serie) === normName(el.dataset.v) ? '' : el.dataset.v; f.sAuto = ''; tAutoEtape(); tSync(); },
   tstages() { ui.tsAll = !ui.tsAll; tStagesSync(); },
   tdbt() { const f = ui.tf; if (!f) return; f.dbo = !f.dbo; renderTSheet(); },
-  tscore(el) { const f = ui.tf, k = el.dataset.k; if (!f || M_KEYS.indexOf(k) < 0) return; f['m' + k] = el.dataset.v === '' ? null : +el.dataset.v; tSync(); },
+  tscore(el) { const f = ui.tf, k = el.dataset.k; if (!f || M_KEYS.indexOf(k) < 0) return; f['m' + k] = el.dataset.v === '' ? null : +el.dataset.v; if (f.needM && M_KEYS.every(x => f['m' + x] !== null)) { f.needM = false; f.err = ''; } tSync(); },
   tclose() {   /* leaving the sheet keeps what was typed; the page behind has not moved */
     const f = ui.tf;
     if (!f) return;
@@ -3982,6 +4027,13 @@ const AT = {
     if (!err && joueurs !== null && !(joueurs >= 1 && joueurs <= T_MAX.place)) err = 'Joueurs : un nombre à partir de 1, ou laisse vide.';
     if (!err && !live && joueurs !== null && place !== null && place > joueurs) err = 'La place finale ne peut pas dépasser le nombre de joueurs.';
     if (!err && !live && joueurs !== null && paid !== null && paid > joueurs) err = 'Les places payées ne peuvent pas dépasser le nombre de joueurs.';
+    const miss = tClosing(f) ? M_KEYS.filter(k => f['m' + k] === null) : [];
+    if (!err && miss.length) {   /* closing without the three marks: the debrief is shown, what is missing is said and outlined */
+      f.err = 'Débrief mental obligatoire pour clôturer : il manque ' + miss.map(k => M_LABEL[k].toLowerCase()).join(', ') + '.';
+      f.needM = true; renderTSheet();
+      const at = $('#t-dbf'); if (at) at.scrollIntoView({ block: 'start', behavior: tblCalm() ? 'auto' : 'smooth' });
+      return;
+    }
     if (err) { f.err = err; tSync(); return; }
     const now = new Date().toISOString(), old = f.id ? tStore.list.find(t => t.id === f.id) : null;
     const rec = {

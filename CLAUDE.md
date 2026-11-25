@@ -43,12 +43,18 @@ Deux blocs :
 - **Téléphone** : la table aussi grande que possible (toute la largeur, sièges des côtés jusque dans la marge), le board gros (cartes de base 46 × 64), les cartes de Hero juste au-dessus de son siège, le pot sous le board. Les réglages propres au téléphone passent par `.tbl.ph`.
 - **Ordinateur** (1000 px et plus, `body.wide-ed`) : en-tête sur une ligne, table à gauche sur toute la hauteur, panneau à droite ; sièges et cartes grandissent avec la table. L'auteur le trouve parfait : ne pas le changer sans qu'il le demande.
 
+## Suivi : débrief mental (choix de l'auteur, 26 nov. 2026)
+
+- **Débrief obligatoire à la clôture** : niveau de jeu, discipline et récupération émotionnelle (0 à 10) sont obligatoires pour clôturer un tournoi (nouveau tournoi terminé, « Terminer » un tournoi en cours, ou décocher « Tournoi en cours »). La note écrite reste facultative. Un tournoi déjà clôturé qu'on corrige n'y est pas obligé (il reste dans « À débriefer »). Voir `tClosing`.
+- **Onglet Mental** : par note, la moyenne de l'année, un verdict (↗ en progression, → stable, ↘ en baisse : les 5 derniers débriefs contre les 5 d'avant, ou la moitié quand il y en a moins de 10 ; moins d'un demi-point d'écart = stable) et une courbe 0 à 10, un point par débrief.
+
 ## Façon de travailler (choisie par l'auteur le 25 nov. 2026)
 
 1. **Une branche par évolution**, partie de `main` à jour : `git switch main && git pull && git switch -c <sujet-court>`. Jamais de commit ni de push direct sur `main`.
 2. **Tester en local avant de proposer** : serveur `copilot` de `.claude/launch.json` (`python3 -m http.server 8000` à la racine), http://localhost:8000/ au format de l'iPhone de l'auteur (voir ci-dessous) puis bureau (1440 × 900). Pas d'erreur dans la console ; vérifier la fonction modifiée, et qu'une main et un tournoi s'enregistrent, se rouvrent et survivent à un rechargement. Les données de `localhost` sont séparées de celles du téléphone (autre origine) : on peut tout casser en test.
    - Les événements focus / blur ne partent pas tant que la fenêtre de test n'a pas le focus (`document.hasFocus()` faux) : les tester avec de vrais clics, pas en JavaScript.
    - Une main neuve contient toujours un adversaire sans siège (`V1`) : c'est normal.
+   - **Noms de classes CSS** : tout est dans un seul fichier, une règle peut en écraser une autre du même nom. Avant d'en créer une, vérifier qu'elle n'existe pas (`grep -n '^\.nom' index.html`). Exemple vécu : `.sc` (les notes 0 à 10 du débrief) écrasée par une règle des cartes vues sur un siège, renommée depuis `.svc` ; les notes flottaient au milieu du formulaire et ne répondaient plus au toucher.
    - **L'iPhone de l'auteur** : iPhone 16 Pro Max (écran 440 × 956 pt), appli installée sur l'écran d'accueil. Elle ne reçoit qu'une page de 894 pt de haut (62 pt de moins que l'écran), alors que les marges `safe-area` valent toujours 62 en haut et 34 en bas. Tester les mises en page du téléphone à 440 × 894, hauteur d'écran 956, marges 62 / 34. Tester à 375 × 812 ou à 956 pt pleins a déjà caché une table bien trop petite sur le vrai téléphone.
    - Pour des rendus nets à ce format : Chrome sans interface piloté par le protocole DevTools (`Emulation.setDeviceMetricsOverride` avec `screenHeight`, `Emulation.setSafeAreaInsetsOverride`, `Page.captureScreenshot`), et comparer côte à côte avec les captures de l'auteur.
 3. **Tester sur l'iPhone avant la fusion** quand le toucher compte (glisser, clavier, geste retour) : même Wi-Fi, Safari sur `http://<adresse du Mac>:8000/` (`ipconfig getifaddr en0`). Données séparées de la vraie appli. Ce test passe par Safari, pas par l'appli installée : il ne montre pas sa page plus courte.
