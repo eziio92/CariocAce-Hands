@@ -739,7 +739,18 @@ html.has-nav.has-sb .toast{bottom:calc(var(--navh) + 98px)}
 .tcn .v{font:600 30px/1 var(--f-disp);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
 .tcn.ask .q{font:600 20px/1.15 var(--f-disp);letter-spacing:-.02em}
 .tcn.ask .s{font:500 12.5px/1.4 var(--f-body);color:var(--fg-2)}
-.hc{position:absolute;left:50%;bottom:68px;transform:translateX(-50%);z-index:1;display:flex;gap:8px}
+.tcn.pt{top:26%;width:max-content;max-width:62%}
+.bd{position:absolute;left:50%;top:38%;transform:translateX(-50%);z-index:1;display:flex;gap:7px;align-items:center}
+.bd .bg{display:flex;gap:3px}
+.bd .card{width:29px;height:41px;border-radius:6px}
+.bd .card .r{font-size:15px}
+.bd .card .s{font-size:12px;margin-top:2px}
+.bd .card.empty .r{font-size:17px}
+.hc{position:absolute;left:50%;top:58%;transform:translateX(-50%);z-index:1;display:flex;gap:8px}
+.hc .card{width:47px;height:66px;border-radius:10px}
+.hc .card .r{font-size:24px}
+.hc .card .s{font-size:19px;margin-top:3px}
+.hc .card.empty .r{font-size:25px}
 .hc .card:first-child{transform:rotate(-4deg)}
 .hc .card:last-child{transform:rotate(4deg)}
 @media (prefers-reduced-motion:no-preference){
@@ -1742,7 +1753,7 @@ function renderEdit() {
    The seats sit on an oval rim. Before the Hero has picked his seat, the table turns under the finger (with a little momentum) and always
    settles with a seat at the bottom; once he picks one, that seat glides to the bottom and stays there. One critically damped spring drives
    every turn (drag release, tap on a seat, arrow key), so nothing ever starts or stops abruptly. */
-const TBL = { off: 0, v: 0, target: null, raf: 0, last: 0, drag: null, noClick: false, geo: null, geoKey: '', keep: false, fresh: '' };
+const TBL = { off: 0, v: 0, target: null, raf: 0, last: 0, drag: null, noClick: false, geo: null, geoKey: '', keep: false, fresh: '', bringing: false };
 const tblN = () => TABLES[H.table].length;
 const tblMod = (x, n) => ((x % n) + n) % n;
 const tblIdx = pos => TABLES[H.table].indexOf(pos);
@@ -1857,6 +1868,18 @@ function seatHtml(p, j, foc) {
     (dealer ? '<i class="dbtn">D</i>' : '') + cards + '</button>';
 }
 
+/* the board in the middle of the table: shown once the hand reaches the flop (an action, a card, the street being looked at, or a photo of the flop),
+   then the turn and the river as the hand gets there. The slots are touched like the ones of the Action block. */
+function tblBoard() {
+  let last = STREETS.indexOf(ui.street);
+  STREETS.forEach((s, i) => { if (i > 0 && (H.streets[s].length || H.board[s].some(Boolean))) last = Math.max(last, i); });
+  if (photoOk(H.photo)) last = Math.max(last, 1);   /* a photo of the flop: the flop is known, its place is ready */
+  if (last < 1) return '';
+  const pk = ui.picker;
+  return '<div class="bd" role="group" aria-label="Board">' + ['flop', 'turn', 'river'].map((g, k) => last < k + 1 ? '' :
+    '<span class="bg">' + H.board[g].map((c, i) => slotBtn(g, i, c, !!pk && pk.group === g && pk.i === i)).join('') + '</span>').join('') + '</div>';
+}
+
 function secTable(sim) {
   const T = TABLES[H.table], hp = H.hero.pos, foc = tblFocusId(), S = sim.streets[ui.street], ante = num(H.ante);
   const pk = ui.picker && ui.picker.group === 'hero' ? ui.picker.i : -1;
@@ -1866,8 +1889,9 @@ function secTable(sim) {
     '<filter id="tbl-g2" x="-15%" y="-15%" width="130%" height="130%"><feGaussianBlur stdDeviation="2.4"/></filter></defs>' +
     '<path class="t-halo" filter="url(#tbl-g1)"/><path class="t-felt"/><path class="t-in"/><path class="t-glow" filter="url(#tbl-g2)"/><path class="t-rim"/></svg>';
   const centre = hp
-    ? '<div class="tcn"><span class="k">Pot · bb</span><span class="v" id="tbl-pot">' + fmt(S.potNow) + '</span></div>'
+    ? '<div class="tcn pt"><span class="k">Pot · bb</span><span class="v" id="tbl-pot">' + fmt(S.potNow) + '</span></div>'
     : '<div class="tcn ask"><span class="q">Où es-tu ?</span><span class="s">Fais glisser la table, puis touche ta place</span></div>';
+  const bd = hp ? tblBoard() : '';
   const hc = hp ? '<div class="hc' + (TBL.fresh === 'hero' ? ' pop' : '') + '">' + H.hero.cards.map((c, i) => slotBtn('hero', i, c, pk === i)).join('') + '</div>' : '';
   TBL.fresh = '';
   const hint = hp && !H.villains.length
@@ -1877,7 +1901,7 @@ function secTable(sim) {
     '<div class="seg" role="group" aria-label="Taille de la table">' + Object.keys(TABLES).map(k => '<button type="button" class="' + (H.table === k ? 'on' : '') + '" data-act="table" data-v="' + k + '">' + TABLE_LABEL[k] + '</button>').join('') + '</div>' +
     '<div class="stackrow anterow"><span class="lbl">Ante</span>' + chip('Aucune', { on: !(ante > 0), attrs: 'data-act="ante" data-v="0"' }) + chip('BBA 1 bb', { on: ante === 1, attrs: 'data-act="ante" data-v="1"' }) +
       '<input class="inp num sm" id="in-ante" inputmode="decimal" placeholder="autre" value="' + (ante > 0 && ante !== 1 ? esc(H.ante) : '') + '" data-in="ante" aria-label="Ante totale en bb" autocomplete="off"></div>' +
-    '<div class="tbl' + (hp ? '' : ' rot') + '" id="tbl" role="group" aria-label="Table, ' + TABLE_LABEL[H.table] + '">' + svg + centre + hc + T.map((p, j) => seatHtml(p, j, foc)).join('') + '</div>' +
+    '<div class="tbl' + (hp ? '' : ' rot') + '" id="tbl" role="group" aria-label="Table, ' + TABLE_LABEL[H.table] + '">' + svg + centre + bd + hc + T.map((p, j) => seatHtml(p, j, foc)).join('') + '</div>' +
     hint + '</div>';
 }
 
@@ -1916,16 +1940,47 @@ function tblLive() {
   if (pot) pot.textContent = fmt(simulate(H).streets[ui.street].potNow);
 }
 
-/* after a seat is touched, the panel under the table must be in view: a short, slow scroll, only if needed, never pushing the table under the header */
-function tblReveal() {
-  const f = $('.tfoc'), box = $('#tbl'), top = $('.top');
-  if (!f || !box) return;
-  const hb = top ? top.getBoundingClientRect().bottom : 0, r = f.getBoundingClientRect(), b = box.getBoundingClientRect();
-  const over = r.bottom - (window.innerHeight - 110);
-  if (over <= 0) return;
-  const by = Math.min(over, Math.max(0, b.top - hb - 8));
-  if (by > 4) window.scrollBy({ top: by, behavior: tblCalm() ? 'auto' : 'smooth' });
+/* Choosing the Hero's seat: if the bottom of the table is hidden by the bar at the bottom of the screen, the page first scrolls just enough to show it, and only
+   then does the table turn. Never both at once, and nothing scrolls after the other taps: a touch that lands on a moving screen lands in the wrong place. */
+function tblBringIn(go) {
+  const box = $('#tbl'), top = $('.top');
+  let by = 0;
+  if (box) {
+    const hb = top ? top.getBoundingClientRect().bottom : 0, b = box.getBoundingClientRect();
+    by = Math.min(Math.max(0, b.bottom + 6 - (window.innerHeight - 80)), Math.max(0, b.top - hb - 8));
+  }
+  if (by < 4) { go(); return; }
+  if (tblCalm()) { window.scrollBy(0, by); go(); return; }
+  const y0 = window.scrollY, t0 = performance.now();
+  let last = y0, still = 0, moved = false, done = false;
+  TBL.bringing = true;
+  window.scrollBy({ top: by, behavior: 'smooth' });
+  (function wait() {
+    if (done) return;
+    const y = window.scrollY;
+    if (Math.abs(y - y0) > 0.5) moved = true;
+    still = moved && Math.abs(y - last) < 0.5 ? still + 1 : 0; last = y;
+    if (still >= 3 || Math.abs(y - (y0 + by)) < 1 || performance.now() - t0 > 900) { done = true; TBL.bringing = false; go(); return; }
+    requestAnimationFrame(wait);
+  })();
 }
+
+/* A seat that moves while a finger lands on it (the table is still gliding) may be gone from under the finger when it lifts: the browser then sends the click
+   to the table and the tap is lost. The seat that was under the finger when it came down gets the tap (touch and pen; not when the page was scrolling). */
+let tblTap = null, tblScrolled = 0;
+window.addEventListener('scroll', () => { if (!TBL.bringing) tblScrolled = performance.now(); }, { passive: true });   /* the page's own scroll (bringing the table in) is not a person's scroll */
+document.addEventListener('pointerdown', e => {
+  const s = e.target.closest && e.target.closest('.seat');
+  tblTap = s && s.closest('#tbl') && e.pointerType !== 'mouse' && performance.now() - tblScrolled > 150
+    ? { id: e.pointerId, p: s.dataset.p, x: e.clientX, y: e.clientY, t: performance.now(), seen: false } : null;
+}, true);
+window.addEventListener('pointerup', e => {
+  const t = tblTap;
+  if (!t || t.id !== e.pointerId) return;
+  if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > 10 || performance.now() - t.t > 600) { tblTap = null; return; }
+  setTimeout(() => { if (tblTap === t) { tblTap = null; if (!t.seen && !TBL.noClick) A.seat({ dataset: { p: t.p } }); } }, 60);
+}, true);
+window.addEventListener('pointercancel', () => { tblTap = null; }, true);
 
 /* ---- the finger: turning the table before the Hero is seated ---- */
 document.addEventListener('pointerdown', e => {
@@ -1971,7 +2026,13 @@ function tblRelease(e) {
 }
 window.addEventListener('pointerup', tblRelease);
 window.addEventListener('pointercancel', tblRelease);
-window.addEventListener('click', e => { if (TBL.noClick) { e.stopPropagation(); e.preventDefault(); TBL.noClick = false; } }, true);
+window.addEventListener('click', e => {
+  const sc = e.target.closest && e.target.closest('.seat');
+  if (tblTap && sc && performance.now() - tblTap.t < 1500) {   /* the click went to the seat that was touched: fine; to another one (it moved under the finger): not that one */
+    if (sc.dataset.p === tblTap.p) tblTap.seen = true; else { e.stopPropagation(); e.preventDefault(); }
+  }
+  if (TBL.noClick) { e.stopPropagation(); e.preventDefault(); TBL.noClick = false; }
+}, true);
 /* arrows turn it too (no button for it on screen) */
 document.addEventListener('keydown', e => {
   if (H.hero.pos || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || !e.target.closest || !e.target.closest('#tbl')) return;
@@ -3904,16 +3965,16 @@ const A = {
   seat(el) {
     const p = el.dataset.p, v = H.villains.find(x => x.pos === p);
     if (!H.hero.pos) {
-      if (v) { ui.seat = v.id; rerender(); tblReveal(); return; }   /* a villain's seat cannot be the Hero's */
+      if (v) { ui.seat = v.id; rerender(); return; }   /* a villain's seat cannot be the Hero's */
       H.hero.pos = p; ui.seat = 'H'; TBL.fresh = 'hero';
-      TBL.keep = true; rerender(); TBL.keep = false;   /* drawn where the table is; then it glides until the Hero's seat is at the bottom */
-      tblSpringTo(tblHome()); tblReveal();
+      TBL.keep = true; rerender();   /* drawn where the table is; the page shows the whole table, then the table glides until the Hero's seat is at the bottom */
+      tblBringIn(() => { TBL.keep = false; if (H.hero.pos) tblSpringTo(tblHome()); });
       return;
     }
     if (H.hero.pos === p) ui.seat = 'H';
     else if (v) ui.seat = v.id;
     else { const id = 'V' + (H.nextV++); H.villains.push({ id: id, pos: p, stack: '', cards: [null, null], read: '' }); ui.seat = id; }
-    rerender(); tblReveal();
+    rerender();
   },
   hmove() { H.hero.pos = ''; ui.seat = null; rerender(); },   /* the table is free to turn again; villains keep their seats */
   delv(el) { removeVillain(el.dataset.id); rerender(); },
