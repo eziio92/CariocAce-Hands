@@ -715,41 +715,57 @@ html.has-nav.has-sb .toast{bottom:calc(var(--navh) + 98px)}
 .tbl.rot{touch-action:pan-y;cursor:grab}
 .tbl.rot:active{cursor:grabbing}
 .tbl-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
-.t-felt{fill:url(#tbl-fg)}
-.t-halo{fill:none;stroke:var(--tbl-glow);stroke-width:16;opacity:.2}
-.t-glow{fill:none;stroke:var(--tbl-glow);stroke-width:4;opacity:.7}
-.t-in{fill:none;stroke:rgba(228,235,245,.09);stroke-width:1;vector-effect:non-scaling-stroke}
-.t-rim{fill:none;stroke:var(--tbl-rim);stroke-width:1.6}
-.seat{position:absolute;left:0;top:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:60px;height:44px;padding:0 10px;border-radius:22px;
-  border:1.5px dashed rgba(228,235,245,.42);background:#0f1013;color:var(--fg-2);font:700 11.5px/1 var(--f-body);letter-spacing:.02em;white-space:nowrap;will-change:transform;touch-action:inherit;-webkit-tap-highlight-color:transparent}
-.seat::after{content:"";position:absolute;inset:-4px}
+/* the table: a graphite stadium, a raised rail around a dark felt (the sizes come from tblPlace) */
+.t-sh{fill:#000;opacity:.6}
+.t-rail{fill:url(#tbl-rail)}
+.t-spec{fill:none;stroke:url(#tbl-spec)}
+.t-rim{fill:none;stroke:url(#tbl-rim);stroke-width:1.5}
+.t-band{fill:url(#tbl-band);stroke:rgba(0,0,0,.85);stroke-width:1.2}
+.t-lip{fill:none;stroke:url(#tbl-lip);stroke-width:1}
+.t-felt{fill:url(#tbl-fg);stroke:rgba(255,255,255,.085);stroke-width:1}
+.t-gl{fill:url(#tbl-gl)}
+.tin{position:absolute;left:0;top:0;pointer-events:none}
+.tin .bd,.tin .hc{pointer-events:auto}
+/* a seat: a round with its position. Free: graphite; an adversary: a platinum ring; the Hero: pearl white */
+.seat{position:absolute;left:0;top:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:45px;height:45px;padding:0;border-radius:50%;
+  border:1.5px solid transparent;background:linear-gradient(180deg,#333439,#222327 55%,#1b1c1f) padding-box,linear-gradient(180deg,#7a7b81,#4a4b50 40%,#36373c 70%,#5d5e64) border-box;
+  color:#eeeef0;font:500 12.5px/1 var(--f-body);letter-spacing:0;white-space:nowrap;
+  box-shadow:0 0 0 3px rgba(0,0,0,.5),0 8px 18px rgba(0,0,0,.6),inset 0 1px 1px rgba(255,255,255,.1);will-change:transform;touch-action:inherit;-webkit-tap-highlight-color:transparent}
+.seat.hero::before{content:"";position:absolute;left:17%;right:17%;top:5%;height:40%;border-radius:50%;pointer-events:none}   /* the pearl's shine */
+.seat::after{content:"";position:absolute;inset:-4px;border-radius:50%}
 .seat:active{filter:brightness(1.3)}
-.seat .ss{font:600 10.5px/1 var(--f-mono);color:var(--fg);font-variant-numeric:tabular-nums}
-.seat.vil{border:1.5px solid rgba(228,235,245,.72);background:#1d2025;color:var(--fg)}
-.seat.hero{min-width:72px;height:56px;gap:2px;border:1.5px solid var(--tbl-rim);background:linear-gradient(180deg,#f6f8fc,#cdd5e1);color:#0b0c0e;box-shadow:0 0 18px var(--tbl-glow),0 6px 16px rgba(0,0,0,.5)}
-.seat.hero .sh{font:700 8.5px/1 var(--f-body);letter-spacing:.16em;text-transform:uppercase;opacity:.62}
-.seat.hero .sp{font-size:14px}
-.seat.hero .ss{color:#0b0c0e}
+.seat.vil{border-width:2px;background:linear-gradient(180deg,#3b3d43,#25272c 55%,#1b1c20) padding-box,linear-gradient(180deg,#ffffff,#cfd5de 40%,#8f98a5 72%,#d9dee6) border-box}
+.seat.hero{width:48px;height:48px;background:radial-gradient(circle at 50% 26%,#ffffff,#eef1f6 42%,#cbd2dd 88%) padding-box,linear-gradient(180deg,#ffffff,#9ea8b6) border-box;color:#0b0c0e;font-weight:600;
+  box-shadow:0 0 0 3px rgba(0,0,0,.45),0 0 18px var(--tbl-glow),0 8px 18px rgba(0,0,0,.55)}
+.seat.hero::before{background:linear-gradient(180deg,rgba(255,255,255,.7),rgba(255,255,255,0))}
+.seat.hero .sh{font:700 7px/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;opacity:.62}
 .seat.foc{outline:2px solid var(--tbl-rim);outline-offset:3px}
-.seat .dbtn{position:absolute;top:-8px;right:-5px;width:18px;height:18px;border-radius:50%;background:#EEF2F8;color:#0b0c0e;font:800 10px/18px var(--f-body);text-align:center;font-style:normal;box-shadow:0 1px 4px rgba(0,0,0,.55)}
+.seat .sp.lg{font-size:11.5px;letter-spacing:-.02em}   /* UTG+1, UTG+2: inside the round */
+/* what a seat has to say (stack, last action): a small label under the round, above it for the seats of the top half so the pot stays clear */
+.seat .sl{position:absolute;left:50%;top:calc(100% + 4px);transform:translateX(-50%);display:flex;align-items:center;gap:4px;padding:3px 7px;border-radius:9px;
+  background:rgba(12,12,14,.92);border:1px solid var(--edge);font:600 10px/1 var(--f-body);color:var(--fg-2);letter-spacing:.01em;white-space:nowrap;pointer-events:none}
+.seat.up .sl{top:auto;bottom:calc(100% + 8px)}
+.seat .ss{font:600 10px/1 var(--f-mono);color:var(--fg);font-variant-numeric:tabular-nums}
+.seat .ss+.sa::before{content:"·";margin-right:4px;color:var(--fg-3)}
+.seat .dbtn{position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 50% 30%,#ffffff,#e6e9ef 58%,#b9c1cc);color:#0b0c0e;font:800 10px/18px var(--f-body);text-align:center;font-style:normal;box-shadow:0 0 0 1.5px rgba(0,0,0,.5),0 2px 5px rgba(0,0,0,.6)}
 .sc{position:absolute;left:50%;top:50%;display:flex;pointer-events:none;will-change:transform}
 .sc .card.mini{width:22px;height:31px;border-radius:5px;box-shadow:0 2px 6px rgba(0,0,0,.55)}
 .sc .card.mini .r{font-size:12px}
 .sc .card.mini .s{font-size:9px;margin-top:1px}
 .sc .card.mini+.card.mini{margin-left:-5px}
-.tcn{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);width:62%;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;pointer-events:none}
+.tcn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:88%;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;pointer-events:none}
 .tcn .k{font:600 10px/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3)}
 .tcn .v{font:600 calc(30px*var(--k,1))/1 var(--f-disp);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
 .tcn.ask .q{font:600 20px/1.15 var(--f-disp);letter-spacing:-.02em}
 .tcn.ask .s{font:500 12.5px/1.4 var(--f-body);color:var(--fg-2)}
-.tcn.pt{top:27%;width:max-content;max-width:62%}
-.bd{position:absolute;left:50%;top:39%;transform:translateX(-50%);z-index:1;display:flex;gap:7px;align-items:center}
+.tcn.pt{top:25%;width:max-content;max-width:62%}
+.bd{position:absolute;left:50%;top:38%;transform:translateX(-50%);z-index:1;display:flex;gap:7px;align-items:center}
 .bd .bg{display:flex;gap:3px}
 .bd .card{width:calc(29px*var(--k,1));height:calc(41px*var(--k,1));border-radius:6px}
 .bd .card .r{font-size:calc(15px*var(--k,1))}
 .bd .card .s{font-size:calc(12px*var(--k,1));margin-top:2px}
 .bd .card.empty .r{font-size:calc(17px*var(--k,1))}
-.hc{position:absolute;left:50%;top:58.5%;transform:translateX(-50%);z-index:1;display:flex;gap:8px}
+.hc{position:absolute;left:50%;bottom:13%;transform:translateX(-50%);z-index:1;display:flex;gap:8px}
 .hc .card{width:47px;height:calc(66px*var(--k,1));border-radius:10px}
 .hc .card .r{font-size:calc(24px*var(--k,1))}
 .hc .card .s{font-size:calc(19px*var(--k,1));margin-top:3px}
@@ -850,8 +866,6 @@ html.stage-fit body{overflow:clip;overscroll-behavior:none}   /* clip, not hidde
 .dock .row::-webkit-scrollbar{display:none}
 .dk-v{flex:none;display:inline-flex;align-items:center;gap:4px;margin-right:10px}
 .dk-vn{font:600 11px/1 var(--f-body);color:var(--fg-2)}
-.seat .sa{font:600 9.5px/1 var(--f-body);letter-spacing:.02em;color:var(--fg-2)}
-.seat.hero .sa{color:#0b0c0e;opacity:.72}
 .seat.fold{opacity:.42}
 .seat.act{border-color:var(--tbl-rim);box-shadow:0 0 0 2px rgba(228,235,245,.5),0 0 18px var(--tbl-glow)}
 @media (prefers-reduced-motion:no-preference){
@@ -1970,19 +1984,32 @@ function tblHome() {
   return -j + n * Math.round((TBL.off + j) / n);
 }
 
-/* the rim: a squared oval, walked at constant speed so the seats are evenly spaced; u = 0 is the bottom centre, then clockwise on screen */
+/* the table: a stadium (straight top and bottom, round ends) about 3 wide for 2 high, as big as the box allows with room around it for the seats
+   and their labels; it never stretches. The seats sit on its outer edge. The edge is walked from the bottom centre, clockwise on screen, with the
+   straight parts counting for less than the round ends (TBL_WS), so the seats near the corners sit towards the corners as on the drawing.
+   pts / cum: 361 points evenly spaced on that walk (u = k / 360), which the seats and the finger both use. */
+const TBL_R = 1.48, TBL_WS = 0.37, TBL_MX = 26, TBL_MY = 46;
 function tblGeo(W, Hh) {
   const key = W + 'x' + Hh;
   if (TBL.geoKey === key) return TBL.geo;
-  const a = W / 2 - 31, b = Hh / 2 - 27, e = 2 / 2.35, M = 360, cx = W / 2, cy = Hh / 2, pts = [], cum = [0];
-  for (let k = 0; k <= M; k++) {
-    const t = k / M * 2 * Math.PI, s = Math.sin(t), c = Math.cos(t);
-    pts.push([cx - a * Math.sign(s) * Math.pow(Math.abs(s), e), cy + b * Math.sign(c) * Math.pow(Math.abs(c), e)]);
-    if (k) cum.push(cum[k - 1] + Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]));
-  }
-  const d = 'M' + pts.slice(0, M).map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L') + 'Z';
+  const w = Math.max(140, Math.min(W - 2 * TBL_MX, (Hh - 2 * TBL_MY) * TBL_R)), h = w / TBL_R, r = h / 2, L = w - h;
+  const x = (W - w) / 2, y = (Hh - h) / 2, cx = W / 2, cy = Hh / 2, lx = x + r, rx = x + w - r;
+  const half = L / 2 * TBL_WS, arc = Math.PI * r, len = 2 * half + 2 * arc + L * TBL_WS;   /* bottom (left half), left end, top, right end, bottom (right half) */
+  const at = sp => {
+    if (sp < half) return [cx - sp / TBL_WS, y + h];
+    sp -= half;
+    if (sp < arc) { const t = Math.PI / 2 + sp / r; return [lx + r * Math.cos(t), cy + r * Math.sin(t)]; }
+    sp -= arc;
+    if (sp < L * TBL_WS) return [lx + sp / TBL_WS, y];
+    sp -= L * TBL_WS;
+    if (sp < arc) { const t = 3 * Math.PI / 2 + sp / r; return [rx + r * Math.cos(t), cy + r * Math.sin(t)]; }
+    sp -= arc;
+    return [rx - Math.min(sp, half) / TBL_WS, y + h];
+  };
+  const M = 360, pts = [], cum = [];
+  for (let k = 0; k <= M; k++) { pts.push(k === M ? pts[0].slice() : at(k / M * len)); cum.push(k / M * len); }
   TBL.geoKey = key;
-  TBL.geo = { W: W, H: Hh, pts: pts, cum: cum, len: cum[M], d: d, cx: cx, cy: cy };
+  TBL.geo = { W: W, H: Hh, pts: pts, cum: cum, len: len, cx: cx, cy: cy, x: x, y: y, w: w, h: h, rail: Math.max(9, h * 0.056), band: Math.max(10, h * 0.07) };
   return TBL.geo;
 }
 function tblPt(g, u) {
@@ -2001,21 +2028,31 @@ function tblPlace(fast) {
   if (!fast || !g) {   /* during a turn the size is known: no measuring, so nothing forces a layout in the middle of a frame */
     const W = box.clientWidth, Hh = box.clientHeight;
     if (!W || !Hh) { requestAnimationFrame(() => tblPlace()); return; }   /* the screen is not shown yet: try again when it is */
-    box.style.setProperty('--k', Math.max(0.72, Math.min(1, Hh / 330)).toFixed(3));   /* the pot, the board and the Hero's cards shrink with a short table; the seats stay full size */
     g = tblGeo(W, Hh);
+    box.style.setProperty('--k', Math.max(0.7, Math.min(1, g.h / 238)).toFixed(3));   /* the pot, the board and the Hero's cards shrink with a small table; the seats stay full size */
   }
   const svg = box.firstElementChild;
   if (!fast && svg && svg.dataset.k !== TBL.geoKey) {
     svg.setAttribute('viewBox', '0 0 ' + g.W + ' ' + g.H);
-    svg.querySelectorAll('path').forEach(p => p.setAttribute('d', g.d));
-    const inner = svg.querySelector('.t-in');
-    if (inner) inner.setAttribute('transform', 'translate(' + g.cx + ' ' + g.cy + ') scale(.9) translate(' + (-g.cx) + ' ' + (-g.cy) + ')');
+    /* each layer is the stadium, drawn inside by its inset: the shadow and the rail at the edge, the felt inside the rail */
+    const ins = { 't-sh': 0, 't-rail': 0, 't-spec': g.rail * 0.32, 't-rim': 0.75, 't-band': g.rail, 't-lip': g.rail + 0.6, 't-felt': g.rail + g.band, 't-gl': g.rail + g.band + 1 };
+    const spec = svg.querySelector('.t-spec');
+    if (spec) spec.setAttribute('stroke-width', (g.rail * 0.34).toFixed(1));
+    svg.querySelectorAll('rect').forEach(el => {
+      const d = ins[el.getAttribute('class')] || 0;
+      el.setAttribute('x', (g.x + d).toFixed(1)); el.setAttribute('y', (g.y + d).toFixed(1));
+      el.setAttribute('width', (g.w - 2 * d).toFixed(1)); el.setAttribute('height', (g.h - 2 * d).toFixed(1));
+      el.setAttribute('rx', (g.h / 2 - d).toFixed(1));
+    });
     svg.dataset.k = TBL.geoKey;
   }
+  const tin = box.querySelector('.tin');   /* the pot, the board and the Hero's cards are laid out on the table itself, not on the box */
+  if (!fast && tin) tin.style.cssText = 'left:' + g.x.toFixed(1) + 'px;top:' + g.y.toFixed(1) + 'px;width:' + g.w.toFixed(1) + 'px;height:' + g.h.toFixed(1) + 'px';
   const n = tblN();
   box.querySelectorAll('.seat').forEach(s => {
     const p = tblPt(g, (+s.dataset.j + TBL.off) / n);
     s.style.transform = 'translate3d(' + p[0].toFixed(2) + 'px,' + p[1].toFixed(2) + 'px,0) translate(-50%,-50%)';
+    s.classList.toggle('up', p[1] < g.cy - 0.5);   /* a seat on the top half has its label above it, outside the table */
     const c = s.querySelector('.sc');   /* the cards seen on a villain lie towards the middle of the table */
     if (c) {
       const dx = g.cx - p[0], dy = g.cy - p[1], d = Math.hypot(dx, dy) || 1;
@@ -2092,8 +2129,8 @@ function seatHtml(p, j, foc, cx) {
   const lbl = isH ? 'Hero, ' + posLabel(H.table, p) : v ? 'Adversaire, ' + posLabel(H.table, p) : 'Siège ' + posLabel(H.table, p) + ', libre';
   const cards = v && v.cards.some(Boolean) ? '<span class="sc">' + v.cards.map(c => c ? cardFace(c, 'mini') : '').join('') + '</span>' : '';
   return '<button type="button" class="seat' + (isH ? ' hero' : v ? ' vil' : '') + (on ? ' foc' : '') + (act ? ' act' : '') + (folded ? ' fold' : '') + '"' + (acting && id && cx.may[id] ? ' data-may="1"' : '') + ' data-act="seat" data-p="' + esc(p) + '" data-j="' + j + '" aria-label="' + esc(lbl + (last ? ', ' + rowShort(last) : '') + (act ? ', à parler' : '')) + '">' +
-    (isH ? '<span class="sh">Hero</span>' : '') + '<span class="sp">' + esc(p) + '</span>' + (stk > 0 ? '<span class="ss">' + fmt(stk) + '</span>' : '') +
-    (last ? '<span class="sa">' + esc(rowShort(last)) + '</span>' : '') +
+    (isH ? '<span class="sh">Hero</span>' : '') + '<span class="sp' + (p.length > 4 ? ' lg' : '') + '">' + esc(p) + '</span>' +
+    (stk > 0 || last ? '<span class="sl">' + (stk > 0 ? '<span class="ss">' + fmt(stk) + '</span>' : '') + (last ? '<span class="sa">' + esc(rowShort(last)) + '</span>' : '') + '</span>' : '') +
     (dealer ? '<i class="dbtn">D</i>' : '') + cards + '</button>';
 }
 
@@ -2123,18 +2160,26 @@ function tblHtml(sim, mode) {
   const may = {}; if (mode === 'act') toAct(sim, ui.street).forEach(a => { may[a.id] = true; });
   const cx = { S: S, mode: mode, aid: mode === 'act' ? dockActor(sim, ui.street) : null, may: may };
   const pk = ui.picker && ui.picker.group === 'hero' ? ui.picker.i : -1;
-  const svg = '<svg class="tbl-svg" aria-hidden="true" focusable="false"><defs><radialGradient id="tbl-fg" cx="50%" cy="44%" r="64%"><stop offset="0" stop-color="#2b2e34"/>' +
-    '<stop offset=".72" stop-color="#181a1e"/><stop offset="1" stop-color="#0e0f12"/></radialGradient>' +
-    '<filter id="tbl-g1" x="-15%" y="-15%" width="130%" height="130%"><feGaussianBlur stdDeviation="7"/></filter>' +
-    '<filter id="tbl-g2" x="-15%" y="-15%" width="130%" height="130%"><feGaussianBlur stdDeviation="2.4"/></filter></defs>' +
-    '<path class="t-halo" filter="url(#tbl-g1)"/><path class="t-felt"/><path class="t-in"/><path class="t-glow" filter="url(#tbl-g2)"/><path class="t-rim"/></svg>';
+  /* a polished rail lit from above (lighter on top, a bright edge all round, a soft reflection along its top), a dark groove inside it,
+     a fine line, then the felt with a faint sheen */
+  const svg = '<svg class="tbl-svg" aria-hidden="true" focusable="false"><defs>' +
+    '<linearGradient id="tbl-rail" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a4b51"/><stop offset=".1" stop-color="#3a3b40"/><stop offset=".45" stop-color="#2a2b2f"/><stop offset=".88" stop-color="#1c1d20"/><stop offset="1" stop-color="#232428"/></linearGradient>' +
+    '<linearGradient id="tbl-spec" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".22" stop-color="#fff" stop-opacity=".04"/><stop offset=".4" stop-color="#fff" stop-opacity="0"/></linearGradient>' +
+    '<linearGradient id="tbl-rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset=".5" stop-color="#fff" stop-opacity=".16"/><stop offset="1" stop-color="#fff" stop-opacity=".34"/></linearGradient>' +
+    '<linearGradient id="tbl-band" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b0b0d"/><stop offset="1" stop-color="#141417"/></linearGradient>' +
+    '<linearGradient id="tbl-lip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".6" stop-color="#fff" stop-opacity=".03"/><stop offset="1" stop-color="#fff" stop-opacity=".12"/></linearGradient>' +
+    '<linearGradient id="tbl-fg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16171a"/><stop offset=".35" stop-color="#1c1d21"/><stop offset="1" stop-color="#18191c"/></linearGradient>' +
+    '<radialGradient id="tbl-gl" cx="50%" cy="18%" r="55%"><stop offset="0" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>' +
+    '<filter id="tbl-sh" x="-20%" y="-30%" width="140%" height="170%"><feGaussianBlur stdDeviation="9"/></filter></defs>' +
+    '<rect class="t-sh" filter="url(#tbl-sh)" transform="translate(0 8)"/><rect class="t-rail"/><rect class="t-spec"/><rect class="t-rim"/>' +
+    '<rect class="t-band"/><rect class="t-lip"/><rect class="t-felt"/><rect class="t-gl"/></svg>';
   const centre = hp
     ? '<div class="tcn pt"><span class="k">Pot · bb</span><span class="v" id="tbl-pot">' + fmt(S.potNow) + '</span></div>'
     : '<div class="tcn ask"><span class="q">Où es-tu ?</span><span class="s">Fais glisser la table, puis touche ta place</span></div>';
   const bd = hp ? tblBoard() : '';
   const hc = hp ? '<div class="hc' + (TBL.fresh === 'hero' ? ' pop' : '') + '">' + H.hero.cards.map((c, i) => slotBtn('hero', i, c, pk === i)).join('') + '</div>' : '';
   TBL.fresh = '';
-  return '<div class="tbl' + (hp ? '' : ' rot') + '" id="tbl" role="group" aria-label="Table, ' + TABLE_LABEL[H.table] + '">' + svg + centre + bd + hc + T.map((p, j) => seatHtml(p, j, foc, cx)).join('') + '</div>';
+  return '<div class="tbl' + (hp ? '' : ' rot') + '" id="tbl" role="group" aria-label="Table, ' + TABLE_LABEL[H.table] + '">' + svg + '<div class="tin">' + centre + bd + hc + '</div>' + T.map((p, j) => seatHtml(p, j, foc, cx)).join('') + '</div>';
 }
 
 /* a stack or the ante typed: the seats and the pot follow without redrawing the table */
@@ -2144,11 +2189,12 @@ function tblLive() {
   box.querySelectorAll('.seat').forEach(s => {
     const p = s.dataset.p, isH = H.hero.pos === p, v = isH ? null : H.villains.find(x => x.pos === p);
     const stk = isH ? num(H.hero.stack) : v ? num(v.stack) : 0;
-    let ss = s.querySelector('.ss');
+    let ss = s.querySelector('.ss'), sl = s.querySelector('.sl');
     if (stk > 0) {
-      if (!ss) { ss = document.createElement('span'); ss.className = 'ss'; s.querySelector('.sp').after(ss); }
+      if (!sl) { sl = document.createElement('span'); sl.className = 'sl'; s.querySelector('.sp').after(sl); }
+      if (!ss) { ss = document.createElement('span'); ss.className = 'ss'; sl.prepend(ss); }
       ss.textContent = fmt(stk);
-    } else if (ss) ss.remove();
+    } else if (ss) { ss.remove(); if (sl && !sl.children.length) sl.remove(); }
   });
   const pot = $('#tbl-pot');
   if (pot) pot.textContent = fmt(simulate(H).streets[ui.street].potNow);
