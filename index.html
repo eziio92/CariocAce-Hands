@@ -774,6 +774,14 @@ html.has-nav.has-sb .toast{bottom:calc(var(--navh) + 98px)}
 .bd .card .r{font-size:calc(21px*var(--k,1))}
 .bd .card .s{font-size:calc(17px*var(--k,1));margin-top:calc(3px*var(--k,1))}
 .bd .card.empty .r{font-size:calc(22px*var(--k,1))}
+/* a phone: the board bigger and higher, the pot under it */
+.tbl.ph .bd{top:19%}
+.tbl.ph .bd .card{width:calc(46px*var(--k,1));height:calc(64px*var(--k,1));border-radius:calc(8px*var(--k,1))}
+.tbl.ph .bd .card .r{font-size:calc(24px*var(--k,1))}
+.tbl.ph .bd .card .s{font-size:calc(19px*var(--k,1))}
+.tbl.ph .bd .card.empty .r{font-size:calc(25px*var(--k,1))}
+.tbl.ph .tcn.pt{top:52%}
+.tbl.ph .seat.side .sl{top:50%;left:calc(100% + 7px);transform:translateY(-50%)}
 .hc{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);z-index:1;display:flex;gap:8px}
 .hc .card{width:calc(50px*var(--k,1));height:calc(70px*var(--k,1));border-radius:calc(10px*var(--k,1))}
 .hc .card .r{font-size:calc(26px*var(--k,1))}
@@ -1893,7 +1901,10 @@ function stageFit() {
   if (!st || $('#view-edit').hidden) { root.classList.remove('stage-fit'); return; }
   const nav = $('#nav'), plus = $('#nv-plus');
   const probe = $('#safe-probe');
-  let bottom = window.innerHeight - (probe ? probe.offsetHeight : 0) - 8;
+  /* the home bar margin is taken off only when it is inside the page: an app installed on the iPhone may get a viewport already shorter than
+     the screen by more than that margin (seen on an iPhone 16 Pro Max: 62 pt short), and taking it off again would waste its height */
+  const sb = probe ? probe.offsetHeight : 0, lost = Math.max(0, (window.screen && screen.height || 0) - window.innerHeight);
+  let bottom = window.innerHeight - Math.max(0, sb - lost) - 8;
   if (nav && !nav.hidden) bottom = Math.min(nav.getBoundingClientRect().top, plus ? plus.getBoundingClientRect().top : 1e9);
   const avail = bottom - st.getBoundingClientRect().top - 10;
   const hh = Math.max(avail, 500) + 'px';
@@ -1998,11 +2009,13 @@ function tblHome() {
    seats grow with the table (ss, up to 1.5x). The seats sit on its outer edge. The edge is walked from the bottom centre, clockwise on screen, with the
    straight parts counting for less than the round ends (TBL_WS), so the seats near the corners sit towards the corners as on the drawing.
    pts / cum: 361 points evenly spaced on that walk (u = k / 360), which the seats and the finger both use. */
-const TBL_R = 1.48, TBL_RMAX = 1.6, TBL_WS = 0.37, TBL_MX = 12, TBL_MY = 46;
-function tblGeo(W, Hh) {
-  const key = W + 'x' + Hh;
+const TBL_R = 1.48, TBL_RMAX = 1.6, TBL_RMIN_PH = 1.3, TBL_WS = 0.37, TBL_MX = 12, TBL_MY = 46, TBL_MY_PH = 30;
+function tblGeo(W, Hh, ph) {
+  const key = W + 'x' + Hh + (ph ? 'p' : 'w');
   if (TBL.geoKey === key) return TBL.geo;
-  const fit = ss => { const wm = W - 2 * TBL_MX * ss, hm = Hh - 2 * TBL_MY * ss, hh = Math.max(95, Math.min(hm, wm / TBL_R)); return [Math.max(140, Math.min(wm, hh * TBL_RMAX)), hh]; };
+  /* on a phone the table may also stretch upwards and downwards (down to 1.3 wide for 1 high) when the height is there */
+  const my = ph ? TBL_MY_PH : TBL_MY, rmin = ph ? TBL_RMIN_PH : TBL_R;
+  const fit = ss => { const wm = W - 2 * TBL_MX * ss, hm = Hh - 2 * my * ss, hh = Math.max(95, Math.min(hm, wm / rmin)); return [Math.max(140, Math.min(wm, hh * TBL_RMAX)), hh]; };
   let ss = 1;
   for (let it = 0; it < 4; it++) ss = Math.max(1, Math.min(1.5, fit(ss)[1] / 260));
   const wh = fit(ss), w = wh[0], h = wh[1], r = h / 2, L = w - h;
@@ -2041,7 +2054,7 @@ function tblPlace(fast) {
   if (!fast || !g) {   /* during a turn the size is known: no measuring, so nothing forces a layout in the middle of a frame */
     const W = box.clientWidth, Hh = box.clientHeight;
     if (!W || !Hh) { requestAnimationFrame(() => tblPlace()); return; }   /* the screen is not shown yet: try again when it is */
-    g = tblGeo(W, Hh);
+    g = tblGeo(W, Hh, box.classList.contains('ph'));
     box.style.setProperty('--k', Math.max(0.7, Math.min(1.9, g.h / 250)).toFixed(3));   /* the pot, the board and the Hero's cards follow the size of the table */
     box.style.setProperty('--ss', g.ss.toFixed(3));   /* the seats: full size on a phone, bigger on a big table */
   }
@@ -2066,11 +2079,17 @@ function tblPlace(fast) {
   box.querySelectorAll('.seat').forEach(s => {
     const p = tblPt(g, (+s.dataset.j + TBL.off) / n);
     s.style.transform = 'translate3d(' + p[0].toFixed(2) + 'px,' + p[1].toFixed(2) + 'px,0) translate(-50%,-50%)';
-    s.classList.toggle('up', p[1] < g.cy - 0.5);   /* a seat on the top half has its label above it, outside the table */
+    /* a computer: the labels of the top half above the seats, outside the table. A phone: every label under its seat (the pot is under the board),
+       except on the bottom straight (the Hero's seat), where it goes beside the seat so the table can come down closer to the panel */
+    const ph = box.classList.contains('ph');
+    s.classList.toggle('up', !ph && p[1] < g.cy - 0.5);
+    s.classList.toggle('side', ph && p[1] > g.y + g.h - 0.5);
     const c = s.querySelector('.sc');   /* the cards seen on a villain lie towards the middle of the table */
     if (c) {
       const dx = g.cx - p[0], dy = g.cy - p[1], d = Math.hypot(dx, dy) || 1;
-      c.style.transform = 'translate(' + (dx / d * 47 * g.ss).toFixed(1) + 'px,' + (dy / d * 40 * g.ss).toFixed(1) + 'px) translate(-50%,-50%)';
+      c.style.transform = ph   /* a phone: beside the seat, on the side of the middle (its label is under it) */
+        ? 'translate(' + ((Math.abs(dx) < 1 ? 1 : Math.sign(dx)) * 40 * g.ss).toFixed(1) + 'px,0) translate(-50%,-50%)'
+        : 'translate(' + (dx / d * 47 * g.ss).toFixed(1) + 'px,' + (dy / d * 40 * g.ss).toFixed(1) + 'px) translate(-50%,-50%)';
     }
   });
 }
@@ -2193,7 +2212,7 @@ function tblHtml(sim, mode) {
   const bd = hp ? tblBoard() : '';
   const hc = hp ? '<div class="hc' + (TBL.fresh === 'hero' ? ' pop' : '') + '">' + H.hero.cards.map((c, i) => slotBtn('hero', i, c, pk === i)).join('') + '</div>' : '';
   TBL.fresh = '';
-  return '<div class="tbl' + (hp ? '' : ' rot') + '" id="tbl" role="group" aria-label="Table, ' + TABLE_LABEL[H.table] + '">' + svg + '<div class="tin">' + centre + bd + hc + '</div>' + T.map((p, j) => seatHtml(p, j, foc, cx)).join('') + '</div>';
+  return '<div class="tbl' + (hp ? '' : ' rot') + (isWide() ? '' : ' ph') + '" id="tbl" role="group" aria-label="Table, ' + TABLE_LABEL[H.table] + '">' + svg + '<div class="tin">' + centre + bd + hc + '</div>' + T.map((p, j) => seatHtml(p, j, foc, cx)).join('') + '</div>';
 }
 
 /* a stack or the ante typed: the seats and the pot follow without redrawing the table */
